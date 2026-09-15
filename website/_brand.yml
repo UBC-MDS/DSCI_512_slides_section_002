@@ -1,11 +1,9 @@
 typography:
   fonts:
-    - family: Alice
-      source: google
     - family: Source Code Pro
       source: google
-  headings: Alice
-  base: Alice
+  headings: Georgia
+  base: Georgia
   monospace: Source Code Pro
 
 # Bootswatch themes (e.g. minty) hardcode heading/navbar fonts; these
@@ -13,10 +11,10 @@ typography:
 defaults:
   bootstrap:
     defaults:
-      headings-font-family: Alice
+      headings-font-family: Georgia
     rules: |
       .navbar,
       .navbar-brand,
       .navbar-title {
-        font-family: Alice, serif;
+        font-family: Georgia, serif;
       }
