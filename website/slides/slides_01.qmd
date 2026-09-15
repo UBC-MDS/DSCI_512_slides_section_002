@@ -29,7 +29,7 @@ title-slide-attributes:
 
 ::: {.column width="62%" style="font-size: 0.75em;"}
 -   [Sky (Kehan) Sheng, PhD](https://www.skysheng.io/)
--   👩‍💻 I am a post-doc of computer science and a sessional lecturer for UBC MDS.
+-   👩‍💻 I am a post-doc of computer science and a sessional lecturer for statistics.
 -   My research spans data science, AI fairness and animal welfare science.
 -   Contact
     -   📧: skysheng\@cs.ubc.ca
