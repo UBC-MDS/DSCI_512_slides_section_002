@@ -1,0 +1,11 @@
+---
+title: "4. Sparse Matrices, Trees, and Graph Searches"
+description: "Sparse matrix formats, trees, and breadth-first and depth-first search."
+description-short: "Compare adjacency lists and adjacency matrices. Traverse graphs with breadth-first and depth-first search, using queues and stacks, and meet trees."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_04.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides (some slides borrowed from Vincent Liu and Elham Khoda).*

@@ -1,0 +1,52 @@
+# ============================== RELEASE CONTROL ==============================
+# A lecture counts as "released" when its slide deck is listed under
+# `project: render:` below. To release lecture N, make these two edits
+# (or run the skill's scripts/release_lecture.py N):
+#
+#   1. add  "slides/slides_NN.qmd"  to `project: render:`
+#   2. uncomment  - lec_NN.qmd  under `website: sidebar: contents:`
+#
+# The schedule table on lecture.qmd (built by _schedule.ejs) reads this same
+# render list: it links a lecture only when that lecture's deck is rendered.
+# Unreleased lectures still appear in the table with their title and
+# description, as plain text with a "coming soon" badge, and their decks are
+# never rendered, so there is nothing to link to or guess the URL of.
+# ============================================================================
+
+project:
+  type: website
+  render:
+    - "./*.qmd"
+    # Released slide decks only — add one line per release:
+    - "slides/slides_01.qmd"
+
+website:
+  title: "DSCI 512: Algorithms and Data Structures"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: lecture.qmd
+        text: "Lectures"
+
+  page-navigation: true
+
+  sidebar:
+      contents:
+        - lecture.qmd
+        - lec_01.qmd
+      #  - lec_02.qmd
+      #  - lec_03.qmd
+      #  - lec_04.qmd
+      #  - lec_05.qmd
+      #  - lec_06.qmd
+      #  - lec_07.qmd
+      #  - lec_08.qmd
+
+format:
+  html:
+    theme: [minty, brand]
+    toc: true
+
+execute:
+  freeze: auto

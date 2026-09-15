@@ -1,0 +1,11 @@
+---
+title: "8. Dynamic Programming II"
+description: "More dynamic programming, including edit distance and backtracking."
+description-short: "Apply dynamic programming to harder optimization problems such as edit distance, and recover the optimal solution by backtracking through the table."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_08.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*

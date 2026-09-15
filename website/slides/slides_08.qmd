@@ -1,0 +1,578 @@
+---
+title: "DSCI 512 Lecture 8 : Dynamic Programming II"
+author: "Sky (Kehan) Sheng"
+format:
+  revealjs:
+    header-includes:
+      - <script src="helper.js"></script>
+    slide-number: true
+    chalkboard: {buttons: true}
+    preview-links: auto
+---
+
+## Course Evaluations
+
+ - Use the link on Canvas
+
+## Lecture 7 Review
+
+- Caching and memoization
+- Intro to Dynamic Programming:
+    - **Overlapping subproblems**
+    - **Optimal substructure**
+
+## Lecture 7 Review
+
+- Top-Down
+```python
+def fib_memoized(n, memo=dict()):
+    # Check cache
+    if n in memo:
+        return memo[n]
+
+    if n == 1 or n == 2:
+        return 1
+
+    memo[n] = fib_memoized(n-1, memo) + fib_memoized(n-2, memo)
+
+    return memo[n]
+```
+
+## Lecture 7 Review
+
+- Bottom-Up
+```python
+def fib_iterative(n):
+
+    f = np.zeros(n+1, dtype=int)
+
+    f[1] = 1
+
+    for i in range(2,n+1):
+        f[i] = f[i-1] + f[i-2]
+
+    return f[-1]
+```
+
+## Outline
+
+- The edit distance problem
+- Backtracking
+- Course recap
+
+## Learning objectives
+
+- Describe the basic idea of dynamic programming and backtracking.
+- Identify problems when dynamic programming is applicable.
+- Implement simple dynamic programming algorithms.
+
+## Edit Distance
+
+**Definition**: Given two strings `s1` and `s2`, the edit distance is the minimum number of operations required to transform `s1` into `s2`. The allowed operations are:
+
+- **Insert** a character
+- **Delete** a character
+- **Replace** one character with another
+
+**Example:** transforming `"cat"` into `"cut"` requires just one replacement of `'a'` with `'u'`, so the edit distance is 1.
+
+## Edit Distance
+- Recursive
+```python
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+
+<!-- #### Edit Distance
+- Recursive
+```{.python code-line-numbers="1,"}
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+
+## Edit Distance
+- Recursive
+```{.python code-line-numbers="2,3,4,5,6"}
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+
+## Edit Distance
+- Recursive
+```{.python code-line-numbers="8,9,10"}
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+
+## Edit Distance
+- Recursive
+```{.python code-line-numbers="12,13,14,15"}
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+
+## Edit Distance
+- Recursive
+```{.python code-line-numbers="17"}
+def edit_distance(s1, s2):
+    # Base cases
+    if len(s1) == 0:
+        return len(s2)
+    if len(s2) == 0:
+        return len(s1)
+
+    # If first characters are the same, move to the next pair
+    if s1[0] == s2[0]:
+        return edit_distance(s1[1:], s2[1:])
+
+    # If first characters are different, consider all possibilities
+    insert = edit_distance(s1, s2[1:]) # insert
+    remove = edit_distance(s1[1:], s2) # delete
+    replace = edit_distance(s1[1:], s2[1:]) # replace
+
+    return 1 + min(insert, remove, replace)
+```
+ -->
+
+## Edit Distance
+- Dynamic programming
+```python
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+<!-- #### Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="1,"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="3,4"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="6,7"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="8,9,10,11"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="13,14,15,16"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="17,18,19,20,21,22,23"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="24,25,26,27,28,29,30,31"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+```
+
+## Edit Distance
+- Dynamic programming
+```{.python code-line-numbers="33,34"}
+def edit_distance_dp(s1, s2):
+
+    # Get the lengths of both input strings
+    n, m = len(s1), len(s2)
+
+    # Initialize a (n+1) x (m+1) DP matrix with zeros.
+    edit_distance = np.zeros((n + 1, m + 1), dtype=int)
+
+    # Base case 1: If s2 is empty, we need 'i' deletions to convert s1 → ""
+    for i in range(1, n + 1):
+        edit_distance[i, 0] = i
+
+    # Base case 2: If s1 is empty, we need 'j' insertions to convert "" → s2
+    for j in range(1, m + 1):
+        edit_distance[0, j] = j
+
+    # Fill the DP table
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+
+            # If the current characters match, no operation is needed
+            if s1[i - 1] == s2[j - 1]:
+                edit_distance[i, j] = edit_distance[i - 1, j - 1]
+
+            # Otherwise, consider the cost of insertion, deletion, and replacement
+            else:
+                edit_distance[i, j] = 1 + min(
+                    edit_distance[i, j - 1],     # insert
+                    edit_distance[i - 1, j],     # delete
+                    edit_distance[i - 1, j - 1]  # replace
+                )
+
+    # The bottom-right cell contains the minimum edit distance between s1 and s2
+    return int(edit_distance[n, m])
+``` -->
+
+## Course recap
+- Defined **algorithms** and **data structures**
+- Explored **time and space complexity**, measured via **mathematical analysis** and **profiling**
+- Reviewed **Python data structures**: lists, dictionaries, sets, tuples
+- Introduced **abstract structures**: stacks, queues, and hash tables
+- Studied **graphs** (including **sparse matrix** representations) and **trees**  and graph algorithms such **BFS** and **DFS**
+- Discussed **recursion**, **multiple recursive calls**, and **recursive data structures** such as **binary search trees (BSTs)**
+- Built intuition for analyzing, implementing problems that can be solved using Dynamic Programming
+
+## Important topics we could not cover
+
+- Sorting
+- Divide and conquer
+- Other tools for speeding up python: JIT compilers, Cython, PyPy
+- Parallel and Distributed computing
+- Linear programming

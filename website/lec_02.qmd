@@ -1,0 +1,11 @@
+---
+title: "2. Space Complexity and Basic Data Structures"
+description: "Measure memory use and meet hash tables, stacks and queues."
+description-short: "Reason about how much memory code uses. Explore hashing, Python dictionaries and sets, and the stack and queue data structures."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_02.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides (original slides by Vincent Liu).*

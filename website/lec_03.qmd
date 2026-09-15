@@ -1,0 +1,11 @@
+---
+title: "3. Graphs and Sparse Matrices"
+description: "Represent relationships as graphs and store mostly-empty matrices efficiently."
+description-short: "Learn graph vocabulary (nodes, edges, paths, connectivity) and how to build graphs in Python. See why sparse matrices save memory for data that is mostly zeros."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_03.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides (some slides borrowed from Vincent Liu and Elham Khoda).*

@@ -1,0 +1,589 @@
+---
+title: "DSCI 512 Lecture 5 : Recursive Algorithms"
+author: "Sky (Kehan) Sheng"
+format:
+  live-revealjs:
+    header-includes:
+      - <script src="coi-serviceworker.js"></script>
+      - <script src="helper.js"></script>
+    slide-number: true
+    chalkboard: {buttons: true}
+    preview-links: auto
+    scrollable: true
+    menu:
+      side: right
+      width: wide
+engine: markdown
+pyodide:
+  packages:
+    - numpy
+    - matplotlib
+---
+
+## Outline
+
+- Recursion intro: random tree graphics
+- Recursion intro: the details
+- Binary search, revisited
+- Group activity
+- Multiple recursive calls
+
+## Learning Objectives
+
+* Explain what recursion is, and why both the base case(s) and recursive step(s) are essential.
+* Recognize problems for which a recursive solution is appropriate.
+* Write a recursive solution for a simple problem.
+* Compare and contrast recursion and iteration.
+
+## Recursion intro: random tree graphics
+
+```{pyodide}
+import numpy as np
+import matplotlib.pyplot as plt
+def move_pen(x, y, angle, length):
+    """
+    Moves a point from initial location of x and y according to
+    angle and length specified.
+
+    Parameters
+    ----------
+    x : float
+        initial location of pen on the x axis
+    y : float
+        initial location of pen on the y axis
+    angle : float
+        direction from initial location (0 means up)
+    length: distance from the initial location desired to move
+
+    Returns
+    -------
+    new_x : float
+        new location on the x axis
+    new_y : float
+        new location on the y axis
+
+    Examples
+    --------
+    >>> move_pen(0, 0, 90,2)
+    (2.0, 0)
+    >>> move_pen(0, 0, 180,2)
+    (0, -2.0)
+
+    """
+    new_x = x + length * np.sin(angle * np.pi / 180.0)
+    new_y = y + length * np.cos(angle * np.pi / 180.0)
+    return new_x, new_y
+
+def branch(x, y, angle=0, length=1, marker="."):
+    """
+    Plot a shape at the end of a tree branch.
+
+    Parameters
+    ----------
+    x : float
+        initial location on the x axis
+    y : float
+        initial location on the y axis
+    angle : float, optional (default = 0)
+        not used, needed to conform to the same interface as vee
+    length: float, optional (default = 1)
+        not used, needed to conform to the same interface as vee
+    marker : str, optional (default = ".")
+        the shape at the end of the branch
+    """
+    plt.plot(x, y, marker=marker, markersize="15",
+             markerfacecolor="None", markeredgecolor="k")
+
+def square(*args):
+    return branch(*args, marker="s")
+
+def hexagon(*args):
+    return branch(*args, marker="h")
+
+def star(*args, length=1):
+    return branch(*args, marker="*")
+
+def vee(x=0, y=0, angle=0, length=1):
+    """
+    Plots a tree with random shaped nodes given
+    a trunk location, branch angle and branch length.
+
+    Parameters
+    ----------
+    x : float, optional (default = 0)
+        location of pen on the x axis
+    y : float, optional (default = 5)
+        location of pen on the y axis
+    angle : float, optional (default = 0)
+        direction from location desired to move in degrees
+    length: float,  (default = 1)
+        distance from the location desired to move
+    """
+#     plt.figure(figsize=(4,3))
+
+    # possible shapes
+    shapes = [square, hexagon, star]
+
+    # branch left
+    shape = np.random.choice(shapes)
+    new_angle = angle - 20/np.pi
+    new_x, new_y = move_pen(x, y, new_angle, length)
+    plt.plot([x, new_x], [y, new_y], 'k')
+    shape(new_x, new_y, new_angle, length)
+
+    # branch right
+    shape = np.random.choice(shapes)
+    new_angle = angle + 20/np.pi
+    new_x, new_y = move_pen(x, y, new_angle, length)
+    plt.plot([x, new_x], [y, new_y], 'k')
+    shape(new_x, new_y, new_angle, length)
+
+    plt.xticks(())
+    plt.yticks(())
+    plt.xlim((-2, 2))
+    plt.ylim((0, 10))
+#     plt.draw()
+#     plt.pause(0.05)
+```
+
+## Recursion intro: random tree graphics
+
+```{pyodide}
+plt.figure(figsize=(5, 3))
+vee()
+plt.show()
+```
+
+## Recursion intro: the details
+
+- **Step 1**: functions with outputs but no inputs
+
+```{pyodide}
+def h():
+    return 0
+```
+
+```{pyodide}
+h()
+```
+
+```{pyodide}
+def g():
+    return h() + 1
+```
+
+```{pyodide}
+g()
+```
+
+```{pyodide}
+def f():
+    return g() + 1
+```
+
+```{pyodide}
+f()
+```
+
+## Recursion intro: the details
+
+- **Step 2**: functions with inputs but no outputs
+
+```{pyodide}
+def h(n):
+    print("You called h with n=", n)
+    print("Ending h with n=", n)
+```
+
+```{pyodide}
+h(3)
+#h(2)
+```
+
+```{pyodide}
+def g(n):
+    print("You called g with n=", n)
+    h(n-1)
+    print("Ending g with n= ", n)
+```
+
+```{pyodide}
+g(1)
+#g(2)
+#g(3)
+```
+
+```{pyodide}
+def f(n):
+    print("You called f with n=", n)
+    g(n-1)
+    print("Ending f with n=", n)
+```
+
+```{pyodide}
+f(5)
+# f(10) # Optional note: call stack
+```
+
+## Recursion intro: the details
+
+- **Step 3**: functions with inputs and outputs
+```{pyodide}
+def h(n):
+    print("Starting h with n=", n)
+    value = 0
+    print("Ending h with n=", value)
+    return value
+```
+
+```{pyodide}
+h(5)
+```
+
+```{pyodide}
+def g(n):
+    print("Starting g with n=", n)
+    value = h(n-1) + 1
+    print("Ending g with n=", value)
+    return value
+```
+
+```{pyodide}
+g(10)
+```
+
+```{pyodide}
+def f(n):
+    print("Starting f with n=", n)
+    value = g(n-1) + 1
+    print("Ending f with n=", value)
+    return value
+```
+
+```{pyodide}
+f(11)
+```
+
+## Recursion intro: the details
+
+- Let's remove some of the print statements to make things more compact:
+```{pyodide}
+def f(n):
+    print("Starting f with n=", n)
+    return g(n-1) + 1
+
+def g(n):
+    print("Starting g with n=", n)
+    return h(n-1) + 1
+
+def h(n):
+    print("Starting h with n=", n)
+    return 0
+```
+```{pyodide}
+f(11)
+#f(1000)
+```
+
+## Recursion intro: the details
+
+- Now look at this code (we're getting close to the punch line):
+
+```{pyodide}
+def f(n):
+    print("Starting f with n=", n)
+    if n == 0:
+        return 0
+    else:
+        return g(n-1) + 1
+
+def g(n):
+    print("Starting g with n=", n)
+    if n == 0:
+        return 0
+    else:
+        return h(n-1) + 1
+
+def h(n):
+    print("Starting h with n=", n)
+    if n == 0:
+        return 0
+    else:
+        return i(n-1) + 1
+
+# ...
+# ...
+```
+
+```{pyodide}
+f(0)
+#f(1)
+#f(2)
+#f(3)
+```
+
+## Recursion intro: the details
+
+- So why write a million times
+```{.python}
+def f(n):
+    if n == 0:
+        return 0
+    else:
+        return g(n-1) + 1
+
+# def g(n):
+#     ...
+#
+# def h(n):
+#     ...
+```
+- when we can write
+```{pyodide}
+def f(n):
+    if n == 0:
+        return 0
+    else:
+        return f(n-1) + 1
+```
+
+## Recursion intro: the details
+```{pyodide}
+f(2)
+#f(-1)
+```
+
+::: {.incremental}
+
+- <img width="400" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Stack_Overflow_logo.svg/512px-Stack_Overflow_logo.svg.png">  </br>
+(Image source: [Wikipedia](https://commons.wikimedia.org/wiki/File:Stack_Overflow_logo.svg))
+
+- A stack overflow error most commonly occurs when a recursive function makes an exceedingly large numbers of calls to itself
+- causes the memory allocated for a function's call stack to overflow.
+- Python prevents this from happening by throwing a `RecursionError`.
+
+:::
+
+## Recursion intro: the details
+```{pyodide}
+def f(n):
+    print("Starting f with n=", n)
+    if n == 0:
+        print("Ending f with n =", n, "and returning 0 (base case)")
+        return 0
+    else:
+        value = f(n-1) + 1
+        print("Ending f with n =", n, "and returning", value)
+        return value
+```
+
+```{pyodide}
+f(2)
+#f(5)
+```
+
+## Group Activity
+
+```{.python}
+def f(n):
+    if n == 0:
+        return ""
+    elif n == 3:
+        return "b" + f(n-1) + "c"
+    else:
+        return "a" + f(n-1)
+```
+
+**Without running the code**, fill in the table for what `f` returns:
+
+|  `n`   |   `f(n)` |
+|--------|--------|
+| 0      |       |
+| 1      |     |
+| 2      |    |
+| 3      |    |
+| 4      |      |
+| 5      |      |
+| -1     |       |
+
+## Group Activity
+
+- Answer:
+
+|  `n`   |   `f(n)` |
+|--------|--------|
+| 0      |   ""     |
+| 1      |   "a"    |
+| 2      |   "aa"   |
+| 3      |   "baac"   |
+| 4      |   "abaac"     |
+| 5      |   "aabaac"     |
+| -1     |   _infinite loop_     |
+
+## Binary search, revisited
+
+- Iterative implementation
+```{.python}
+def binary_search(data, key):
+
+    low = 0
+    high = len(data) - 1
+    while (low <= high):
+        mid = (high + low)//2
+        if data[mid] == key:
+            return True
+        if key < data[mid]:
+            high = mid - 1
+        else:
+            low = mid + 1
+    return False
+```
+
+## Binary search, revisited
+
+- Recursive implementation
+```{.python}
+def binary_search(data, key):
+    if len(data) == 1:
+        return data[0] == key
+
+    mid = len(data)//2
+    if key < data[mid]:
+        return binary_search(data[:mid], key)
+    else:
+        return binary_search(data[mid:], key)
+```
+
+## Binary search, revisited
+
+- Recursive implementation
+
+```{.python code-line-numbers="2,3"}
+def binary_search(data, key):
+    if len(data) == 1:
+        return data[0] == key
+
+    mid = len(data)//2
+    if key < data[mid]:
+        return binary_search(data[:mid], key)
+    else:
+        return binary_search(data[mid:], key)
+```
+
+## Binary search, revisited
+
+- Recursive implementation
+
+```{.python code-line-numbers="5,6,7,8,9"}
+def binary_search(data, key):
+    if len(data) == 1:
+        return data[0] == key
+
+    mid = len(data)//2
+    if key < data[mid]:
+        return binary_search(data[:mid], key)
+    else:
+        return binary_search(data[mid:], key)
+```
+
+## Multiple recursive calls
+
+- Consider the function below.
+```{pyodide}
+def f(n):
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return f(n-1) + f(n-2)
+```
+```{pyodide}
+f(3)
+#f(4)
+```
+```{pyodide}
+def f(n):
+    print("Starting f with n=", n)
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return f(n-1) + f(n-2)
+```
+```{pyodide}
+f(4)
+```
+
+## Multiple recursive calls
+
+- The [Fibonacci sequence](https://en.wikipedia.org/wiki/Fibonacci_number): $F_n=F_{n-1}+F_{n-2}$.
+
+- In this case we need **2 base cases** to get things started, because $F_n$ depends on the **previous 2 steps**.
+- Recursive functions don't need to be sequences, as we'll see.
+- The time complexity here is something like $O(2^n)$
+  - (Slightly less than $2^n$ steps but close enough.)
+  - It is generally true, rougly speaking, that if a recursive function calls itself $k$ times and the "depth" of the recursion is $n$, then the time complexity is $k^n$. More on this next class.
+
+## Multiple recursive calls
+
+::: {.incremental}
+
+- **Question:** What is the space complexity of our Fibonacci function `f`?
+    - $O(2^n)$ \
+    - $O(n^2)$ \
+    - $O(n)$ \
+    - $O(1)$
+
+- **Answer:** $O(n)$
+:::
+
+## Multiple recursive calls
+
+Revisiting the binary search code above:
+
+```{.python}
+def binary_search(data, key):
+    if len(data) == 1:
+        return data[0] == key
+
+    mid = len(data)//2
+    if key < data[mid]:
+        return binary_search(data[:mid], key)
+    else:
+        return binary_search(data[mid:], key)
+```
+- **Question:** Is this function making multiple recursive calls and thus running in $O(2^n)$ time?
+
+## Group Activity
+
+Consider the code below:
+
+```{pyodide}
+def f(n):
+    if n < 3:
+        return 1
+    if f(n-1) > f(n-2):
+        return f(n-2) - 1
+    else:
+        return f(n-3) + 1
+```
+**Without running the code**, fill in the table for what `f` returns:
+
+|  `n`   |   `f(n)` |
+|--------|--------|
+| 0      |        |
+| 1      |        |
+| 2      |        |
+| 3      |        |
+| 4      |        |
+| 5      |        |
+| 6      |        |
+| 7      |        |
+| 8      |        |
+
+## Group Activity
+
+- **Answer**
+
+```{pyodide}
+for n in range(9):
+    print(f'f({n}) = {f(n)}')
+```

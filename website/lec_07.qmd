@@ -1,0 +1,11 @@
+---
+title: "7. Dynamic Programming I"
+description: "Solve problems with overlapping subproblems using memoization and tabulation."
+description-short: "Spot problems with overlapping subproblems, like Fibonacci and climbing stairs. Speed them up with caching (top-down) and tables (bottom-up)."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_07.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*

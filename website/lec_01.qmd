@@ -1,0 +1,11 @@
+---
+title: "1. Introduction, Time Complexity, and Big O Notation"
+description: "Course logistics, what algorithms are, and analysing running time with Big O."
+description-short: "Meet the course and the teaching team. Learn what an algorithm is, compare linear and binary search, and use Big O notation to describe how running time grows."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_01.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides (original slides by Vincent Liu).*

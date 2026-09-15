@@ -1,0 +1,11 @@
+---
+title: "6. Recursive Data Structures"
+description: "Linked lists, binary search trees and k-d trees."
+description-short: "Build data structures defined in terms of themselves, such as linked lists and trees. Use binary search trees and k-d trees for fast lookup and nearest-neighbour search."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_06.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*

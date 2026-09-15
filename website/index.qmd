@@ -1,0 +1,7 @@
+---
+title: "DSCI 512 Section 002"
+---
+
+Welcome to DSCI 512! Here, you'll find slides for DSCI 512 Section 002 (2026 Winter Term 1).
+
+Instructor: [Sky (Kehan) Sheng](https://www.skysheng.io/)

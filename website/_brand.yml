@@ -1,0 +1,22 @@
+typography:
+  fonts:
+    - family: Alice
+      source: google
+    - family: Source Code Pro
+      source: google
+  headings: Alice
+  base: Alice
+  monospace: Source Code Pro
+
+# Bootswatch themes (e.g. minty) hardcode heading/navbar fonts; these
+# Sass defaults/rules apply after the theme so the brand font wins.
+defaults:
+  bootstrap:
+    defaults:
+      headings-font-family: Alice
+    rules: |
+      .navbar,
+      .navbar-brand,
+      .navbar-title {
+        font-family: Alice, serif;
+      }

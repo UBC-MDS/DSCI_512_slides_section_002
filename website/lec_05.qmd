@@ -1,0 +1,11 @@
+---
+title: "5. Recursive Algorithms"
+description: "Read, write and reason about recursive functions."
+description-short: "Break problems into smaller copies of themselves. Identify base and recursive cases, trace the call stack, and see where recursion goes wrong."
+---
+
+## Slides for Section 002
+
+{{< revealjs "slides/slides_05.html" height="600px" class="ratio ratio-16x9" >}}
+
+*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*
