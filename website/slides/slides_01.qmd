@@ -268,12 +268,12 @@ By the end of this lecture, you will be able to:
 
 - Example: we can use the `%timeit` function to measure the runtime of a single statement.
 
-```python
+```{pyodide}
 n = 10_000_000 # setting n to an arbitrary large number.
 %timeit (list(range(n)))
 ```
 
-```python
+```{pyodide}
 %timeit (set(range(n)))
 ```
 
@@ -281,12 +281,12 @@ n = 10_000_000 # setting n to an arbitrary large number.
 
 - Example (continued):
 
-```python
+```{pyodide}
 x = list(range(n))
 %timeit (-1 in x)
 ```
 
-```python
+```{pyodide}
 x = set(range(n))
 %timeit (-1 in x)
 ```
@@ -294,7 +294,7 @@ x = set(range(n))
 ## Profiling functions
 
 - we can use `%prun` on a function to tell how much time was spend in each part.
-```python
+```{pyodide}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -305,7 +305,7 @@ def g(n):
 ## Line profiler
 
 - we can use `%lprun` from the `line_profiler` library to profile out code line by line:
-```python
+```{pyodide}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -318,7 +318,7 @@ def g(n):
 
 - what happens if $n$ is doubled, i.e., $n = 10$?
 
-```python
+```{pyodide}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -331,7 +331,7 @@ def g(n):
 
 - What if there is a nested loop?
 
-```python
+```{pyodide}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -345,7 +345,7 @@ def g_nested(n):
 
 - what if $n$ is doubled in this case?
 
-```python
+```{pyodide}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -359,7 +359,7 @@ def g_nested(n):
 
 - What if $n=5$, but $0.1$ is double to be $0.2$?
 
-```python
+```{pyodide}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -544,7 +544,7 @@ def g_nested(n):
 - However, we have to think about the functions we're using.
 
 ## Step 1: Determine the number of steps
-```python
+```{pyodide}
 def g(n):
     for i in range(n):       # n iterations
         for i in range(n):   # n iterations
