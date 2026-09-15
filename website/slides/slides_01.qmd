@@ -2,12 +2,18 @@
 title: "DSCI 512 Lecture 1 : Introduction, Time Complexity, and Big O Notation"
 author: "Sky (Kehan) Sheng"
 format:
-  revealjs:
+  live-revealjs:
     header-includes:
+      - <script src="coi-serviceworker.js"></script>
       - <script src="helper.js"></script>
     slide-number: true
     chalkboard: {buttons: true}
     preview-links: auto
+    scrollable: true
+    menu:
+      side: right
+      width: wide
+engine: markdown
 title-slide-attributes:
   data-background-image: images/hello_background.png
   data-background-size: cover
@@ -21,7 +27,7 @@ title-slide-attributes:
 ![](images/sky.jpg){width=370px fig-align="center"}
 :::
 
-::: {.column width="62%" style="font-size: 0.8em;"}
+::: {.column width="62%" style="font-size: 0.75em;"}
 -   [Sky (Kehan) Sheng, PhD](https://www.skysheng.io/)
 -   👩‍💻 I am a post-doc of computer science and a sessional lecturer for UBC MDS.
 -   My research spans data science, AI fairness and animal welfare science.
@@ -30,31 +36,30 @@ title-slide-attributes:
     -   💼: ICCS Building Room 187
     -   🔗: skysheng.io
     -   💬: `@Sky` on Slack
+    -   🕰️ [MDS calendar](https://ubc-mds.github.io/calendar/) for office hours.
 :::
 :::::
 
 ::: {.notes}
-love animals --> vet dream when I was younger --> Costa Rica, rhino tracking --> programming --> see the behaviours, the movement of animals through data --> phd use data science skills to understand animal behaviours, preferences, friendships, enemies --> AI fairness, different values embedded in AI --> teaching many years, now post-doc and instructor for MDS
+**My path to data science:**
 
-TA introduction (TAs listed on the course logistics slide)
+- Grew up loving animals and wanted to be a vet as an undergrad, just like many of you might be figuring out your path right now
+- Volunteered for wildlife rescue in Costa Rica, learned about tracking wild rhino using small satellites, which sparked my curiosity about the behaviour and movement patterns hidden in animal data
+- Learned programming and how to analyze animal movement data, which led to a PhD using data science to study animal behaviour, preferences, friendships, and rivalries
+- That work grew into research on AI fairness, how human values get embedded (and sometimes distorted) in AI systems
+- Now: years of teaching experience, currently a post-doc and instructor
 
-name memorizing can be hard for us, we will try!
+**TA introductions**
 :::
 
 ## {background-image="images/diverse_path.png" background-size="contain" background-position="center"}
 
 ::: {.notes}
-1. data scientists come from different paths --> INTERESTING! MDS cohorts are a great example.
-
-2. diverse students, different paths, backgrounds. some of you have written lots of code, some of you only started programming in DSCI 511.
-
-3. experienced students: help others, learn different skills (communication, explaining complex concepts in simple ways). the best way to know if you truly understand something is to see if you are able to explain it to someone else. we all have something to learn from one another, everyone has something they know better than the rest of the class.
-
-4. students new to algorithms: that was me when i walked into uni. just got first laptop, what is a terminal? scary! when I walked into my first programming class, people around me were talking in jargon and too arrogant to explain it to me. i thought i was not smart enough for this. looking back now, it was not the case at all.
-
-not knowing something is just not knowing, that's it, it is a concept or a field you did not get the chance to learn about in the past, that's it. it has nothing to do with your intelligence, or your potential to succeed in this field.
-
-5. make friends and collaborate. knowledge is freely accessible online, but friendship is not. the biggest asset from MDS is the connections you build, the way you practice communication, collaboration and thinking together.
+1. Data scientists come from all kinds of backgrounds, that's what makes this field so interesting.
+2. This class is diverse: different majors, experiences, and starting points.
+3. **If you have prior experience:** help others! Teaching is one of the best ways to test your own understanding, explaining a concept simply to someone else reveals what you truly know. Everyone in this room knows something the rest of the class doesn't.
+4. **If you have zero experience:** that was me too when i entered university. My first laptop, my first terminal, it was intimidating, especially surrounded by classmates using jargon I didn't understand. I thought I wasn't smart enough for this. Looking back, that wasn't true at all. Not knowing something just means you haven't had the chance to learn it yet, it has nothing to do with your intelligence or your potential to succeed in this field.
+5. Make friends and collaborate. Knowledge is freely available online, but friendships aren't. The biggest thing you'll gain from this course (and university in general) is the people you meet and the practice you get communicating, collaborating, and thinking together.
 :::
 
 ## iClicker Set Up for Section 002
@@ -66,12 +71,7 @@ not knowing something is just not knowing, that's it, it is a concept or a field
 ![](images/iclicker_qr.png){width=300px fig-align="center"}
 
 ::: {.notes}
-iClicker every Tuesday lecture. 
-
-iClicker only make up 2% of total grade, we will drop the lowest 2 scores. 
-
-0.5 for participation, 0.5 for correctness. unless i say otherwise. 
-
+no marks for iClicker, only for easier in class participation.
 :::
 
 ## iClicker: Do we still need to learn algorithms and data structures in the AI era? {style="font-size: 0.7em;"}
@@ -100,7 +100,7 @@ iClicker only make up 2% of total grade, we will drop the lowest 2 scores.
 ::: {.column width="50%" style="text-align: center; font-size: 0.9em;"}
 ![](https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif){width=250px height=180px fig-align="center" style="margin-bottom: -0.8em;"}
 
-\(D) I'm still figuring out what a data science is...
+\(D) I'm still figuring out what data science is...
 :::
 :::::
 
@@ -117,17 +117,13 @@ show of hands for each option.
 ![](images/thinking_skills.png){width=90% fig-align="center"}
 
 ::: {.notes}
-You can not outsource your thinking to AI. In the quizzes, yes we will test if you can analyze the complexity of code and trace an algorithm, but the long-term objective of learning algorithms is not about memorizing the specifics of a sorting function or the exact Python syntax. AI nails it, it's really good at memorizing the exact syntax for different programming languages.
-
-Me: learnt Java, forgot, never needed to use it, but the logical thinking stays with me. i used to write R like i write Java
-
-We are training you here to be independent thinkers, life-long learners and problem solvers. You are here to learn how to think logically, critically and creatively, how to approach and solve new problems. And there is no shortcut to that. If you simply throw your lab questions to AI and copy and paste whatever ChatGPT gives you, you are not practicing thinking, you are practicing copying and pasting.
-
-that's why we ask you to attempt the labs on your own first and declare any AI use, and the quizzes are closed book with no AI tools. You have to go through the process, slowly and steadily, step by step, yourself. There will be times when you fall, you make mistakes, you get stuck, you see bugs, red scary error messages, that's how you grow (my 8 h debugging experience taught me tons). Think about this like going to the gym, you have to put in the hard work to lift the heavy weight of the labs, to train your brain muscle to be stronger and good at solving problems with logic.
-
-Your taste, your ability to solve problems and think critically are what matter the most in this era, and those are the skills that will make you stand out.
-
-DO THE PRE-READINGS! use your own brain, not have AI read them for you. otherwise the machine is learning but you are not learning.
+- You can't outsource your thinking to AI. Exams do test whether you remember python syntax, but the long-term goal of this course isn't memorizing code, AI is already great at that.
+- My own experience: I learned Java years ago, rarely use it now, but the logical thinking skills stuck with me.
+- This course trains you to be an independent thinker, life-long learner, and problem solver, to approach and solve new problems on your own. There's no shortcut to that.
+- If you copy-paste AI's answers into your worksheets, you're practicing copying and pasting, not thinking. That's why AI isn't allowed on tutorials, worksheets, or exams, you need to go through the process yourself, step by step.
+- You'll make mistakes, get stuck, and see scary error messages: that's how you grow (my personal record is 8 hours debugging one issue!). Think of it like going to the gym: you have to lift the heavy weights yourself to build stronger problem-solving muscles.
+- Your judgment and ability to think critically are what will make you stand out in this era.
+- Read the book yourself, with your own brain. If you have AI read it for you, the machine is learning — not you.
 :::
 
 ## AI updates every 6 months, but algorithmic fundamentals don't go out of fashion {style="font-size: 0.8em;"}
@@ -135,13 +131,9 @@ DO THE PRE-READINGS! use your own brain, not have AI read them for you. otherwis
 ![](images/slow_ai_learn.png){width=80% fig-align="center"}
 
 ::: {.notes}
-a saying in AI: "If you learn slow enough, you don't need to learn anymore"
-
-the best AI models and practices update every 6 months. the tutorials I teach about how to best use AI completely go out of fashion. prompt engineering --> system prompt --> agentic workflow --> mcp --> harnesses.
-
-It's better to spend the time to learn the fundamentals. Big O, hash tables, graphs, recursion have been around for decades, and they will still be around.
-
-nobody can constantly keep up with the latest AI tools all the time.
+- There's a saying in AI: "If you learn slow enough, you'll never need to learn again."
+- The best AI models and practices change every ~6 months. Techniques I've taught before (prompt engineering → system prompts → agentic workflows → MCP → harnesses) keep going out of date.
+- It's a better investment to spend your time learning the fundamentals — nobody can keep up with every new AI tool all the time.
 :::
 
 ## DSCI 512: Absolute fundamentals a data scientist needs to know {style="font-size: 0.8em;"}
@@ -149,11 +141,9 @@ nobody can constantly keep up with the latest AI tools all the time.
 ![](images/ds_fundemental.png){width=80% fig-align="center"}
 
 ::: {.notes}
-but there are certain things that, if you learn slow enough, guess what, you still need to learn!
-
-those are the absolute fundamentals of what you need to be a good data scientist. There are expectations people have about the knowledge you need to do this job. when you interview for a job in the future, and they ask you what the time complexity of looking up a key in a dictionary is, or why your code is so slow on the full dataset, you can't say "well, let me ask ChatGPT about that!" algorithmic problem-solving is often tested directly in data science interviews.
-
-what we are learning in this class, DSCI 512, is the fundamentals of writing code that scales: complexity analysis, data structures, recursion and dynamic programming.
+- Some things don't go out of fashion no matter how slowly you learn them, these are the absolute fundamentals every data scientist is expected to know.
+- Example: in a future job interview, if you're asked how to calculate time complexity of your code, "let me ask ChatGPT" won't be the right answer.
+- DSCI 512 covers the absolute fundamentals of algorithms and data structures that a data scientist needs to know.
 :::
 
 ## AI evaluation (AI eval) is a fancier term for data science {style="font-size: 0.8em;"}
@@ -165,24 +155,9 @@ Sheng et al., 2026. Silencing controversial realities through prompt revision: T
 :::
 
 ::: {.notes}
-data science --> AI eval
-the skills you build in MDS (data wrangling, visualization, inference, prediction) are exactly the skills you need to be good at evaluating AI models nowadays, which is one of the most needed skills right now.
-
-and evaluating AI happens at scale: thousands of prompts, thousands of generated images. efficient code, the right data structures and knowing where your code is slow are what make that possible.
+- "AI evaluation" is really just data science with a new name.
+- The same tools you'll learn here: writing clean code, parallel processing, are exactly what's needed to evaluate AI models, one of the most in-demand skills today.
 :::
-
-## Course logistics
-
- Section 002 Instructor: [Sky (Kehan) Sheng](https://www.skysheng.io/)
-
- TAs:
-
-  - Ailar Mahdizadeh
-  - Eric Lee
-  - Brian Chang
-  - Bahar Khodabakhshian
-
- Refer to the [MDS calendar](https://ubc-mds.github.io/calendar/) for office hours.
 
 ## Course logistics
 
@@ -202,21 +177,6 @@ and evaluating AI happens at scale: thousands of prompts, thousands of generated
   - Week 2: Thursday 2pm-3:50pm, Friday, 3pm-4:50pm
 
   (This is all reflected on [MDS calendar](https://ubc-mds.github.io/calendar/))
-
-## Agora
-
-:::{.columns}
-::: {.column width="50%"}
-- Go to: [agora.students.cs.ubc.ca](https://agora.students.cs.ubc.ca)
-- Use your CWL to log in
-- Use the enrolment code: **889779**
-:::
-::: {.column width="50%"}
-![](images/qrcode.jpeg){width="150"}
-:::
-:::
-
-![](images/agora.png){fig-align="center" width="90%"}
 
 ## Course overview
 
@@ -418,14 +378,16 @@ def g_nested(n):
 
 - let’s return to a simpler version of this question: If we double $n$, what happens to the number of steps?
 
-```python
+```{pyodide}
+import time
+
 def g(n):
     for i in range(n):
         time.sleep(0.1)
 ```
 - How about:
 
-```python
+```{pyodide}
 def g_nested(n):
     for i in range(n):
         for j in range(n):
@@ -556,14 +518,16 @@ def g_nested(n):
 
 Find the time complexities of `g` and `g_nested` below.
 
-```python
+```{pyodide}
+import time
+
 def g(n):
     for i in range(n):
         time.sleep(0.1)
 ```
 - $O(n)$
 
-```python
+```{pyodide}
 def g_nested(n):
     for i in range(n):
         for j in range(n):
@@ -602,7 +566,7 @@ We have $f(n)=k n^2+ kn$.
 
 ## Big O with two variables
 
-```python
+```{pyodide}
 def fun(n,m):
     for i in range(n):
         for j in range(m):
@@ -610,6 +574,8 @@ def fun(n,m):
 
     for j in range(m):
             print("Hello")
+
+fun(3, 2)
 ```
 - The time complexity here is $O(nm)$.
 
