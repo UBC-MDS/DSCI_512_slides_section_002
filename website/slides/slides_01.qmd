@@ -118,7 +118,7 @@ show of hands for each option.
 
 ::: {.notes}
 - You can't outsource your thinking to AI. Exams do test whether you remember python syntax, but the long-term goal of this course isn't memorizing code, AI is already great at that.
-- My own experience: I learned Java years ago, rarely use it now, but the logical thinking skills stuck with me.
+- My own experience: Java was my first language, rarely use it after I graduated, but the logical thinking skills stuck with me.
 - This course trains you to be an independent thinker, life-long learner, and problem solver, to approach and solve new problems on your own. There's no shortcut to that.
 - If you copy-paste AI's answers into your worksheets, you're practicing copying and pasting, not thinking. That's why AI isn't allowed on tutorials, worksheets, or exams, you need to go through the process yourself, step by step.
 - You'll make mistakes, get stuck, and see scary error messages: that's how you grow (my personal record is 8 hours debugging one issue!). Think of it like going to the gym: you have to lift the heavy weights yourself to build stronger problem-solving muscles.
