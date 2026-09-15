@@ -7,5 +7,3 @@ description-short: "Spot problems with overlapping subproblems, like Fibonacci a
 ## Slides for Section 002
 
 {{< revealjs "slides/slides_07.html" height="600px" class="ratio ratio-16x9" >}}
-
-*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*

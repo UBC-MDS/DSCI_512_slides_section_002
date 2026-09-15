@@ -8,4 +8,3 @@ description-short: "Meet the course and the teaching team. Learn what an algorit
 
 {{< revealjs "slides/slides_01.html" height="600px" class="ratio ratio-16x9" >}}
 
-*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides (original slides by Vincent Liu).*

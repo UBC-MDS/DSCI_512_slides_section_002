@@ -7,5 +7,3 @@ description-short: "Apply dynamic programming to harder optimization problems su
 ## Slides for Section 002
 
 {{< revealjs "slides/slides_08.html" height="600px" class="ratio ratio-16x9" >}}
-
-*Note: Section 002's slides were modified based on Hedayat Zarkoob's DSCI 512 slides.*
