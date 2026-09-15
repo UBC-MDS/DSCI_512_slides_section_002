@@ -2,8 +2,8 @@ typography:
   fonts:
     - family: Source Code Pro
       source: google
-  headings: Georgia
-  base: Georgia
+  headings: serif
+  base: serif
   monospace: Source Code Pro
 
 # Bootswatch themes (e.g. minty) hardcode heading/navbar fonts; these
@@ -11,10 +11,14 @@ typography:
 defaults:
   bootstrap:
     defaults:
-      headings-font-family: Georgia
+      headings-font-family: serif
     rules: |
       .navbar,
       .navbar-brand,
       .navbar-title {
-        font-family: Georgia, serif;
+        font-family: serif;
+      }
+      .navbar-brand,
+      .navbar-title {
+        text-transform: none;
       }

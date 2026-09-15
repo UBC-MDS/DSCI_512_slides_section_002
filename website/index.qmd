@@ -5,3 +5,14 @@ title: "DSCI 512 Section 002"
 Welcome to DSCI 512! Here, you'll find slides for DSCI 512 Section 002 (2026 Winter Term 1).
 
 Instructor: [Sky (Kehan) Sheng](https://www.skysheng.io/)
+
+- **Class times** 🕘
+    Mondays and Wednesdays 11:00 am to 12:20 pm
+
+- **Where?** 📍
+    [ESB 2012](https://learningspaces.ubc.ca/classrooms/esb-2012), 2207 Main Mall, Vancouver, BC V6T 1Z4
+
+<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2603.701249007793!2d-123.2520453!3d49.2631082!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x548672ca12ae4b37%3A0x3b7384303e09af9b!2sEarth%20Sciences%20Building!5e0!3m2!1sen!2sca!4v1789508030197!5m2!1sen!2sca" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+
+*Note: the slides was modified based on [UBC DSCI 512 slide deck](https://github.ubc.ca/mds-2026-27/DSCI_512_alg-data-struct_instructors.git)*
+
