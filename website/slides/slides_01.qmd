@@ -275,7 +275,7 @@ common to use benchmark and eval datasets to evaluate LLM, call it a day.
 
 ## AI evals are a data science problem {style="font-size: 0.8em;"}
 
-![](images/llm_judge.jpg){width=80% fig-align="center"}
+![](images/llm_judge.jpg){width=60% fig-align="center"}
 
 ::: footer
 Hamza Boulahia, 2025. [How Do You Know If an LLM Is Right?](https://pub.towardsai.net/how-do-you-know-if-an-llm-is-right-c0e68e4ec1a3)
@@ -315,6 +315,7 @@ Identify the sources of inefficiency in your code.
 Instagram example: checking if a hashtag or label already exists before creating a duplicate
 
 ```{python}
+#| echo: true
 n = 10_000_000 # _ does not change the value of the number, it is just for readability
 x = list(range(n))
 -1 in x
@@ -343,6 +344,7 @@ from line_profiler import LineProfiler
 
 
 ```{python}
+#| echo: true
 n = 10_000_000 
 x = list(range(n))
 %timeit (-1 in x)
@@ -355,6 +357,7 @@ timeit is a function in Ipython not python, it is a magic command paired with ju
 ## Use `%timeit` function to measure the runtime of searching in a set.
 
 ```{python}
+#| echo: true
 n = 10_000_000 
 x = set(range(n))
 %timeit (-1 in x)
@@ -362,10 +365,12 @@ x = set(range(n))
 
 
 ```{python}
+#| echo: true
 %timeit (list(range(n)))
 ```
 
 ```{python}
+#| echo: true
 %timeit (set(range(n)))
 ```
 
@@ -375,6 +380,7 @@ x = set(range(n))
 - we can use `%prun` on a function to tell how much time was spend in each part.
 
 ```{python}
+#| echo: true
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -389,6 +395,7 @@ def g(n):
 - **In a plain Python script** (`%` magics only exist inside IPython/Jupyter), use `cProfile` directly:
 
 ```{python}
+#| echo: true
 import cProfile
 cProfile.run("g(5)", sort="cumulative")
 ```
@@ -398,6 +405,7 @@ cProfile.run("g(5)", sort="cumulative")
 - we can use `%lprun` from the `line_profiler` library to profile out code line by line:
 
 ```{python}
+#| echo: true
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -412,6 +420,7 @@ def g(n):
 - **In a plain Python script**, use the `LineProfiler` class directly:
 
 ```{python}
+#| echo: true
 lp = LineProfiler()
 lp.add_function(g)
 lp.runcall(g, 5)
@@ -423,6 +432,7 @@ lp.print_stats()
 - what happens if $n$ is doubled, i.e., $n = 10$?
 
 ```{python}
+#| echo: true
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
@@ -437,6 +447,7 @@ def g(n):
 - **In a plain Python script:**
 
 ```{python}
+#| echo: true
 lp = LineProfiler()
 lp.add_function(g)
 lp.runcall(g, 10)
@@ -448,6 +459,7 @@ lp.print_stats()
 - What if there is a nested loop?
 
 ```{python}
+#| echo: true
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -463,6 +475,7 @@ def g_nested(n):
 - **In a plain Python script:**
 
 ```{python}
+#| echo: true
 lp = LineProfiler()
 lp.add_function(g_nested)
 lp.runcall(g_nested, 5)
@@ -474,6 +487,7 @@ lp.print_stats()
 - what if $n$ is doubled in this case?
 
 ```{python}
+#| echo: true
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -489,6 +503,7 @@ def g_nested(n):
 - **In a plain Python script:**
 
 ```{python}
+#| echo: true
 lp = LineProfiler()
 lp.add_function(g_nested)
 lp.runcall(g_nested, 10)
@@ -500,6 +515,7 @@ lp.print_stats()
 - What if $n=5$, but $0.1$ is double to be $0.2$?
 
 ```{python}
+#| echo: true
 def g_nested(n):
     for i in range(n):
         for j in range (n):
@@ -515,6 +531,7 @@ def g_nested(n):
 - **In a plain Python script:**
 
 ```{python}
+#| echo: true
 lp = LineProfiler()
 lp.add_function(g_nested)
 lp.runcall(g_nested, 5)
