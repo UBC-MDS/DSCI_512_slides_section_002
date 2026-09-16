@@ -30,11 +30,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version-file: '.python-version'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Install Python dependencies
+        run: uv sync
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Render Website
         run: quarto render
         working-directory: website
+        env:
+          QUARTO_PYTHON: ${{ github.workspace }}/.venv/bin/python
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

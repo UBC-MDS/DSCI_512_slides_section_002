@@ -14,7 +14,7 @@ format:
     menu:
       side: right
       width: wide
-engine: markdown
+engine: jupyter
 title-slide-attributes:
   data-background-image: images/hello_background.png
   data-background-size: cover
@@ -160,31 +160,27 @@ Sheng et al., 2026. Silencing controversial realities through prompt revision: T
 - The same tools you'll learn here: writing clean code, parallel processing, are exactly what's needed to evaluate AI models, one of the most in-demand skills today.
 :::
 
-## Course logistics
+## Grading breakdown
 
 - Deliverables:
 
-  - Four labs (12.5% each), and two quizzes (25% each).
+| Assessment | Weight |
+|------------|--------|
+| Lab 1      | 12.5%  |
+| Lab 2      | 12.5%  |
+| Lab 3      | 12.5%  |
+| Lab 4      | 12.5%  |
+| Quiz 1*    | 25%    |
+| Quiz 2*    | 25%    |
+
   - Assignments to be submitted as Jupyter notebook.
 
-- Class Schedule:
 
-  - Weeks 1, 3, 4: Monday, Wednesday, 11am-12:20pm
-  - Week 2: Wednesday, Friday 11am-12:20pm
+## Course overall learning objectives
 
-- Lab Schedule:
-
-  - Weeks 1, 3, 4: Monday 3pm-4:50pm, Tuesday 2pm-3:50pm
-  - Week 2: Thursday 2pm-3:50pm, Friday, 3pm-4:50pm
-
-  (This is all reflected on [MDS calendar](https://ubc-mds.github.io/calendar/))
-
-## Course overview
-
-- This focuses on
-  - Fundamental data structures and algorithms,
-  - Complexity analysis, and
-  - Techniques for improving Python code performance.
+- Fundamental data structures and algorithms,
+- Complexity analysis
+- Techniques for improving Python code performance.
 
 ## Course overview
 
@@ -266,14 +262,21 @@ By the end of this lecture, you will be able to:
 
 ## Code profiling
 
+```{python}
+#| echo: false
+import time
+from line_profiler import LineProfiler
+%load_ext line_profiler
+```
+
 - Example: we can use the `%timeit` function to measure the runtime of a single statement.
 
-```{pyodide}
+```{python}
 n = 10_000_000 # setting n to an arbitrary large number.
 %timeit (list(range(n)))
 ```
 
-```{pyodide}
+```{python}
 %timeit (set(range(n)))
 ```
 
@@ -281,12 +284,12 @@ n = 10_000_000 # setting n to an arbitrary large number.
 
 - Example (continued):
 
-```{pyodide}
+```{python}
 x = list(range(n))
 %timeit (-1 in x)
 ```
 
-```{pyodide}
+```{python}
 x = set(range(n))
 %timeit (-1 in x)
 ```
@@ -294,80 +297,153 @@ x = set(range(n))
 ## Profiling functions
 
 - we can use `%prun` on a function to tell how much time was spend in each part.
-```{pyodide}
+
+```{python}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
+```
+
+- **In a Jupyter notebook**, run the magic directly:
+
+```python
 %prun g(5)
 ```
-![](images/profiling_function.png){fig-align="center" width="100%"}
+
+- **In a plain Python script** (`%` magics only exist inside IPython/Jupyter), use `cProfile` directly:
+
+```{python}
+import cProfile
+cProfile.run("g(5)", sort="cumulative")
+```
 
 ## Line profiler
 
 - we can use `%lprun` from the `line_profiler` library to profile out code line by line:
-```{pyodide}
+
+```{python}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
+```
+
+- **In a Jupyter notebook:**
+
+```python
 %lprun -f g g(5)
 ```
 
-![](images/lp1.png){fig-align="center" width="100%"}
+- **In a plain Python script**, use the `LineProfiler` class directly:
+
+```{python}
+lp = LineProfiler()
+lp.add_function(g)
+lp.runcall(g, 5)
+lp.print_stats()
+```
 
 ## Line profiler
 
 - what happens if $n$ is doubled, i.e., $n = 10$?
 
-```{pyodide}
+```{python}
 def g(n):
     for i in range(n):
         time.sleep(0.1) # wait for 0.1 seconds
+```
+
+- **In a Jupyter notebook:**
+
+```python
 %lprun -f g g(10)
 ```
 
-![](images/lp2.png){fig-align="center" width="100%"}
+- **In a plain Python script:**
+
+```{python}
+lp = LineProfiler()
+lp.add_function(g)
+lp.runcall(g, 10)
+lp.print_stats()
+```
 
 ## Line profiler
 
 - What if there is a nested loop?
 
-```{pyodide}
+```{python}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
             time.sleep(0.1)
+```
+
+- **In a Jupyter notebook:**
+
+```python
 %lprun -f g_nested g_nested(5)
 ```
 
-![](images/lp3.png){fig-align="center" width="100%"}
+- **In a plain Python script:**
+
+```{python}
+lp = LineProfiler()
+lp.add_function(g_nested)
+lp.runcall(g_nested, 5)
+lp.print_stats()
+```
 
 ## Line profiler
 
 - what if $n$ is doubled in this case?
 
-```{pyodide}
+```{python}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
             time.sleep(0.1)
+```
+
+- **In a Jupyter notebook:**
+
+```python
 %lprun -f g_nested g_nested(10)
 ```
 
-![](images/lp4.png){fig-align="center" width="100%"}
+- **In a plain Python script:**
+
+```{python}
+lp = LineProfiler()
+lp.add_function(g_nested)
+lp.runcall(g_nested, 10)
+lp.print_stats()
+```
 
 ## Line profiler
 
 - What if $n=5$, but $0.1$ is double to be $0.2$?
 
-```{pyodide}
+```{python}
 def g_nested(n):
     for i in range(n):
         for j in range (n):
             time.sleep(0.2)
+```
+
+- **In a Jupyter notebook:**
+
+```python
 %lprun -f g_nested g_nested(5)
 ```
 
-![](images/lp5.png){fig-align="center" width="100%"}
+- **In a plain Python script:**
+
+```{python}
+lp = LineProfiler()
+lp.add_function(g_nested)
+lp.runcall(g_nested, 5)
+lp.print_stats()
+```
 
 ## Time complexity
 
@@ -380,6 +456,7 @@ def g_nested(n):
 - let’s return to a simpler version of this question: If we double $n$, what happens to the number of steps?
 
 ```{pyodide}
+#| persist: false
 import time
 
 def g(n):
@@ -389,6 +466,7 @@ def g(n):
 - How about:
 
 ```{pyodide}
+#| persist: false
 def g_nested(n):
     for i in range(n):
         for j in range(n):
@@ -520,6 +598,7 @@ def g_nested(n):
 Find the time complexities of `g` and `g_nested` below.
 
 ```{pyodide}
+#| persist: false
 import time
 
 def g(n):
@@ -529,6 +608,7 @@ def g(n):
 - $O(n)$
 
 ```{pyodide}
+#| persist: false
 def g_nested(n):
     for i in range(n):
         for j in range(n):
@@ -545,6 +625,7 @@ def g_nested(n):
 
 ## Step 1: Determine the number of steps
 ```{pyodide}
+#| persist: false
 def g(n):
     for i in range(n):       # n iterations
         for i in range(n):   # n iterations
@@ -568,6 +649,7 @@ We have $f(n)=k n^2+ kn$.
 ## Big O with two variables
 
 ```{pyodide}
+#| persist: false
 def fun(n,m):
     for i in range(n):
         for j in range(m):

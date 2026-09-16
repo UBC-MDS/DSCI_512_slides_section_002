@@ -4,4 +4,12 @@ version = "0.1.0"
 description = "Slides for DSCI 512 (Algorithms and Data Structures) Section 002"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "ipykernel>=7.3.0",
+    "jupyter-client>=8.10.0",
+    "line-profiler>=5.0.2",
+    "memory-profiler>=0.61.0",
+    "nbclient>=0.11.0",
+    "nbformat>=5.11.1",
+    "pyyaml>=6.0.3",
+]
