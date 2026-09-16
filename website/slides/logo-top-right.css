@@ -1,0 +1,7 @@
+/* Move the reveal.js logo to the top-right corner so it no longer
+   overlaps the slide number, which reveal.js places bottom-right. */
+.reveal .slide-logo {
+  top: 12px;
+  bottom: auto;
+  right: 20px;
+}

@@ -8,6 +8,7 @@ format:
       - <script src="helper.js"></script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
+    css: logo-top-right.css
     chalkboard: {buttons: true}
     preview-links: auto
     scrollable: true
@@ -275,7 +276,7 @@ common to use benchmark and eval datasets to evaluate LLM, call it a day.
 
 ## AI evals are a data science problem {style="font-size: 0.8em;"}
 
-![](images/llm_judge.jpg){width=60% fig-align="center"}
+![](images/llm_judge.jpg){width=600px fig-align="center"}
 
 ::: footer
 Hamza Boulahia, 2025. [How Do You Know If an LLM Is Right?](https://pub.towardsai.net/how-do-you-know-if-an-llm-is-right-c0e68e4ec1a3)

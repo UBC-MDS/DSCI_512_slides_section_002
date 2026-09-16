@@ -8,6 +8,7 @@ format:
       - <script src="helper.js"></script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
+    css: logo-top-right.css
     chalkboard: {buttons: true}
     preview-links: auto
     scrollable: true
