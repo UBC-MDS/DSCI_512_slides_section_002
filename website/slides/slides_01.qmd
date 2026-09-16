@@ -187,7 +187,7 @@ Hamel Husain, 2026. Revenge of the Data Scientists. [hamel.dev](https://hamel.de
 
 ::: {.notes}
 - "AI evaluation" is really just data science with a new name.
-- The same tools you'll learn here: writing clean code, parallel processing, are exactly what's needed to evaluate AI models, one of the most in-demand skills today.
+- 
 :::
 
 ## Grading breakdown {style="font-size: 0.8em;"}
