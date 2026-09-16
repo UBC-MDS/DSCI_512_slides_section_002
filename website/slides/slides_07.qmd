@@ -6,7 +6,7 @@ format:
     header-includes:
       - <script src="helper.js"></script>
     slide-number: true
-    logo: images/mds-hex-sticker.png
+    logo: slides/images/mds-hex-sticker.png
     chalkboard: {buttons: true}
     preview-links: auto
 ---
