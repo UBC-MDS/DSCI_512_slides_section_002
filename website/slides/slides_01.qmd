@@ -649,7 +649,7 @@ def g_nested(n):
 ```
 :::
 
-## Big O notation
+## Big O notation {style="font-size: 0.8em;"}
 
 - The time complexity is commonly expressed using [big O notation](https://en.wikipedia.org/wiki/Big_O_notation).
   - It tells us the **approximate number of steps** an algorithm performs **as a function of the input size $n$**.
@@ -672,9 +672,11 @@ def g_nested(n):
   - $g(n)=n^3$, then
     - If we double $n$, the running time goes up $8x$
     - Because  $g(2n)/g(n)=(2n)^3/n^3=8$.
+  ::: {.fragment}
   - $g(n)=2^n$, then
     - If we increase $n$ by $1$, the runtime is double!
     - Because $g(n+1)/g(n)=2^{(n+1)}/2^n=2$.
+  :::
 
 ## Common runtimes
 
@@ -781,8 +783,12 @@ def g(n):
     for i in range(n):
         time.sleep(0.1)
 ```
-- $O(n)$
 
+::: {.fragment}
+- $O(n)$
+:::
+
+::: {.fragment}
 ```{pyodide}
 #| persist: false
 def g_nested(n):
@@ -790,7 +796,11 @@ def g_nested(n):
         for j in range(n):
             time.sleep(0.1)
 ```
+:::
+
+::: {.fragment}
 - $O(n^2)$
+:::
 
 ## How to determine the complexity?
 
@@ -810,17 +820,21 @@ def g(n):
         print(j)             # constant-time (k)
 ```
 
+::: {.fragment}
 So we have $f(n)=k n^2+ kn$.
+:::
 
 ## Step 2: Remove constant factors and lower-order terms
 
 We have $f(n)=k n^2+ kn$.
 
+::: {.incremental}
 - $k$ is a constant factor, so we can remove $k$.
 
 - $n$ is lower order than $n^2$, so we can remove it.
 
 - Leaving us with: $f(n) = O(n^2)$.
+:::
 
 ## Big O with two variables
 
@@ -836,13 +850,18 @@ def fun(n,m):
 
 fun(3, 2)
 ```
-- The time complexity here is $O(nm)$.
 
+::: {.fragment}
+- The time complexity here is $O(nm)$.
+:::
+
+::: {.incremental}
   - $O(nm+m)$ would be just $O(nm)$
     - $nm+m=(n+1)m$ and we don't make a distinction between $n$ and $n+1$
   - If $m=n$  then it would be $O(n^2)$.
   - $O(n^2+n+m)$ would be just $O(n^2+m)$
   - $O(n^2+nm + m)$ would be $O(n^2+nm)$. We can't throw away either term because we don't know which will end up being the "dominant" factor.
+:::
 
 ## What factors affect the runtime?
 
