@@ -325,8 +325,10 @@ you can ask if hashtag 8 is there, here we are playing with edge cases, see if -
 ```{python}
 #| echo: false
 import time
-from line_profiler import LineProfiler # load line_profiler as a regular python library
-%load_ext line_profiler # load line_profiler as a IPython extension to run % commands in Jupyter notebook
+# load line_profiler as a regular python library
+from line_profiler import LineProfiler
+# load line_profiler as a IPython extension to run % commands in Jupyter notebook
+%load_ext line_profiler
 ```
 
 
