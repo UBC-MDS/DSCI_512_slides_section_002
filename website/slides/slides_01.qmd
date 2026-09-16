@@ -499,15 +499,26 @@ lp.print_stats()
 - **Note:** Code profiling applies to memory usage as well. We will talk about memory profiling in the next lecture.
 :::
 
-# Time Complexity {background-image="images/watch.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
+# Time Complexity {background-image="images/rocks.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
 
 Measure how does the runtime grow as the input size gets bigger.
 
-## Time complexity
+## How does the runtime grow as $n$ gets bigger?
 
-- Computer scientists formalize the observations made above using mathematical definitions and notation.
+![](images/uber1.png){width=80% fig-align="center"}
 
-- The key question to focus on is: How does the runtime grow as $n$ gets bigger?
+::: {.note}
+real world example: what would be the runtime of your algorithm if your company's business took off, rise from 100 customers using your app to 1 million customers using it? 
+
+example: uber
+
+:::
+
+
+## Efficient algorithm saves people time and money in real world!
+
+![](images/uber2.png){width=80% fig-align="center"}
+
 
 ## Time complexity
 
