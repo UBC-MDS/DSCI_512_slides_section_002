@@ -125,11 +125,13 @@ no marks for iClicker, only for easier in class participation.
 ::::: columns
 ::: {.column width="50%" style="text-align: center;"}
 ![](images/recipe_ingredients.jpg){width="200px"}
+
 **Ingredients ≈ input**
 :::
 
 ::: {.column width="50%" style="text-align: center;"}
 ![](images/recipe_code.png){width="200px"}
+
 **Recipe ≈ algorithm**
 :::
 :::::
