@@ -144,6 +144,11 @@ cooking recipe is in a way like an algorithm.
 
 ![](images/data_structure_bag.png){width=90% fig-align="center"}
 
+::: {.notes}
+some data structures are faster for you to access the data you are searching for, some data structures are faster to create, update or delete data. 
+Some data structures can store duplicated items, some absolutely refuse to do so. 
+we will learn about when to use what, the pros and cons of using them. 
+:::
 
 ## Challenges Past Students Have Faced in This Course {style="font-size: 0.9em;"}
 
@@ -299,19 +304,52 @@ that's when you need to know identify slow or inefficient code, assess time comp
 
 Identify the sources of inefficiency in your code.
 
-## Code profiling
+## Common data science problem in real world: Finding an item in a collection of data {background-image="images/hash_mds.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
+
+Instagram example: checking if a hashtag or label already exists before creating a duplicate
+
+```{python}
+n = 10_000_000 # _ does not change the value of the number, it is just for readability
+x = list(range(n))
+-1 in x
+```
+
+::: {.notes}
+assume each hashtag has a unique ID, it ranges from 0 to 9_999_999, 10 million hashtags in total. 
+you can ask if hashtag 8 is there, here we are playing with edge cases, see if -1 is in this list
+:::
+
+## Use `%timeit` function to measure the runtime of searching in a list.
+
 
 ```{python}
 #| echo: false
 import time
-from line_profiler import LineProfiler
-%load_ext line_profiler
+from line_profiler import LineProfiler # load line_profiler as a regular python library
+%load_ext line_profiler # load line_profiler as a IPython extension to run % commands in Jupyter notebook
 ```
 
-- Example: we can use the `%timeit` function to measure the runtime of a single statement.
 
 ```{python}
-n = 10_000_000 # setting n to an arbitrary large number.
+n = 10_000_000 
+x = list(range(n))
+%timeit (-1 in x)
+```
+
+::: {.notes}
+timeit is a function in Ipython not python, it is a magic command paired with jupyter to calculate how long it takes to run a single line of code.
+:::
+
+## Use `%timeit` function to measure the runtime of searching in a set.
+
+```{python}
+n = 10_000_000 
+x = set(range(n))
+%timeit (-1 in x)
+```
+
+
+```{python}
 %timeit (list(range(n)))
 ```
 
@@ -319,19 +357,6 @@ n = 10_000_000 # setting n to an arbitrary large number.
 %timeit (set(range(n)))
 ```
 
-## Code profiling
-
-- Example (continued):
-
-```{python}
-x = list(range(n))
-%timeit (-1 in x)
-```
-
-```{python}
-x = set(range(n))
-%timeit (-1 in x)
-```
 
 ## Profiling functions
 
