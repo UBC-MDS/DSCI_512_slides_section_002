@@ -186,9 +186,19 @@ Hamel Husain, 2026. Revenge of the Data Scientists. [hamel.dev](https://hamel.de
 :::
 
 ::: {.notes}
-- "AI evaluation" is really just data science with a new name.
+- Hamel husain is well-known ML engineer (formerly Airbnb, GitHub). he argues that AI evals is a new opportunity/home for data scientists.
+- "AI evaluation" is indeed a data science problem, not a software engineering problems
 - 
 :::
+
+## AI eval is a data science problem {style="font-size: 0.8em;"}
+
+![](images/llm_judge.jpg){width=90% fig-align="center"}
+
+::: footer
+Hamza Boulahia, 2025. [How Do You Know If an LLM Is Right?](https://pub.towardsai.net/how-do-you-know-if-an-llm-is-right-c0e68e4ec1a3)
+:::
+
 
 ## Grading breakdown {style="font-size: 0.8em;"}
 
@@ -205,15 +215,13 @@ Hamel Husain, 2026. Revenge of the Data Scientists. [hamel.dev](https://hamel.de
 | Quiz 2*    | 25%    |
 
 
-## Course overall learning objectives
+## DSCI 512 overall learning objectives
 
 - Fundamental data structures and algorithms,
 - Complexity analysis
 - Techniques for improving Python code performance.
 
-## Course overview
-
-- What is an algorithm?
+## What is an algorithm?
 
 ![](images/algorithm.png){fig-align="center" width="60%"}
 
