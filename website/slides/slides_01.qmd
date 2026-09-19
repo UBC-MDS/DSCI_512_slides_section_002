@@ -1275,7 +1275,7 @@ for size in range(1, 13):
 ojs_define(dispatch_kinds = dispatch_kinds, dispatch_steps = dispatch_steps, dispatch_counts = dispatch_counts)
 ```
 
-## 🧮 See the steps: every dot is one step {style="font-size: 0.85em;"}
+## See the steps: every dot is one step {style="font-size: 0.85em;"}
 
 ```{ojs}
 //| echo: false
