@@ -796,6 +796,50 @@ lp.runcall(match_riders_slow, 5)
 lp.print_stats()
 ```
 
+```{python}
+#| echo: false
+# Hidden: compare the two ways of doubling, both against the same baseline match_riders(5).
+record_runtime(lp, match_riders_slow, 5)
+runtime_of = {run["call"]: run["seconds"] for run in profiled_runs}
+baseline = runtime_of["match_riders(5)"]
+slow_vs_growth = []
+for panel, kind, changed in [("each step 2× slower (0.1 s → 0.2 s)", "constant factor", "match_riders_slow(5)"),
+                             ("2× riders and drivers (n = 5 → 10)", "growth with n", "match_riders(10)")]:
+    slow_vs_growth.append({"panel": panel, "bar": "before", "kind": "baseline",
+                           "call": "match_riders(5)", "seconds": baseline, "ratio": 1})
+    slow_vs_growth.append({"panel": panel, "bar": "after", "kind": kind,
+                           "call": changed, "seconds": runtime_of[changed], "ratio": runtime_of[changed] / baseline})
+ojs_define(slow_vs_growth = slow_vs_growth)
+```
+
+::: {.fragment}
+```{ojs}
+//| echo: false
+// Draw only: runtimes and ratios were computed in Python (slow_vs_growth).
+{
+  const data = slow_vs_growth;
+  const after = data.filter(d => d.bar === "after");
+  return Plot.plot({
+    width: 820, height: 250, marginLeft: 70, marginTop: 36, marginBottom: 34,
+    style: {fontSize: "16px", background: "transparent"},
+    fx: {label: null, padding: 0.12, domain: [...new Set(data.map(d => d.panel))]},   // one panel per kind of doubling
+    x: {axis: null, domain: ["before", "after"], padding: 0.25},
+    y: {label: "↑ measured runtime (s)", grid: true, domain: [0, d3.max(data, d => d.seconds) * 1.3]},
+    color: {domain: ["baseline", "constant factor", "growth with n"], range: ["#b8b6b0", "#2a78d6", "#eb6834"]},
+    marks: [
+      Plot.barY(data, {fx: "panel", x: "bar", y: "seconds", fill: "kind", rx: 4}),
+      Plot.text(data, {fx: "panel", x: "bar", y: "seconds", text: d => d.seconds.toFixed(1) + " s", dy: -10}),
+      // the headline: how many times longer than the baseline
+      Plot.text(after, {fx: "panel", x: "bar", y: "seconds", text: d => d.ratio.toFixed(1) + "×",
+                        dy: -32, fontSize: 22, fontWeight: "bold", fill: "kind"}),
+      Plot.text(data, {fx: "panel", x: "bar", y: 0, text: "call", dy: 14, fill: "#52514e"}),   // call name under each bar
+      Plot.ruleY([0])
+    ]
+  });
+}
+```
+:::
+
 ::: {.fragment}
 - Each step twice as slow → runtime **2×** (2.5 s → 5 s). A *constant factor*.
 - Twice as many riders and drivers → runtime **4×** (2.5 s → 10 s). *Growth with $n$*.
@@ -818,7 +862,6 @@ lp.print_stats()
 - What we saw with Uber:
   - one loop over $n$ drivers: double $n$ → 2× the time.
   - nested loop over $n$ riders × $n$ drivers: double $n$ → 4× the time.
-- **Note:** profiling applies to memory as well. Memory profiling is next lecture.
 :::
 
 # 📈 Time Complexity {background-image="images/rocks.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
