@@ -1352,44 +1352,22 @@ The time complexity is $O(nm + m) = O(nm)$.
 - When two inputs can grow independently, keep both.
 :::
 
-## iClicker: what is the time complexity of `surge_pricing(n)`? {style="font-size: 0.8em;"}
+## 🚗 Today's takeaways {style="font-size: 0.9em;"}
 
-```{pyodide}
-def surge_pricing(n):
-    for zone in range(n):                      # n zones in the city
-        count_waiting_riders(zone)             # constant time
-    for rider in range(n):                     # n riders
-        for driver in range(n):                # n drivers
-            estimate_pickup_time(rider, driver)   # constant time
-```
-
-- \(A) $O(n)$
-- \(B) $O(n^2)$
-- \(C) $O(n^2 + n)$
-- \(D) $O(n^3)$
-
-::: {.notes}
-- Answer: **B**. $f(n) = kn + kn^2$; drop the constant $k$ and the lower-order $n$.
-- C is not *wrong*, it's just not simplified: $O(n^2 + n)$ and $O(n^2)$ are the same thing, and we always write the simplest form.
-- After the vote you can check it live: add `steps = 0; surge_pricing(10); print(steps)` → 110.
-:::
-
-## 🔧 What else affects the runtime? {style="font-size: 0.85em;"}
-
-- The **implementation** decides the constants and lower-order terms (0.1 s vs. 0.2 s per step):
-  - how fast your language is (Python vs. C),
-  - how fast your libraries are (NumPy loops in C),
-  - whether you can cache results or compute in parallel.
-
-::: {.fragment}
-- **Note:** there are also $o$, $\omega$, $\Omega$, $\theta$, $\Theta$, and more. We only use big O in this course.
+::: {.incremental}
+- ⏱️ **Profiling measures.** `%timeit` time for a line, `%prun` time for different functions, `%lprun` time for different lines.
+- 📈 **Big O predicts.** Count the loops, keep the fastest-growing term, ignores constant factors and lower-order terms.
+- ⚠️ **Constants matter when $n$ is small**
 :::
 
 ::: {.notes}
-- A faster computer or a faster language is a constant factor: it makes the 10 s into 5 s. A better algorithm turns $n^2$ into $n$: at $n = 10{,}000$ that's the difference between 4 months and 17 minutes (0.1 s per step).
+- Next lecture: *why* the set was so fast (hashing), and what all of this costs in memory (space complexity).
 :::
 
-## 🎯 Best, worst and average case {style="font-size: 0.85em;"}
+# ❓ Questions?
+
+
+## 🎯 (Bonus Slide) Best, worst and average case {style="font-size: 0.85em;"}
 
 Back to Scenario 1: `rider_id in rider_accounts` when `rider_accounts` is a **list**. Python checks the IDs one by one, from the left.
 
@@ -1452,20 +1430,40 @@ viewof login_pos = Inputs.range([1, scan_ids.length + 1], {step: 1, value: 1,
 - With a **set**, all of these take about the same (tiny) time, whatever the position. Why: next lecture.
 :::
 
-## 🚗 Back to Uber: today's takeaways {style="font-size: 0.85em;"}
 
-::: {.incremental}
-- ⏱️ **Profiling measures.** `%timeit` for a line, `%prun` for functions, `%lprun` for lines.
-- 📈 **Big O predicts.** Count the loops, keep the fastest-growing term: notify is $O(n)$, match is $O(n^2)$.
-- 🔁 **The doubling rule.** Double $n$: $O(n)$ doubles, $O(n^2)$ quadruples, $O(2^n)$ gets squared.
-- ⚠️ **Constants matter when $n$ is small**, and the data structure matters always (list vs. set).
-- 🚗 **A better algorithm beats a faster computer.** Uber's batched matching saves 10 years of people's time every day.
+## (Bonus Slide) iClicker: what is the time complexity of `surge_pricing(n)`? {style="font-size: 0.8em;"}
+
+```{pyodide}
+def surge_pricing(n):
+    for zone in range(n):                      # n zones in the city
+        count_waiting_riders(zone)             # constant time
+    for rider in range(n):                     # n riders
+        for driver in range(n):                # n drivers
+            estimate_pickup_time(rider, driver)   # constant time
+```
+
+- \(A) $O(n)$
+- \(B) $O(n^2)$
+- \(C) $O(n^2 + n)$
+- \(D) $O(n^3)$
+
+::: {.notes}
+- Answer: **B**. $f(n) = kn + kn^2$; drop the constant $k$ and the lower-order $n$.
+- C is not *wrong*, it's just not simplified: $O(n^2 + n)$ and $O(n^2)$ are the same thing, and we always write the simplest form.
+- After the vote you can check it live: add `steps = 0; surge_pricing(10); print(steps)` → 110.
+:::
+
+## (Bonus Slide) 🔧 What else affects the runtime? {style="font-size: 0.85em;"}
+
+- The **implementation** decides the constants and lower-order terms (0.1 s vs. 0.2 s per step):
+  - how fast your language is (Python vs. C),
+  - how fast your libraries are (NumPy loops in C),
+  - whether you can cache results or compute in parallel.
+
+::: {.fragment}
+- **Note:** there are also $o$, $\omega$, $\Omega$, $\theta$, $\Theta$, and more. We only use big O in this course.
 :::
 
 ::: {.notes}
-- Next lecture: *why* the set was so fast (hashing), and what all of this costs in memory (space complexity).
+- A faster computer or a faster language is a constant factor: it makes the 10 s into 5 s. A better algorithm turns $n^2$ into $n$: at $n = 10{,}000$ that's the difference between 4 months and 17 minutes (0.1 s per step).
 :::
-
-## ❓ Questions?
-
-- **Want to save these slides?** Right click → Print → Save to PDF.
