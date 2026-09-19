@@ -17,4 +17,4 @@ Content in this repository is adapted from prior DSCI 512 course material; see [
 
 ## GenAI Use Disclaimer
 
-Portions of this slide deck were developed with the assistance of generative AI tools (Anthropic Claude Code & Cursor). All AI-generated content was reviewed, edited, and verified for accuracy by the course instructors prior to publication.
+Portions of this slide deck were developed with the assistance of generative AI tools (Anthropic Claude Code & Cursor). Read [CLAUDE.md](./CLAUDE.md) for instructions to Claude. All AI-generated content was reviewed, edited, and verified for accuracy by the course instructors prior to publication. 

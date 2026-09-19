@@ -974,7 +974,6 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 ::: {.fragment}
 - **Definition** (optional): $f(n)$ is $O(g(n))$ if there is a positive number $M$ such that
   $$f(n) \leq M\, g(n) \text{ for all large enough } n.$$
-  In words: $f$ grows **no faster** than $g$.
 :::
 
 ::: {.notes}
