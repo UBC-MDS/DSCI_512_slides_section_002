@@ -812,7 +812,12 @@ for panel, kind, changed in [("each step 2× slower (0.1 s → 0.2 s)", "constan
 ojs_define(slow_vs_growth = slow_vs_growth)
 ```
 
-::: {.fragment}
+::: {.notes}
+- Same 25 hits, each one slower. This is for example, what a slower network does: it scales the whole thing by a constant.
+:::
+
+## 🚗 Two ways to double the runtime? {style="font-size: 0.8em;"}
+
 ```{ojs}
 //| echo: false
 // Draw only: runtimes and ratios were computed in Python (slow_vs_growth).
@@ -820,9 +825,9 @@ ojs_define(slow_vs_growth = slow_vs_growth)
   const data = slow_vs_growth;
   const after = data.filter(d => d.bar === "after");
   return Plot.plot({
-    width: 820, height: 250, marginLeft: 70, marginTop: 36, marginBottom: 34,
+    width: 820, height: 320, marginLeft: 70, marginTop: 64, marginBottom: 34,
     style: {fontSize: "16px", background: "transparent"},
-    fx: {label: null, padding: 0.12, domain: [...new Set(data.map(d => d.panel))]},   // one panel per kind of doubling
+    fx: {label: null, axis: "top", padding: 0.12, domain: [...new Set(data.map(d => d.panel))]},   // one panel per kind of doubling, titles on top
     x: {axis: null, domain: ["before", "after"], padding: 0.25},
     y: {label: "↑ measured runtime (s)", grid: true, domain: [0, d3.max(data, d => d.seconds) * 1.3]},
     color: {domain: ["baseline", "constant factor", "growth with n"], range: ["#b8b6b0", "#2a78d6", "#eb6834"]},
@@ -838,7 +843,6 @@ ojs_define(slow_vs_growth = slow_vs_growth)
   });
 }
 ```
-:::
 
 ::: {.fragment}
 - Each step twice as slow → runtime **2×** (2.5 s → 5 s). A *constant factor*.
@@ -847,7 +851,6 @@ ojs_define(slow_vs_growth = slow_vs_growth)
 :::
 
 ::: {.notes}
-- Same 25 hits, each one slower. This is for example, what a slower network does: it scales the whole thing by a constant.
 - Doubling $n$ changed the *number of steps*; doubling the sleep changed the *cost per step*.
 :::
 
@@ -983,16 +986,16 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 
 ## 📈 The doubling rule {style="font-size: 0.6em;"}
 
-| Big O | name | double $n$ → runtime | Uber example |
-|-------|------|----------------------|--------------|
-| $O(1)$ | constant | same | does this rider have an account? (a **set** of accounts) |
-| $O(\log n)$ | logarithmic | + a constant | find the rider's account in a **sorted** list (binary search) |
-| $O(n)$ | linear | 2× | notify every nearby driver; the same account check with a **list** |
-| $O(n \log n)$ | linearithmic | a bit more than 2× | sort drivers by distance to the rider |
-| $O(n^2)$ | quadratic | 4× | every rider × every driver |
-| $O(n^3)$ | cubic | 8× | every rider × every driver × every route |
-| $O(n^k)$ | polynomial | $2^k$× | $k$ nested loops |
-| $O(2^n)$ | exponential | squared | every possible group of riders sharing one car |
+| Big O | name | double $n$ → runtime |
+|-------|------|----------------------|
+| $O(1)$ | constant | same | 
+| $O(\log n)$ | logarithmic | + a constant |
+| $O(n)$ | linear | 2× |
+| $O(n \log n)$ | linearithmic | a bit more than 2× |
+| $O(n^2)$ | quadratic | 4× |
+| $O(n^3)$ | cubic | 8× |
+| $O(n^k)$ | polynomial | $2^k$× | 
+| $O(2^n)$ | exponential | squared |
 
 ::: {.fragment}
 - Why 8× for $n^3$: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^3}{n^3} = 8$.
