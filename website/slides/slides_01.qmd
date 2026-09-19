@@ -1083,24 +1083,20 @@ viewof loglog = Inputs.toggle({label: "log-log axes", value: false})
 - Drag $n$ up to 40: $2^{40}$ is about a trillion steps.
 :::
 
-## 📈 Big O keeps only the fastest-growing term {style="font-size: 0.85em;"}
+## 📈 Big O keeps only the **fastest-growing** term {style="font-size: 0.85em;"}
 
-One ride request does three things: find the rider's account by binary search in a sorted list ($\log n$), notify $n$ drivers ($n$), and 5 setup steps.
+Imagine we have an algorithm that does these three things: [1] find the rider's account by binary search in a sorted list ($\log n$), [2] notify $n$ drivers($n$), and [3] the algorithm waits for 5 seconds before matching drivers with riders ($5$). The algorithm's runtime is: 
 
-$$f(n) = n + \log n + 5 \quad\Longrightarrow\quad O(n)$$
+::: {.fragment}
+$$f(n) = \log n + n + 5 \quad\Longrightarrow\quad O(n)$$
+:::
 
 ::: {.incremental}
 - We drop **multiplicative constants**: $2n$ steps (notify every driver twice) is still $O(n)$.
-- We drop **lower-order terms** and additive constants: $n + \log n + 5$ is $O(n)$.
-- We care about growth when $n$ is large, and there the small terms don't matter.
-- ⚠️ **Additive vs. multiplicative:** $n + \log n$ is $O(n)$, but $n \cdot \log n$ is $O(n \log n)$.
-  "Terms" are things being **added**; keep the biggest one.
+- We drop **lower-order terms** and additive constants: $\log n$ would be dropped because $\log n$ grows slower than $n$. $5$ would be dropped because it is a constant.
+- ⚠️ **Additive vs. multiplicative:** $n + \log n$'s Big O notation is $O(n)$, but $n \cdot \log n$'s Big O notation is $O(n \log n)$.
 :::
 
-::: {.notes}
-- In $n + \log n + 5$, the biggest term is $n$. In $n \log n$ there is only one term.
-- Multiplicative constants = the cost per step (0.1 s vs 0.2 s from the profiling section). Big O ignores them on purpose.
-:::
 
 ```{python}
 #| echo: false
@@ -1116,7 +1112,7 @@ lower_order_extra = {size: {"extra": math.log2(size) + 5, "pct": 100 * (math.log
 ojs_define(lower_order_curves = lower_order_curves, lower_order_extra = lower_order_extra)
 ```
 
-## 📈 Zoom out: $n + \log n + 5$ is "just" $O(n)$ {style="font-size: 0.85em;"}
+## 📈 Visualization: $n + \log n + 5$ is "just" $O(n)$ {style="font-size: 0.85em;"}
 
 ```{ojs}
 //| echo: false
@@ -1153,13 +1149,13 @@ viewof n_zoom = Inputs.range([10, 5000], {step: 10, value: 10, label: "n up to"}
 ```
 
 ::: {.notes}
-- At $n = 10$ the two curves look different: the extra $\log n + 5$ is almost as big as $n$ itself.
-- Drag to $n = 5000$: the two lines sit on top of each other, and the extra is 0.4% of the total. That is what "lower-order" means.
+- when n is small, there is a big gap between the 2 lines, but both grow linearly-ish
+- as n grows, the gap becomes smaller and 2 lines are overlapping.
 :::
 
 ## ⚠️ When $n$ is small, big O can mislead {style="font-size: 0.85em;"}
 
-Two ways to find the closest driver to a rider. **A** splits the city into a grid and only searches the nearby cells, but each step is expensive: $100\sqrt{n}$ steps, $O(\sqrt{n})$. **B** just checks every driver: $n$ steps, $O(n)$. Big O says A wins. Does it?
+You are given 2 algorithms by your colleague at Uber, algorithm A takes $100\sqrt{n}$ steps, $O(\sqrt{n})$, and algorithm B takes $n$ steps, $O(n)$. So we should always pick algorithm A, right?
 
 ```{python}
 #| echo: false
@@ -1207,8 +1203,7 @@ viewof n_small = Inputs.range([20, 40000], {step: 20, value: 20, label: "zoom: n
 ::: {.notes}
 - Vancouver 2010, 20 drivers: B (the "worse" $O(n)$ algorithm) is far faster: 20 steps vs. about 450.
 - Drag out to 40,000 drivers: A crosses below B at $n = 10{,}000$ and wins from there on.
-- Big O is about large $n$. For small $n$ the constants and lower-order terms we threw away come back. You will see this again in lab 2.
-- Big O analysis isn't the be-all and end-all; it's just very often useful.
+- Big O is about large $n$. For small $n$ the constants and lower-order terms we threw away actually matters
 :::
 
 ## 🧮 Finding the complexity: count the loops {style="font-size: 0.85em;"}
@@ -1237,7 +1232,7 @@ def dispatch(n):
         notify_driver()                       # constant time (k)
 
 steps = 0
-dispatch(10)
+print(dispatch(10))
 print(steps)   # predict first, then try n = 20
 ```
 
