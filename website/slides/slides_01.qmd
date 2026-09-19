@@ -464,24 +464,53 @@ The set is slower to **build** but much faster to **search**. So which one wins 
 
 ```{python}
 #| echo: false
-# Re-measure the four numbers from the last two slides (%timeit only prints them)
-# and hand them to the chart on the next slide.
+# Hidden: data for the "who wins?" chart on the next slide.
+# %timeit only prints its numbers, so re-measure the four costs here and
+# compute every point of the chart in Python; OJS only draws.
+import math
 import timeit
 
 def seconds_per_call(stmt, number):
-    # repeat 3 times then take min because true execution time has fixed floor, so higher 
-    # time is often due to noise like OS scheudling.
-    return min(timeit.repeat(stmt, number=number, repeat=7)) / number
+    # Run `stmt` `number` times per repeat and keep the fastest of 7 repeats:
+    # the true cost is a floor, slower repeats are noise (e.g. OS scheduling).
+    return min(timeit.repeat(stmt, number=number, repeat=7, globals=globals())) / number
 
 accounts_list, accounts_set = list(range(n)), set(range(n))
 login_cost = {
-    "build_list": seconds_per_call(lambda: list(range(n)), 1),
-    "build_set": seconds_per_call(lambda: set(range(n)), 1),
-    "lookup_list": seconds_per_call(lambda: new_rider in accounts_list, 10),
-    "lookup_set": seconds_per_call(lambda: new_rider in accounts_set, 100_000_000),
+    "build_list": seconds_per_call("list(range(n))", 1),
+    "build_set": seconds_per_call("set(range(n))", 1),
+    "lookup_list": seconds_per_call("new_rider in accounts_list", 10),
+    "lookup_set": seconds_per_call("new_rider in accounts_set", 1_000_000),
 }
-del accounts_list, accounts_set, rider_accounts
-ojs_define(login_cost = login_cost)
+del accounts_list, accounts_set, rider_accounts   # free ~1 GB before the rest of the deck
+
+def human_time(seconds):
+    """Readable duration for chart labels: 25 ms, 3.2 min, 11.6 days."""
+    if seconds < 1e-3:      return f"{seconds * 1e6:.0f} µs"
+    if seconds < 1:         return f"{seconds * 1e3:.0f} ms"
+    if seconds < 120:       return f"{seconds:.1f} s"
+    if seconds < 7200:      return f"{seconds / 60:.1f} min"
+    if seconds < 2 * 86400: return f"{seconds / 3600:.1f} hours"
+    return f"{seconds / 86400:.1f} days"
+
+def login_point(structure, logins):
+    """Total time = build the collection once + one lookup per login."""
+    seconds = login_cost[f"build_{structure}"] + logins * login_cost[f"lookup_{structure}"]
+    return {"s": structure, "logins": logins, "seconds": seconds, "label": human_time(seconds)}
+
+structures = ["list", "set"]
+login_choices = [10 ** p for p in range(8)]             # radio buttons: 1, 10, ..., 10 million logins
+login_chart = {
+    "choices": login_choices,
+    # 141 points per line, evenly spaced on a log axis: 10^0, 10^0.05, ..., 10^7 logins
+    "curves": [login_point(s, 10 ** (i / 20)) for s in structures for i in range(141)],
+    # the two highlighted dots for each radio choice
+    "picks": {k: [login_point(s, k) for s in structures] for k in login_choices},
+    # extra build cost of the set ÷ time saved on each lookup (at least 1 login)
+    "break_even": max(1, math.ceil((login_cost["build_set"] - login_cost["build_list"])
+                                   / (login_cost["lookup_list"] - login_cost["lookup_set"]))),
+}
+ojs_define(login_chart = login_chart)
 ```
 
 ## 🚗 Build once, look up all day: who wins? {style="font-size: 0.8em;"}
@@ -490,38 +519,17 @@ Total time = time to **build** the collection + (number of logins) × time per *
 
 ```{ojs}
 //| echo: false
-viewof logins = Inputs.radio([1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000],
+viewof logins = Inputs.radio(login_chart.choices,
                              {value: 1, label: "logins today", format: d3.format("~s")})
 ```
 
 ```{ojs}
 //| echo: false
-// Turn a number of seconds into something a human can read: 25 ms, 3.2 min, 11.6 days
-function humanTime(s) {
-  if (s < 1e-3) return (s * 1e6).toFixed(0) + " µs";
-  if (s < 1)    return (s * 1e3).toFixed(0) + " ms";
-  if (s < 120)  return s.toFixed(1) + " s";
-  if (s < 7200) return (s / 60).toFixed(1) + " min";
-  if (s < 2 * 86400) return (s / 3600).toFixed(1) + " hours";
-  return (s / 86400).toFixed(1) + " days";
-}
-```
-
-```{ojs}
-//| echo: false
+// Draw only: every point and label was computed in Python (login_chart).
 {
-  const c = login_cost;
-  const total = {
-    list: k => c.build_list + k * c.lookup_list,
-    set:  k => c.build_set  + k * c.lookup_set
-  };
   const series = ["list", "set"];
-  const rows = [];
-  for (let i = 0; i <= 140; i++) {                     // 141 points, evenly spaced on a log axis
-    const k = 10 ** (i / 20);                           // 10^0, 10^0.05, ..., 10^7 logins
-    for (const s of series) rows.push({s, logins: k, seconds: total[s](k)});
-  }
-  const picked = series.map(s => ({s, logins: logins, seconds: total[s](logins)}));
+  const rows = login_chart.curves;
+  const picked = login_chart.picks[logins];      // the two dots for the chosen number of logins
   return Plot.plot({
     width: 860, height: 330, marginLeft: 80, marginRight: 60, marginBottom: 48,
     style: {fontSize: "16px", background: "transparent"},
@@ -537,10 +545,10 @@ function humanTime(s) {
       // label the two dots: list label above its dot, set label below it (above it near the
       // right edge, where below would hit the x-axis). dy is a constant, so one mark per series.
       ...[["list", -14], ["set", logins < 1e5 ? 14 : -14]].map(([s, dy]) =>
-        Plot.text(picked.filter(d => d.s === s), {x: "logins", y: "seconds", text: d => `${d.s}: ${humanTime(d.seconds)}`,
+        Plot.text(picked.filter(d => d.s === s), {x: "logins", y: "seconds", text: d => `${d.s}: ${d.label}`,
                   dx: logins < 1e5 ? 10 : -10, dy, textAnchor: logins < 1e5 ? "start" : "end", fontWeight: "bold"})),
       Plot.tip(rows, Plot.pointer({x: "logins", y: "seconds",
-                                   title: d => `${d.s}\n${d3.format(",.0f")(d.logins)} logins\n${humanTime(d.seconds)}`}))
+                                   title: d => `${d.s}\n${d3.format(",.0f")(d.logins)} logins\n${d.label}`}))
     ]
   });
 }
@@ -549,9 +557,7 @@ function humanTime(s) {
 ```{ojs}
 //| echo: false
 {
-  const c = login_cost;
-  // extra build cost of the set ÷ time saved on each lookup (at least 1 login)
-  const breakEven = Math.max(1, Math.ceil((c.build_set - c.build_list) / (c.lookup_list - c.lookup_set)));
+  const breakEven = login_chart.break_even;      // computed in Python
   return html`<div class="ojs-readout">The set has paid for its slower build after only
     <b>${breakEven}</b> login${breakEven === 1 ? "" : "s"}.
     Uber handles millions of logins a day.</div>`;
@@ -632,19 +638,17 @@ lp.print_stats()
 
 ```{python}
 #| echo: false
+# Hidden: keep the total runtime of each profiled call for the bar charts.
+# The visible cells stay exactly as students would write them; this reads the
+# profiler's own "Total time" back out of `lp` (sum of every line's time).
+profiled_runs = []
 
-runtimes = []    # one entry per profiled call, for the charts that follow
+def record_runtime(lp, func, n):
+    stats = lp.get_stats()   # timings: {function: [(line number, hits, time), ...]}
+    total = sum(t for lines in stats.timings.values() for _, _, t in lines) * stats.unit
+    profiled_runs.append({"call": f"{func.__name__}({n})", "func": func.__name__, "seconds": total})
 
-# create a function helper so we can profile many calls and visualize them in ojs 
-def line_profile(func, *args):
-    lp = LineProfiler()
-    lp.add_function(func)
-    start = time.perf_counter()
-    lp.runcall(func, *args)
-    runtimes.append({"call": f"{func.__name__}({', '.join(map(str, args))})",
-                     "seconds": time.perf_counter() - start})
-    lp.print_stats()
-
+record_runtime(lp, notify_drivers, 5)
 ```
 
 ::: {.notes}
@@ -661,6 +665,11 @@ lp = LineProfiler()
 lp.add_function(notify_drivers)
 lp.runcall(notify_drivers, 10)
 lp.print_stats()
+```
+
+```{python}
+#| echo: false
+record_runtime(lp, notify_drivers, 10)
 ```
 
 ::: {.fragment}
@@ -711,6 +720,11 @@ lp.add_function(match_riders)
 lp.runcall(match_riders, 5)
 lp.print_stats()
 ```
+
+```{python}
+#| echo: false
+record_runtime(lp, match_riders, 5)
+```
 :::
 
 ::: {.notes}
@@ -728,13 +742,19 @@ lp.runcall(match_riders, 10)
 lp.print_stats()
 ```
 
+```{python}
+#| echo: false
+record_runtime(lp, match_riders, 10)
+# One ojs_define for all four runs; OJS is reactive, so the n = 10 chart above sees it too.
+ojs_define(profiled = profiled_runs)
+```
+
 ::: {.fragment}
 ```{ojs}
 //| echo: false
 {
   const calls = ["notify_drivers(5)", "notify_drivers(10)", "match_riders(5)", "match_riders(10)"];
-  const data = profiled.filter(d => calls.includes(d.call))
-                       .map(d => ({...d, func: d.call.split("(")[0]}));
+  const data = profiled.filter(d => calls.includes(d.call));
   return Plot.plot({
     width: 760, height: 250, marginLeft: 70, marginTop: 30,
     marginBottom: 48, style: {fontSize: "16px", background: "transparent"},
@@ -801,11 +821,6 @@ lp.print_stats()
 - **Note:** profiling applies to memory as well. Memory profiling is next lecture.
 :::
 
-```{python}
-#| echo: false
-ojs_define(profiled = runtimes)
-```
-
 # 📈 Time Complexity {background-image="images/rocks.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
 
 Predict how the runtime grows as $n$ gets bigger, *before* Uber gets big.
@@ -833,20 +848,23 @@ def match_riders_1ms(n):
 
 ```{python}
 #| echo: false
-
+# Hidden: time both functions for n = 1..30 (about 10 s at render time) and
+# hand the measurements to the interactive plot on the next slide.
+growth_labels = {"notify_drivers_1ms": "notify_drivers (one loop)",
+                 "match_riders_1ms": "match_riders (nested loop)"}
 growth = []
-for n in range(1, 31):
+for size in range(1, 31):
     for func in (notify_drivers_1ms, match_riders_1ms):
         start = time.perf_counter()
-        func(n)
-        growth.append({"function": func.__name__, "n": n, "seconds": time.perf_counter() - start})
+        func(size)
+        growth.append({"function": func.__name__, "label": growth_labels[func.__name__],
+                       "n": size, "seconds": time.perf_counter() - start})
 
-ojs_define(growth = growth)    # hand the measurements to the interactive plot on the next slide
+ojs_define(growth = growth)
 ```
 
 ::: {.notes}
 - We profiled $n = 5$ and $n = 10$. Now we measure $n$ from 1 to 30 and *look at the shape*.
-- `ojs_define` just passes the Python list to the plot on the next slide.
 :::
 
 ## 📈 Drag $n$ and watch the runtime grow {style="font-size: 0.85em;"}
@@ -870,15 +888,15 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 ```{ojs}
 //| echo: false
 {
-  const names = {notify_drivers_1ms: "notify_drivers (one loop)", match_riders_1ms: "match_riders (nested loop)"};
-  const shown = growth.filter(d => d.n <= n_max).map(d => ({...d, label: names[d.function]}));
-  const last = Object.values(names).map(l => shown.filter(d => d.label === l).at(-1));
+  const names = ["notify_drivers (one loop)", "match_riders (nested loop)"];
+  const shown = growth.filter(d => d.n <= n_max);                 // measured in Python
+  const last = names.map(l => shown.filter(d => d.label === l).at(-1));   // where to put the line labels
   return Plot.plot({
     width: 860, height: 360, marginRight: 200, marginLeft: 70,
     marginBottom: 48, style: {fontSize: "16px", background: "transparent"},
     x: {label: "n (riders = drivers)", labelAnchor: "center", domain: [0, 31], grid: true},
     y: {label: "↑ measured runtime (s)", domain: [0, d3.max(growth, d => d.seconds) * 1.08], grid: true},
-    color: {domain: Object.values(names), range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
+    color: {domain: names, range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
     marks: [
       Plot.line(shown, {x: "n", y: "seconds", stroke: "label", strokeWidth: 2}),
       Plot.dot(shown, {x: "n", y: "seconds", fill: "label", r: 4, stroke: "white", strokeWidth: 1}),
@@ -947,14 +965,28 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 - Exponential: for a shared pool, every rider is either in the car or not: $2^n$ combinations. With 30 riders that's a billion.
 :::
 
+```{python}
+#| echo: false
+# Hidden: number of steps for each complexity class, n = 1..40 (the slider's range).
+complexity_fns = {
+    "O(1)": lambda n: 1,
+    "O(log n)": lambda n: math.log2(n),
+    "O(n)": lambda n: n,
+    "O(n log n)": lambda n: n * math.log2(n),
+    "O(n²)": lambda n: n ** 2,
+    "O(n³)": lambda n: n ** 3,
+    "O(2ⁿ)": lambda n: 2 ** n,
+}
+complexity_curves = [{"c": c, "n": size, "steps": f(size)}
+                     for c, f in complexity_fns.items() for size in range(1, 41)]
+ojs_define(complexity_classes = list(complexity_fns), complexity_curves = complexity_curves)
+```
+
 ## 📈 Pick the curves, zoom $n$, flip to log-log {style="font-size: 0.85em;"}
 
 ```{ojs}
 //| echo: false
-viewof classes = Inputs.checkbox(
-  ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)", "O(n³)", "O(2ⁿ)"],
-  {value: ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)", "O(n³)", "O(2ⁿ)"], label: "show"}
-)
+viewof classes = Inputs.checkbox(complexity_classes, {value: complexity_classes, label: "show"})
 ```
 
 ::::: columns
@@ -975,16 +1007,12 @@ viewof loglog = Inputs.toggle({label: "log-log axes", value: false})
 ```{ojs}
 //| echo: false
 {
-  const fns = {
-    "O(1)": n => 1, "O(log n)": n => Math.log2(n), "O(n)": n => n, "O(n log n)": n => n * Math.log2(n),
-    "O(n²)": n => n ** 2, "O(n³)": n => n ** 3, "O(2ⁿ)": n => 2 ** n
-  };
-  const order = Object.keys(fns);
+  const order = complexity_classes;
   const palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7"];
-  const rows = [];
-  for (const c of order) if (classes.includes(c))
-    for (let n = 1; n <= n_top; n++) rows.push({c, n, steps: fns[c](n)});
-  const data = loglog ? rows.filter(d => d.steps > 0) : rows;
+  // steps were computed in Python; keep the ticked classes up to the chosen n
+  const rows = complexity_curves.filter(d => classes.includes(d.c) && d.n <= n_top);
+  const data = loglog ? rows.filter(d => d.steps > 0) : rows;   // log axis can't show log2(1) = 0
+  // line labels: every line on log-log, only the tallest one on linear axes (the rest overlap)
   const ends = order.map(c => data.filter(d => d.c === c).at(-1)).filter(Boolean);
   const top = ends.length ? ends.reduce((a, b) => (b.steps > a.steps ? b : a)) : null;
   const last = loglog ? ends : (top ? [top] : []);
@@ -1029,6 +1057,20 @@ $$f(n) = n + \log n + 5 \quad\Longrightarrow\quad O(n)$$
 - Multiplicative constants = the cost per step (0.1 s vs 0.2 s from the profiling section). Big O ignores them on purpose.
 :::
 
+```{python}
+#| echo: false
+# Hidden: n vs. n + log n + 5 for the zoom slider (n up to 5000).
+# Every n up to 200, then every 10th n: enough points for a smooth line at any zoom.
+zoom_grid = sorted(set(range(1, 201)) | set(range(200, 5001, 10)))
+lower_order_curves = [{"c": c, "n": size, "steps": steps}
+                      for size in zoom_grid
+                      for c, steps in [("n", size), ("n + log n + 5", round(size + math.log2(size) + 5, 2))]]
+# readout for every slider position (10, 20, ..., 5000): the extra steps and their share of n
+lower_order_extra = {size: {"extra": math.log2(size) + 5, "pct": 100 * (math.log2(size) + 5) / size}
+                     for size in range(10, 5001, 10)}
+ojs_define(lower_order_curves = lower_order_curves, lower_order_extra = lower_order_extra)
+```
+
 ## 📈 Zoom out: $n + \log n + 5$ is "just" $O(n)$ {style="font-size: 0.85em;"}
 
 ```{ojs}
@@ -1039,21 +1081,17 @@ viewof n_zoom = Inputs.range([10, 5000], {step: 10, value: 10, label: "n up to"}
 ```{ojs}
 //| echo: false
 {
-  const extra = Math.log2(n_zoom) + 5;
+  const {extra, pct} = lower_order_extra[n_zoom];   // computed in Python
   return html`<div class="ojs-readout">At n = <b>${n_zoom}</b>: the extra log n + 5 is
-    <b>${extra.toFixed(1)}</b> steps, which is <b>${(100 * extra / n_zoom).toFixed(1)}%</b> on top of n.</div>`;
+    <b>${extra.toFixed(1)}</b> steps, which is <b>${pct.toFixed(1)}%</b> on top of n.</div>`;
 }
 ```
 
 ```{ojs}
 //| echo: false
 {
-  const rows = [];
-  for (let n = 1; n <= n_zoom; n += Math.max(1, Math.floor(n_zoom / 200))) {
-    rows.push({c: "n", n, steps: n});
-    rows.push({c: "n + log n + 5", n, steps: n + Math.log2(n) + 5});
-  }
-  const last = ["n", "n + log n + 5"].map(c => rows.filter(d => d.c === c).at(-1));
+  const rows = lower_order_curves.filter(d => d.n <= n_zoom);
+  const last = ["n", "n + log n + 5"].map(c => rows.filter(d => d.c === c).at(-1));   // where to put the line labels
   return Plot.plot({
     width: 860, height: 360, marginRight: 150, marginLeft: 80,
     marginBottom: 48, style: {fontSize: "16px", background: "transparent"},
@@ -1078,6 +1116,19 @@ viewof n_zoom = Inputs.range([10, 5000], {step: 10, value: 10, label: "n up to"}
 
 Two ways to find the closest driver to a rider. **A** splits the city into a grid and only searches the nearby cells, but each step is expensive: $100\sqrt{n}$ steps, $O(\sqrt{n})$. **B** just checks every driver: $n$ steps, $O(n)$. Big O says A wins. Does it?
 
+```{python}
+#| echo: false
+# Hidden: steps of A (100·√n) and B (n) for the zoom slider (n up to 40,000).
+# Every n up to 200, then every 20th n: enough points for a smooth line at any zoom.
+sqrt_grid = sorted(set(range(1, 201)) | set(range(200, 40001, 20)))
+sqrt_labels = ["A: 100·√n  (O(√n))", "B: n  (O(n))"]
+sqrt_curves = [{"c": c, "n": size, "steps": steps}
+               for size in sqrt_grid
+               for c, steps in zip(sqrt_labels, [round(100 * math.sqrt(size), 2), size])]
+sqrt_crossover = 100 ** 2   # 100·√n = n  ⇔  √n = 100  ⇔  n = 10,000
+ojs_define(sqrt_labels = sqrt_labels, sqrt_curves = sqrt_curves, sqrt_crossover = sqrt_crossover)
+```
+
 ```{ojs}
 //| echo: false
 viewof n_small = Inputs.range([20, 40000], {step: 20, value: 20, label: "zoom: n up to"})
@@ -1086,13 +1137,10 @@ viewof n_small = Inputs.range([20, 40000], {step: 20, value: 20, label: "zoom: n
 ```{ojs}
 //| echo: false
 {
-  const rows = [];
-  for (let n = 1; n <= n_small; n += Math.max(1, Math.floor(n_small / 200))) {
-    rows.push({c: "A: 100·√n  (O(√n))", n, steps: 100 * Math.sqrt(n)});
-    rows.push({c: "B: n  (O(n))", n, steps: n});
-  }
-  const cs = ["A: 100·√n  (O(√n))", "B: n  (O(n))"];
-  const last = cs.map(c => rows.filter(d => d.c === c).at(-1));
+  const rows = sqrt_curves.filter(d => d.n <= n_small);   // computed in Python
+  const cs = sqrt_labels;
+  const x0 = sqrt_crossover;
+  const last = cs.map(c => rows.filter(d => d.c === c).at(-1));   // where to put the line labels
   return Plot.plot({
     width: 860, height: 340, marginRight: 190, marginLeft: 80,
     marginBottom: 48, style: {fontSize: "16px", background: "transparent"},
@@ -1102,8 +1150,9 @@ viewof n_small = Inputs.range([20, 40000], {step: 20, value: 20, label: "zoom: n
     marks: [
       Plot.line(rows, {x: "n", y: "steps", stroke: "c", strokeWidth: 2}),
       Plot.text(last, {x: "n", y: "steps", text: "c", dx: 8, textAnchor: "start", fontWeight: "bold"}),
-      n_small >= 10000 ? Plot.ruleX([10000], {stroke: "#52514e", strokeDasharray: "4 4"}) : null,
-      n_small >= 10000 ? Plot.text([{n: 10000}], {x: d => d.n, y: d => 0, text: () => "crossover: n = 10,000", dy: -8, dx: 6, textAnchor: "start", fill: "#52514e"}) : null,
+      n_small >= x0 ? Plot.ruleX([x0], {stroke: "#52514e", strokeDasharray: "4 4"}) : null,
+      n_small >= x0 ? Plot.text([{n: x0}], {x: "n", y: () => 0, text: d => `crossover: n = ${d3.format(",")(d.n)}`,
+                                            dy: -8, dx: 6, textAnchor: "start", fill: "#52514e"}) : null,
       Plot.tip(rows, Plot.pointer({x: "n", y: "steps", title: d => `${d.c}\nn = ${d.n}\n${d3.format(",.0f")(d.steps)} steps`}))
     ]
   });
@@ -1161,6 +1210,31 @@ print(steps)   # predict first, then try n = 20
 - The step counter is a hidden cell on this slide: every constant-time helper just adds 1 to `steps`.
 :::
 
+```{python}
+#| echo: false
+# Hidden: run dispatch(n) for n = 1..12 and record every constant-time step,
+# so the next slide can draw one dot per step and report the counts.
+dispatch_kinds = ["estimate_pickup_time (n × n)", "notify_driver (n)"]
+
+def dispatch_trace(n):
+    trace = []
+    for rider in range(1, n + 1):
+        for driver in range(1, n + 1):
+            trace.append({"kind": dispatch_kinds[0], "rider": rider, "driver": driver})
+    for driver in range(1, n + 1):
+        trace.append({"kind": dispatch_kinds[1], "rider": None, "driver": driver})
+    return trace
+
+dispatch_steps, dispatch_counts = {}, {}
+for size in range(1, 13):
+    trace = dispatch_trace(size)
+    estimates = sum(step["kind"] == dispatch_kinds[0] for step in trace)
+    dispatch_steps[size] = trace
+    dispatch_counts[size] = {"estimates": estimates, "notifications": len(trace) - estimates,
+                             "total": len(trace), "pct_n2": 100 * estimates / len(trace)}
+ojs_define(dispatch_kinds = dispatch_kinds, dispatch_steps = dispatch_steps, dispatch_counts = dispatch_counts)
+```
+
 ## 🧮 See the steps: every dot is one step {style="font-size: 0.85em;"}
 
 ```{ojs}
@@ -1171,13 +1245,9 @@ viewof n_grid = Inputs.range([1, 12], {step: 1, value: 3, label: "n (riders = dr
 ```{ojs}
 //| echo: false
 {
-  const kinds = ["estimate_pickup_time (n × n)", "notify_driver (n)"];
-  const dots = [];
-  for (let rider = 1; rider <= n_grid; rider++)
-    for (let driver = 1; driver <= n_grid; driver++)
-      dots.push({driver, row: rider, kind: kinds[0]});
-  for (let driver = 1; driver <= n_grid; driver++)
-    dots.push({driver, row: n_grid + 2, kind: kinds[1]}); // leave one empty row below the grid
+  const kinds = dispatch_kinds;
+  // steps recorded in Python; notify steps (rider = null) go in their own row, one empty row below the grid
+  const dots = dispatch_steps[n_grid].map(d => ({...d, row: d.rider ?? n_grid + 2}));
   return Plot.plot({
     width: 620, height: 340, marginLeft: 70, marginBottom: 40,
     style: {fontSize: "16px", background: "transparent"},
@@ -1198,10 +1268,10 @@ viewof n_grid = Inputs.range([1, 12], {step: 1, value: 3, label: "n (riders = dr
 ```{ojs}
 //| echo: false
 {
-  const sq = n_grid * n_grid, total = sq + n_grid;
+  const {estimates, notifications, total, pct_n2} = dispatch_counts[n_grid];   // counted in Python
   return html`<div class="ojs-readout">n = <b>${n_grid}</b>:
-    <span class="match">${sq}</span> estimates + <span class="notify">${n_grid}</span> notifications
-    = <b>${total}</b> steps. The n² part is <b>${(100 * sq / total).toFixed(0)}%</b> of the work.</div>`;
+    <span class="match">${estimates}</span> estimates + <span class="notify">${notifications}</span> notifications
+    = <b>${total}</b> steps. The n² part is <b>${pct_n2.toFixed(0)}%</b> of the work.</div>`;
 }
 ```
 
@@ -1284,24 +1354,46 @@ def surge_pricing(n):
 
 Back to Scenario 1: `rider_id in rider_accounts` when `rider_accounts` is a **list**. Python checks the IDs one by one, from the left.
 
+```{python}
+#| echo: false
+# Hidden: scan a small list of account IDs the way `in` does, once for every
+# rider position (1..12) plus a new rider (13), counting comparisons.
+scan_ids = [4821, 107, 9303, 15, 8872, 336, 6150, 2749, 5003, 7461, 1932, 3688]
+
+def linear_search(ids, target):
+    """Return (found, number of comparisons), checking from the left like `target in ids`."""
+    checks = 0
+    for rider_id in ids:
+        checks += 1
+        if rider_id == target:
+            return True, checks
+    return False, checks
+
+scan_results = {}
+for pos in range(1, len(scan_ids) + 2):
+    target = scan_ids[pos - 1] if pos <= len(scan_ids) else new_rider   # new_rider = -1: no account
+    found, checks = linear_search(scan_ids, target)
+    scan_results[pos] = {"target": target, "found": found, "checks": checks}
+ojs_define(scan_ids = scan_ids, scan_results = scan_results)
+```
+
 ```{ojs}
 //| echo: false
-viewof login_pos = Inputs.range([1, 13], {step: 1, value: 1,
-  label: "who logs in? (position in list, 13 = new rider)"})
+viewof login_pos = Inputs.range([1, scan_ids.length + 1], {step: 1, value: 1,
+  label: `who logs in? (position in list, ${scan_ids.length + 1} = new rider)`})
 ```
 
 ```{ojs}
 //| echo: false
 {
-  const ids = [4821, 107, 9303, 15, 8872, 336, 6150, 2749, 5003, 7461, 1932, 3688];
-  const isNew = login_pos > ids.length;
-  const checks = isNew ? ids.length : login_pos;
+  const ids = scan_ids;
+  const {target, found, checks} = scan_results[login_pos];   // searched in Python
   const boxes = ids.map((id, i) => {
-    const cls = i + 1 === login_pos ? "found" : i < checks ? "checked" : "";
+    const cls = found && i + 1 === checks ? "found" : i < checks ? "checked" : "";
     return html`<div class="scan-box ${cls}">${id}</div>`;
   });
-  const who = isNew ? "a new rider (no account)" : `rider ${ids[login_pos - 1]}`;
-  const verdict = isNew ? html`<b>False</b>: show the sign-up page` : html`<b>True</b>: welcome back`;
+  const who = found ? `rider ${target}` : "a new rider (no account)";
+  const verdict = found ? html`<b>True</b>: welcome back` : html`<b>False</b>: show the sign-up page`;
   return html`<div class="scan-row">${boxes}</div>
     <div class="ojs-readout">Looking for ${who}: <b>${checks}</b> of ${ids.length} comparisons,
     then ${verdict}.</div>`;
