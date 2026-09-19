@@ -1333,7 +1333,7 @@ def dispatch(n_riders, m_drivers):
         notify_driver()                       # constant time
 
 steps = 0
-dispatch(3, 100)
+print(dispatch(3, 100))
 print(steps)   # n*m + m = 3*100 + 100
 ```
 
