@@ -3,9 +3,10 @@ title: "DSCI 512 Lecture 6 : Recursive Data Structures"
 author: "Sky (Kehan) Sheng"
 format:
   live-revealjs:
-    header-includes:
-      - <script src="coi-serviceworker.js"></script>
-      - <script src="helper.js"></script>
+    include-in-header:
+      - text: |
+          <script src="assets/unregister-coi-sw.js"></script>
+          <script src="assets/helper.js"></script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
     chalkboard: {buttons: true}
@@ -20,6 +21,9 @@ pyodide:
     - numpy
     - pandas
     - altair
+resources:
+  - assets/unregister-coi-sw.js
+  - assets/helper.js
 ---
 
 ## Lecture 5 Review

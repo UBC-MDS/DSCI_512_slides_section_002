@@ -3,9 +3,10 @@ title: "DSCI 512 Lecture 5 : Recursive Algorithms"
 author: "Sky (Kehan) Sheng"
 format:
   live-revealjs:
-    header-includes:
-      - <script src="coi-serviceworker.js"></script>
-      - <script src="helper.js"></script>
+    include-in-header:
+      - text: |
+          <script src="assets/unregister-coi-sw.js"></script>
+          <script src="assets/helper.js"></script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
     chalkboard: {buttons: true}
@@ -19,6 +20,9 @@ pyodide:
   packages:
     - numpy
     - matplotlib
+resources:
+  - assets/unregister-coi-sw.js
+  - assets/helper.js
 ---
 
 ## Outline
