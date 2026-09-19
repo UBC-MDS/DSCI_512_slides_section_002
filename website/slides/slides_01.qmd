@@ -816,7 +816,7 @@ ojs_define(slow_vs_growth = slow_vs_growth)
 - Same 25 hits, each one slower. This is for example, what a slower network does: it scales the whole thing by a constant.
 :::
 
-## 🚗 Two ways to double the runtime? {style="font-size: 0.8em;"}
+## 🚗 How does runtime changes? {style="font-size: 0.8em;"}
 
 ```{ojs}
 //| echo: false
@@ -852,19 +852,6 @@ ojs_define(slow_vs_growth = slow_vs_growth)
 
 ::: {.notes}
 - Doubling $n$ changed the *number of steps*; doubling the sleep changed the *cost per step*.
-:::
-
-## ⏱️ Code profiling summary {style="font-size: 0.8em;"}
-
-::: {.incremental}
-- Code profiling lets us **measure** where a program spends its time.
-- Tools:
-  - `%timeit`: time one line or expression (great for "list vs. set" questions).
-  - `%prun` / `cProfile`: how much time in each **function**.
-  - `%lprun` / `LineProfiler`: how much time on each **line**.
-- What we saw with Uber:
-  - one loop over $n$ drivers: double $n$ → 2× the time.
-  - nested loop over $n$ riders × $n$ drivers: double $n$ → 4× the time.
 :::
 
 # 📈 Time Complexity {background-image="images/rocks.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
@@ -1232,7 +1219,7 @@ def dispatch(n):
         notify_driver()                       # constant time (k)
 
 steps = 0
-print(dispatch(10))
+dispatch(10)
 print(steps)   # predict first, then try n = 20
 ```
 
@@ -1333,7 +1320,7 @@ def dispatch(n_riders, m_drivers):
         notify_driver()                       # constant time
 
 steps = 0
-print(dispatch(3, 100))
+dispatch(3, 100)
 print(steps)   # n*m + m = 3*100 + 100
 ```
 
@@ -1355,8 +1342,15 @@ The time complexity is $O(nm + m) = O(nm)$.
 ## 🚗 Today's takeaways {style="font-size: 0.9em;"}
 
 ::: {.incremental}
-- ⏱️ **Profiling measures.** `%timeit` time for a line, `%prun` time for different functions, `%lprun` time for different lines.
-- 📈 **Big O predicts.** Count the loops, keep the fastest-growing term, ignores constant factors and lower-order terms.
+- **Code profiling** lets us **measure** where a program spends its time.
+- Tools:
+  - `%timeit`: time one line or expression (great for "list vs. set" questions).
+  - `%prun` / `cProfile`: how much time in each **function**.
+  - `%lprun` / `LineProfiler`: how much time on each **line**.
+- What we saw with Uber:
+  - one loop over $n$ drivers: double $n$ → 2× the time.
+  - nested loop over $n$ riders × $n$ drivers: double $n$ → 4× the time.
+- **Big O predicts.** Count the loops, keep the fastest-growing term, ignores constant factors and lower-order terms.
 - ⚠️ **Constants matter when $n$ is small**
 :::
 
