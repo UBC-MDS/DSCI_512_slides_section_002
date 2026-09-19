@@ -1218,9 +1218,9 @@ def dispatch(n):
     for driver in range(n):                   # n iterations
         notify_driver()                       # constant time (k)
 
-steps = 0
+steps_predicted = 0 # modify this line to enter your own prediction
 dispatch(10)
-print(steps)   # predict first, then try n = 20
+print(f"Predicted steps: {steps_predicted}, Actual steps: {steps}")   # predict first, then print out the actual steps taken
 ```
 
 ::: {.fragment}
@@ -1311,6 +1311,12 @@ viewof n_grid = Inputs.range([1, 12], {step: 1, value: 3, label: "n (riders = dr
 
 At rush hour there are more riders than drivers; at 3 am, the reverse. Now the two counts differ:
 
+```{python}
+#| echo: false
+# Hidden: initialize the step counter
+steps = 0
+```
+
 ```{pyodide}
 def dispatch(n_riders, m_drivers):
     for rider in range(n_riders):             # n iterations
@@ -1319,9 +1325,9 @@ def dispatch(n_riders, m_drivers):
     for driver in range(m_drivers):           # m iterations
         notify_driver()                       # constant time
 
-steps = 0
+predicted_steps = 0 # modify this line to enter your own prediction
 dispatch(3, 100)
-print(steps)   # n*m + m = 3*100 + 100
+print(f"Predicted steps: {predicted_steps}, Actual steps: {steps}")   # predict first, then print out the actual steps taken
 ```
 
 ::: {.fragment}
