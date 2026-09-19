@@ -829,6 +829,11 @@ def match_riders_1ms(n):
         for driver in range(n):
             time.sleep(0.001)
 
+```
+
+```{python}
+#| echo: false
+
 growth = []
 for n in range(1, 31):
     for func in (notify_drivers_1ms, match_riders_1ms):
