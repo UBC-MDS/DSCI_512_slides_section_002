@@ -1376,7 +1376,6 @@ def surge_pricing(n):
 
 ## 🔧 What else affects the runtime? {style="font-size: 0.85em;"}
 
-- The **algorithm** decides the leading term: $O(n)$ vs. $O(n^2)$ (notify vs. match).
 - The **implementation** decides the constants and lower-order terms (0.1 s vs. 0.2 s per step):
   - how fast your language is (Python vs. C),
   - how fast your libraries are (NumPy loops in C),
