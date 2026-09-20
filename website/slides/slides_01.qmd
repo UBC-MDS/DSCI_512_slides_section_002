@@ -995,7 +995,7 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 - Why 8× for $n^3$: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^3}{n^3} = 8$.
 - Why "squared" for $2^n$: $g(2n) = 2^{2n} = (2^n)^2$.
 - ⚠️ Exponential is the worst! Adding just **one** rider already doubles it: $\dfrac{2^{n+1}}{2^n} = 2$.
-- $$1 \;<\; \log n \;<\; n \;<\; n \log n \;<\; n^2 \;<\; n^3 \;<\; 2^n \;<\; n!$$
+- $$1 \;<\; \log n \;<\; n \;<\; n \log n \;<\; n^2 \;<\; n^3 \;<\; 2^n$$
 :::
 
 
