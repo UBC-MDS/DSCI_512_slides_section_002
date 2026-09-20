@@ -1383,6 +1383,7 @@ The time complexity is $O(nm + m) = O(nm)$.
 
 # ❓ Questions?
 
+## {background-image="images/move_u.jpg" background-size="cover" background-position="center"}
 
 ## 🎯 (Bonus Slide) Best, worst and average case {style="font-size: 0.85em;"}
 
