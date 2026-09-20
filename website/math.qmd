@@ -8,6 +8,8 @@ You do **not** need heavy math for this course. But a few rules show up again an
 again when we count steps and compare running times. Most of you learned these
 years ago, so this page is a quick refresher.
 
+You can also use [Desmos](https://www.desmos.com/calculator) to visualize the math formulas!
+
 
 ## 1. Exponents (powers)
 
