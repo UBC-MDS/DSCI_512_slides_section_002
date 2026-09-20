@@ -12,3 +12,6 @@ website/slides/data/
 # OpenAI API key for scripts/generate_images.py
 .env
 scripts/__pycache__/generate_images.cpython-314.pyc
+
+# Instructor-only notes/readmes, not needed by students or the site build
+instructor_notes/
