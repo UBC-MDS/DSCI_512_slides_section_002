@@ -1193,6 +1193,7 @@ viewof n_small = Inputs.range([20, 40000], {step: 20, value: 20, label: "zoom: n
 - Vancouver 2010, 20 drivers: B (the "worse" $O(n)$ algorithm) is far faster: 20 steps vs. about 450.
 - Drag out to 40,000 drivers: A crosses below B at $n = 10{,}000$ and wins from there on.
 - Big O is about large $n$. For small $n$ the constants and lower-order terms we threw away actually matters
+- Big O has limitations, don't just always trust big O notation as the algorithm's actual runtime!
 :::
 
 ## 🧮 Finding the complexity: count the loops {style="font-size: 0.85em;"}
@@ -1350,16 +1351,19 @@ The time complexity is $O(nm + m) = O(nm)$.
 ## 🚗 Today's takeaways {style="font-size: 0.9em;"}
 
 ::: {.incremental}
-- **Code profiling** lets us **measure** where a program spends its time.
-- Tools:
-  - `%timeit`: time one line or expression (great for "list vs. set" questions).
+- 🔧 **What affects runtime?**
+  - Data structures — e.g., set is faster to search than list.
+  - Algorithms — does it take $n$ steps, or $2n$ or $100000n$ steps? How complicated is each step?
+  - Implementation — language (Python vs. C), libraries (NumPy), hardware, caching/parallelism.
+- ⏱️ **Profiling measures where time goes** (don't guess, measure!)
+  - `%timeit`: time one line of expression.
   - `%prun` / `cProfile`: how much time in each **function**.
   - `%lprun` / `LineProfiler`: how much time on each **line**.
-- What we saw with Uber:
-  - one loop over $n$ drivers: double $n$ → 2× the time.
-  - nested loop over $n$ riders × $n$ drivers: double $n$ → 4× the time.
-- **Big O predicts.** Count the loops, keep the fastest-growing term, ignores constant factors and lower-order terms.
-- ⚠️ **Constants matter when $n$ is small**
+- 📈 **Big O predicts how runtime *grows* as $n$ increases**
+  - Count the loops, keep the fastest-growing term, ignore constant factors and lower-order terms.
+  - Uber: one loop over $n$ drivers → double $n$ gives 2× the time ($O(n)$).
+  - Uber: nested loop over $n$ riders × $n$ drivers → double $n$ gives 4× the time ($O(n^2)$).
+- ⚠️ **Constants matter when $n$ is small** → big O only tells you which algorithm wins *eventually*.
 :::
 
 ::: {.notes}
