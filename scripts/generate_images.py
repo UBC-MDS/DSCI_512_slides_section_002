@@ -13,6 +13,8 @@ From the shell:
 
     uv run python scripts/generate_images.py "an otter holding a clock" otter_clock.png
     uv run python scripts/generate_images.py --csv website/slides/lec02_image_prompts.csv
+    uv run python scripts/generate_images.py --csv website/slides/lec02_image_prompts.csv --index 3
+    uv run python scripts/generate_images.py --csv website/slides/lec02_image_prompts.csv --index 1,4-6
 """
 
 import base64
@@ -74,10 +76,39 @@ def generate_image(
     return out
 
 
-def generate_from_csv(csv_path, refs=STYLE_REFS, overwrite=False, transparent=True):
-    """Generate an image per row of a CSV with `filename` and `prompt` columns."""
+def parse_indices(spec):
+    """Parse a row-selection string like "3" or "1,4-6" into [1, 4, 5, 6].
+
+    Indices are 1-based and count data rows only (the header doesn't count),
+    matching the row numbers you'd point to when reading the CSV.
+    """
+    indices = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start, end = part.split("-")
+            indices.extend(range(int(start), int(end) + 1))
+        else:
+            indices.append(int(part))
+    return indices
+
+
+def generate_from_csv(csv_path, refs=STYLE_REFS, overwrite=False, transparent=True, indices=None):
+    """Generate an image per row of a CSV with `filename` and `prompt` columns.
+
+    Pass `indices` (1-based, from `parse_indices`) to only generate those rows
+    instead of the whole file.
+    """
     with open(csv_path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
+
+    if indices is not None:
+        bad = [i for i in indices if i < 1 or i > len(rows)]
+        if bad:
+            raise ValueError(f"row index out of range (CSV has {len(rows)} rows): {bad}")
+        rows = [rows[i - 1] for i in indices]
 
     made = []
     for row in rows:
@@ -97,6 +128,10 @@ if __name__ == "__main__":
     parser.add_argument("prompt", nargs="?", help="prompt for a single image")
     parser.add_argument("filename", nargs="?", help="output filename, e.g. otter.png")
     parser.add_argument("--csv", help="generate every row of this CSV instead")
+    parser.add_argument(
+        "--index",
+        help="with --csv, only these row numbers (1-based, header excluded), e.g. '3' or '1,4-6'",
+    )
     parser.add_argument("--no-refs", action="store_true", help="skip the style references")
     parser.add_argument("--overwrite", action="store_true", help="redo images that exist")
     parser.add_argument("--opaque", action="store_true", help="white background instead of transparent")
@@ -104,7 +139,10 @@ if __name__ == "__main__":
 
     refs = None if args.no_refs else STYLE_REFS
     if args.csv:
-        generate_from_csv(args.csv, refs=refs, overwrite=args.overwrite, transparent=not args.opaque)
+        indices = parse_indices(args.index) if args.index else None
+        generate_from_csv(
+            args.csv, refs=refs, overwrite=args.overwrite, transparent=not args.opaque, indices=indices
+        )
     elif args.prompt and args.filename:
         print(generate_image(args.prompt, args.filename, refs=refs, transparent=not args.opaque))
     else:
