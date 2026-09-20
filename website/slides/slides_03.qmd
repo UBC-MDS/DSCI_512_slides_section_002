@@ -26,30 +26,16 @@ resources:
   - assets/helper.js
 ---
 
-## Lecture 2 Review
-
-- Space complexity, Data types and Memory usage, and Hash functions/tables.
+## Student Questions
 
 ::: {.incremental}
-- Student Questions:
+- Are hash functions used only in hash tables, or in other parts of computing too?
 
-  - Are hash functions used only in hash tables, or in other parts of computing too?
+- Can you mention the time complexity for np.zeros(n)?
 
-  - Can you mention the time complexity for np.zeros(n)?
+- How do we usually decide whether it’s worth trading more space for less time, or vice versa?
 
-  - How do we usually decide whether it’s worth trading more space for less time, or vice versa?
-
-  - Does this mean that when you get the Big O notation, then you are essentially calculating the worst case?
-
-:::{.columns}
-::: {.column width="60%"}
-- [join.iclicker.com/AGFP](https://join.iclicker.com/AGFP)
-:::
-::: {.column width="40%"}
-- ![](images/iclicker_qr.png){width="130"}
-:::
-:::
-
+- Does this mean that when you get the Big O notation, then you are essentially calculating the worst case?
 :::
 
 ## Python `dict`

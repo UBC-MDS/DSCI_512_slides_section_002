@@ -18,46 +18,6 @@ resources:
 
  - Use the link on Canvas
 
-## Lecture 7 Review
-
-- Caching and memoization
-- Intro to Dynamic Programming:
-    - **Overlapping subproblems**
-    - **Optimal substructure**
-
-## Lecture 7 Review
-
-- Top-Down
-```python
-def fib_memoized(n, memo=dict()):
-    # Check cache
-    if n in memo:
-        return memo[n]
-
-    if n == 1 or n == 2:
-        return 1
-
-    memo[n] = fib_memoized(n-1, memo) + fib_memoized(n-2, memo)
-
-    return memo[n]
-```
-
-## Lecture 7 Review
-
-- Bottom-Up
-```python
-def fib_iterative(n):
-
-    f = np.zeros(n+1, dtype=int)
-
-    f[1] = 1
-
-    for i in range(2,n+1):
-        f[i] = f[i-1] + f[i-2]
-
-    return f[-1]
-```
-
 ## Outline
 
 - The edit distance problem

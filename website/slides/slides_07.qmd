@@ -14,13 +14,6 @@ resources:
   - assets/helper.js
 ---
 
-## Lecture 6 Review
-
-- Recursive data structures
-- Linked lists, binary search trees (BST)
-- Nearest neighbours intro and $k$-d trees
-- Amortization
-
 ## Outline
 
 - Caching and memoization

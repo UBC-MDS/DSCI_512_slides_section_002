@@ -36,17 +36,6 @@ resources:
   - 7-9 multiple choice questions
   - 2 coding questions (auto graded)
 
-## Lecture 3 Review
-
-- Graphs (undirected vs directed, weighted vs unweighted)
-- Graph representations
-
-::: incremental
-- ![](images/g_n.png){fig-align="center" width="30%"}
-- ![](images/ad_list.png){fig-align="center" width="50%"}
-- ![](images/ad_matrix.png){fig-align="center" width="25%"}
-:::
-
 ## Student Questions
 ::: {.incremental}
 
