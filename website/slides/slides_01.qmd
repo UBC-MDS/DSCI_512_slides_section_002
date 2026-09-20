@@ -1083,7 +1083,7 @@ viewof loglog = Inputs.toggle({label: "log-log axes", value: false})
 - Drag $n$ up to 40: $2^{40}$ is about a trillion steps.
 :::
 
-## 📈 Big O keeps only the **fastest-growing** term {style="font-size: 0.85em;"}
+## 📈 Big O keeps only the **fastest-growing** term {style="font-size: 0.8em;"}
 
 Imagine we have an algorithm that does these three things: [1] find the rider's account by binary search in a sorted list ($\log n$), [2] notify $n$ drivers($n$), and [3] the algorithm waits for 5 seconds before matching drivers with riders ($5$). The algorithm's runtime is: 
 
@@ -1321,7 +1321,7 @@ viewof n_grid = Inputs.range([1, 12], {step: 1, value: 3, label: "n (riders = dr
 - Drag $n$ from 1 to 12: the orange square grows in two directions, the blue row grows in one. At $n = 12$ the square is 92% of the work, and the share keeps growing with $n$. That is why we keep $n^2$ and drop $n$.
 :::
 
-## 🧮 Two variables: $n$ riders and $m$ drivers {style="font-size: 0.85em;"}
+## 🧮 Two variables: $n$ riders and $m$ drivers {style="font-size: 0.8em;"}
 
 At rush hour there are more riders than drivers; at 3 am, the reverse. Now the two counts differ:
 
@@ -1359,7 +1359,7 @@ The time complexity is $O(nm + m) = O(nm)$.
 - When two inputs can grow independently, keep both.
 :::
 
-## 🚗 Today's takeaways {style="font-size: 0.9em;"}
+## 🚗 Today's takeaways {style="font-size: 0.7em;"}
 
 ::: {.incremental}
 - 🔧 **What affects runtime?**
