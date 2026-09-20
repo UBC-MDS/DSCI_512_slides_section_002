@@ -8,3 +8,6 @@ _freeze/
 
 # Generated at render time by website/slides/slides_02.qmd
 website/slides/data/
+
+# OpenAI API key for scripts/generate_images.py
+.env
