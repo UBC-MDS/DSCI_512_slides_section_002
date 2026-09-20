@@ -68,7 +68,7 @@ Look at that last column: a **billion** items, and binary search needs only abou
 | $\log_b b = 1$ | One doubling reaches $b$ | $\log_2 2 = 1$ |
 | $b^{\log_b x} = x$ | Exponentials and logs undo each other | $2^{\log_2 5} = 5$ |
 | $\log_b x = \dfrac{\log_c x}{\log_c b}$ | Change of base | $\log_2 x = \dfrac{\ln x}{\ln 2}$ |
-| $\log_b a = \dfrac{1}{\log_a b}$ | Inverse of change of base | $\log_2 5 = \dfrac{1}{\log_5 2}$ |
+| $\log_b a = \dfrac{1}{\log_a b}$ | Inverse of base | $\log_2 5 = \dfrac{1}{\log_5 2}$ |
 
 
 ## 3. Adding up $1 + 2 + \dots + n$

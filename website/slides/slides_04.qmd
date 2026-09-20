@@ -36,18 +36,6 @@ resources:
   - 7-9 multiple choice questions
   - 2 coding questions (auto graded)
 
-## Student Questions
-::: {.incremental}
-
-- Is there any situation where using a plain `dict` is better than `defaultdict`?Why?
-
-- Why might high-degree nodes be important in networks such as Facebook or Twitter?
-
-- Can you have a directional weighted graph?
-
-- Generally, is adjacency list better than adjacency matrix or vice versa?
-:::
-
 ## Comparing two representations
 
 ::: incremental
