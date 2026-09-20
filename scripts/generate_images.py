@@ -32,8 +32,8 @@ STYLE_REFS = [IMAGES_DIR / "example.png", IMAGES_DIR / "example2.png"]
 
 # The written form of "same style as this one, same character".
 STYLE_LOCK = (
-    "Generate an image in the exact same illustration style as the attached reference "
-    "image(s), using the exact same otter character. Then draw this scene:\n\n"
+    "Generate an image in the EXACT SAME watercolor style as the attached reference "
+    "image(s), using the EXACT SAME otter character. Pay attention to the details of the image you generated. Generate extremely high quality image please. Generate the new image with the new scene:\n\n"
 )
 
 load_dotenv(REPO_ROOT / ".env")
@@ -50,7 +50,7 @@ def generate_image(
         files = [Path(ref).open("rb") for ref in refs]
         try:
             result = client.images.edit(
-                model="gpt-image-1",
+                model="gpt-image-2.5-sunburst",
                 image=files,
                 prompt=STYLE_LOCK + prompt,
                 size=size,
@@ -63,7 +63,7 @@ def generate_image(
                 file.close()
     else:
         result = client.images.generate(
-            model="gpt-image-1",
+            model="gpt-image-2.5-sunburst",
             prompt=prompt,
             size=size,
             quality=quality,
