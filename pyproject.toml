@@ -21,5 +21,5 @@ dependencies = [
 [dependency-groups]
 images = [
     "openai>=2.9.0",
-    "pillow>=12.0.0",
+    "python-dotenv>=1.1.0",
 ]

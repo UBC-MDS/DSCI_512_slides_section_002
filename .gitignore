@@ -11,3 +11,4 @@ website/slides/data/
 
 # OpenAI API key for scripts/generate_images.py
 .env
+scripts/__pycache__/generate_images.cpython-314.pyc
