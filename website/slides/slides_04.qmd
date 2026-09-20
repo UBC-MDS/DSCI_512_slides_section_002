@@ -47,7 +47,7 @@ resources:
 - ![](images/ad_matrix.png){fig-align="center" width="25%"}
 :::
 
-## Agora Questions
+## Student Questions
 ::: {.incremental}
 
 - Is there any situation where using a plain `dict` is better than `defaultdict`?Why?

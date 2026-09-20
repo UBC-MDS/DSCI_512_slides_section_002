@@ -37,8 +37,11 @@ STYLE_LOCK = (
 load_dotenv(REPO_ROOT / ".env")
 
 
-def generate_image(prompt, filename, refs=STYLE_REFS, size="1536x1024", quality="high"):
+def generate_image(
+    prompt, filename, refs=STYLE_REFS, size="1536x1024", quality="high", transparent=True
+):
     """Generate one image and save it to website/slides/images/<filename>."""
+    background = "transparent" if transparent else "opaque"
     client = OpenAI()
 
     if refs:
@@ -50,13 +53,20 @@ def generate_image(prompt, filename, refs=STYLE_REFS, size="1536x1024", quality=
                 prompt=STYLE_LOCK + prompt,
                 size=size,
                 quality=quality,
+                background=background,
+                output_format="png",
             )
         finally:
             for file in files:
                 file.close()
     else:
         result = client.images.generate(
-            model="gpt-image-1", prompt=prompt, size=size, quality=quality
+            model="gpt-image-1",
+            prompt=prompt,
+            size=size,
+            quality=quality,
+            background=background,
+            output_format="png",
         )
 
     out = IMAGES_DIR / filename
@@ -64,7 +74,7 @@ def generate_image(prompt, filename, refs=STYLE_REFS, size="1536x1024", quality=
     return out
 
 
-def generate_from_csv(csv_path, refs=STYLE_REFS, overwrite=False):
+def generate_from_csv(csv_path, refs=STYLE_REFS, overwrite=False, transparent=True):
     """Generate an image per row of a CSV with `filename` and `prompt` columns."""
     with open(csv_path, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
@@ -76,7 +86,7 @@ def generate_from_csv(csv_path, refs=STYLE_REFS, overwrite=False):
             print(f"· {filename} exists, skipping")
             continue
         print(f"→ {filename}")
-        made.append(generate_image(prompt, filename, refs=refs))
+        made.append(generate_image(prompt, filename, refs=refs, transparent=transparent))
     return made
 
 
@@ -89,12 +99,13 @@ if __name__ == "__main__":
     parser.add_argument("--csv", help="generate every row of this CSV instead")
     parser.add_argument("--no-refs", action="store_true", help="skip the style references")
     parser.add_argument("--overwrite", action="store_true", help="redo images that exist")
+    parser.add_argument("--opaque", action="store_true", help="white background instead of transparent")
     args = parser.parse_args()
 
     refs = None if args.no_refs else STYLE_REFS
     if args.csv:
-        generate_from_csv(args.csv, refs=refs, overwrite=args.overwrite)
+        generate_from_csv(args.csv, refs=refs, overwrite=args.overwrite, transparent=not args.opaque)
     elif args.prompt and args.filename:
-        print(generate_image(args.prompt, args.filename, refs=refs))
+        print(generate_image(args.prompt, args.filename, refs=refs, transparent=not args.opaque))
     else:
         parser.error("give a prompt and a filename, or --csv")

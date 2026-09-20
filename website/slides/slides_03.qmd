@@ -31,7 +31,7 @@ resources:
 - Space complexity, Data types and Memory usage, and Hash functions/tables.
 
 ::: {.incremental}
-- Agora Questions:
+- Student Questions:
 
   - Are hash functions used only in hash tables, or in other parts of computing too?
 
@@ -43,10 +43,10 @@ resources:
 
 :::{.columns}
 ::: {.column width="60%"}
-- [agora.students.cs.ubc.ca](https://agora.students.cs.ubc.ca) (code: **889779**)
+- [join.iclicker.com/AGFP](https://join.iclicker.com/AGFP)
 :::
 ::: {.column width="40%"}
-- ![](images/qrcode.jpeg){width="130"}
+- ![](images/iclicker_qr.png){width="130"}
 :::
 :::
 
