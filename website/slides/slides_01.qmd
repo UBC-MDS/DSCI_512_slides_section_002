@@ -1068,6 +1068,7 @@ viewof loglog = Inputs.toggle({label: "log-log axes", value: false})
 ::: {.notes}
 - Linear axes first: $2^n$ swallows everything. Untick it to see the rest.
 - Then flip to log-log: every polynomial becomes a straight line, and the **slope is the exponent** ($n^2$ is twice as steep as $n$). $2^n$ still curves upward, even on log-log.
+- why log-log? [1] turn polynomial to straight line [2] often times n increases by many orders of magnitudes, so we want to see the rate of change
 - Drag $n$ up to 40: $2^{40}$ is about a trillion steps.
 :::
 
