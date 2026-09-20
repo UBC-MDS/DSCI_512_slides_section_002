@@ -997,6 +997,14 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 - ⚠️ Exponential is the worst! Adding just **one** rider already doubles it: $\dfrac{2^{n+1}}{2^n} = 2$.
 :::
 
+::: {.fragment}
+**The ordering to remember:**
+
+$$1 \;<\; \log n \;<\; n \;<\; n \log n \;<\; n^2 \;<\; n^3 \;<\; 2^n \;<\; n!$$
+
+:::
+
+
 ::: {.notes}
 Note for self: 
 - Write down the math for O(n), O(n^2), O(log n) step by step

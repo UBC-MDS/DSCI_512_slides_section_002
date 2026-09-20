@@ -1,6 +1,6 @@
 ---
 title: "Math Cheatsheet"
-description: "A refresher on the handful of math rules."
+description: "A refresher of some math rules."
 toc-depth: 3
 ---
 
@@ -32,7 +32,7 @@ $$2^{2n} = (2^n)^2$$
 So if $n = 10$ takes 1 second, $n = 20$ takes about $1024$ seconds, not 2 seconds.
 That is why $O(2^n)$ is hopeless.
 
-### Powers of 2, worth knowing by sight
+### Powers of 2 calculations
 
 | $n$ | 1 | 4 | 8 | 10 | 16 | 20 | 30 |
 |---|---|---|---|---|---|---|---|
@@ -49,8 +49,6 @@ $$\log_b x = y \quad\text{means exactly}\quad b^y = x$$
 
 $\log_2 8 = 3$ because $2^3 = 8$. And indeed $8 \to 4 \to 2 \to 1$ is 3 halvings.
 
-That halving reading is the whole reason logs appear in this course: binary search
-throws away half the list each step, so it finishes in about $\log_2 n$ steps.
 
 | $n$ | 8 | 64 | 1,024 | 1 million | 1 billion |
 |---|---|---|---|---|---|
@@ -74,9 +72,6 @@ Look at that last column: a **billion** items, and binary search needs only abou
 
 ## 3. Adding up $1 + 2 + \dots + n$
 
-This sum appears every time a nested loop skips the pairs it has already seen
-(for example, checking every *pair* of riders once).
-
 $$1 + 2 + 3 + \cdots + n = \frac{n(n+1)}{2}$$
 
 **Why it works.** Write the sum forwards and backwards and add them column by column:
@@ -94,8 +89,6 @@ So $S = \dfrac{n(n+1)}{2}$.
 
 **Example.** $1 + 2 + \cdots + 100 = \dfrac{100 \cdot 101}{2} = 5{,}050$.
 
-**Why we care.** Expanding it gives $\dfrac{n^2 + n}{2}$ — the leading term is $n^2$,
-so this sum is $O(n^2)$. A "half a nested loop" is still quadratic.
 
 ### Two relatives
 
@@ -103,11 +96,6 @@ so this sum is $O(n^2)$. A "half a nested loop" is still quadratic.
 |---|---|---|
 | $\underbrace{c + c + \cdots + c}_{n \text{ times}}$ | $cn$ | $O(n)$ |
 | $1 + 2 + 3 + \cdots + n$ | $\dfrac{n(n+1)}{2}$ | $O(n^2)$ |
-| $1 + 2 + 4 + 8 + \cdots + 2^k$ | $2^{k+1} - 1$ | dominated by the **last** term |
-
-That last row is worth a second look: the whole sum is roughly *twice* its biggest
-term. When a cost doubles each round, the final round alone accounts for about half
-the total work.
 
 ## 4. Factorials
 
@@ -123,8 +111,7 @@ It counts **orderings**: the number of different ways to line up $n$ distinct th
 |---|---|---|---|---|
 | $n!$ | 120 | 3.6 million | 1.3 trillion | $2.4 \times 10^{18}$ |
 
-$n!$ grows faster than $2^n$, which grows faster than $n^2$. An $O(n!)$ algorithm
-(like trying every possible route) is unusable past roughly $n = 12$.
+$n!$ grows faster than $2^n$, which grows faster than $n^2$.
 
 ### Choosing pairs and groups: $\binom{n}{k}$
 
@@ -133,38 +120,7 @@ when **order does not matter**:
 
 $$\binom{n}{k} = \frac{n!}{k!\,(n-k)!}$$
 
-The case we actually use is $k = 2$ — the number of **pairs** you can form from $n$
+The case we actually use is $k = 2$: the number of **pairs** you can form from $n$
 things:
 
 $$\binom{n}{2} = \frac{n(n-1)}{2}$$
-
-With 5 riders there are $\tfrac{5 \cdot 4}{2} = 10$ rider pairs. Note the shape:
-$\tfrac{n^2 - n}{2}$, again $O(n^2)$. Comparing everything with everything is
-quadratic, whether you count it as a nested loop or as pairs.
-
-## 5. Comparing growth rates
-
-The single question Big O answers: **when the input doubles, what happens to the cost?**
-Divide the cost at $2n$ by the cost at $n$ and simplify.
-
-| Growth | $g(n)$ | Cost when $n$ doubles | Feels like |
-|---|---|---|---|
-| Constant | $1$ | same | instant, no matter the size |
-| Logarithmic | $\log_2 n$ | **+1 step** | barely notices bigger input |
-| Linear | $n$ | **2×** | twice the data, twice the wait |
-| Linearithmic | $n \log_2 n$ | a bit over **2×** | good sorting |
-| Quadratic | $n^2$ | **4×** | painful past a few thousand |
-| Cubic | $n^3$ | **8×** | painful past a few hundred |
-| Exponential | $2^n$ | **squared** | hopeless past ~30 |
-| Factorial | $n!$ | worse still | hopeless past ~12 |
-
-**The ordering to remember:**
-
-$$1 \;<\; \log n \;<\; n \;<\; n \log n \;<\; n^2 \;<\; n^3 \;<\; 2^n \;<\; n!$$
-
-In Big O we keep only the fastest-growing term and drop constants:
-
-$$5n^2 + 100n + \log n + 3000 \quad\Longrightarrow\quad O(n^2)$$
-
-The $100n$ term may well dominate for small $n$, but we are describing what happens
-as $n$ gets large, and there $n^2$ wins.
