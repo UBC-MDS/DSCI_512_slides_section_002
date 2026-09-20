@@ -986,14 +986,16 @@ viewof n_max = Inputs.range([1, 30], {step: 1, value: 5, label: "n (riders = dri
 ::: {.fragment}
 - Why 8× for $n^3$: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^3}{n^3} = 8$.
 - Why "squared" for $2^n$: $g(2n) = 2^{2n} = (2^n)^2$.
-- Adding just **one** rider already doubles it: $\dfrac{2^{n+1}}{2^n} = 2$.
+- ⚠️ Exponential is the worst! Adding just **one** rider already doubles it: $\dfrac{2^{n+1}}{2^n} = 2$.
 :::
 
 ::: {.notes}
-- Use the doubling question as your intuition pump: "if I double the input, what happens?"
+Note for self: 
+- Write down the math for O(n), O(n^2), O(log n) step by step
+
+
 - $O(1)$ is the set lookup from Scenario 1 (account check); $O(n)$ is the list lookup and the notify loop; $O(n^2)$ is the matching loop.
 - $n \log n$: $\frac{2n \log(2n)}{n \log n} = 2\left(1 + \frac{1}{\log_2 n}\right)$, a bit more than 2× that gets closer to 2× as $n$ grows.
-- Exponential: for a shared pool, every rider is either in the car or not: $2^n$ combinations. With 30 riders that's a billion.
 :::
 
 ```{python}
@@ -1465,4 +1467,29 @@ def surge_pricing(n):
 
 ::: {.notes}
 - A faster computer or a faster language is a constant factor: it makes the 10 s into 5 s. A better algorithm turns $n^2$ into $n$: at $n = 10{,}000$ that's the difference between 4 months and 17 minutes (0.1 s per step).
+:::
+
+## (Bonus Slide) 📈 Where the doubling rule comes from {style="font-size: 0.8em;"}
+
+Compare the runtime at $2n$ with the runtime at $n$: $\dfrac{g(2n)}{g(n)}$.
+
+::: {.incremental}
+- $O(1)$, constant: $\dfrac{g(2n)}{g(n)} = \dfrac{c}{c} = 1$ → **same** runtime; $n$ never enters the formula.
+- $O(n)$, linear: $\dfrac{g(2n)}{g(n)} = \dfrac{2n}{n} = 2$ → **2×** (the notify loop: twice the drivers, twice the work).
+- $O(n^2)$, quadratic: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^2}{n^2} = \dfrac{4n^2}{n^2} = 4$ → **4×** (the matching loop).
+- $O(n^3)$, cubic: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^3}{n^3} = \dfrac{8n^3}{n^3} = 8$ → **8×**.
+- $O(n^k)$, polynomial: $\dfrac{g(2n)}{g(n)} = \dfrac{(2n)^k}{n^k} = \dfrac{2^k n^k}{n^k} = 2^k$ → **$2^k$×**.
+:::
+
+
+## (Bonus Slide) 📈 The logs and the exponential {style="font-size: 0.75em;"}
+
+::: {.incremental}
+- $O(\log n)$, logarithmic: here the **difference** is the interesting part, not the ratio.
+  $$g(2n) - g(n) = \log_2(2n) - \log_2 n = \log_2\frac{2n}{n} = \log_2 2 = 1$$
+  → **+ a constant**: doubling $n$ adds *one* more step, not one more of everything.
+- $O(n \log n)$, linearithmic: $$\frac{g(2n)}{g(n)} = \frac{2n \log_2 (2n)}{n \log_2 n} = \frac{2n(\log_2 n + 1)}{n \log_2 n} = 2\left(1 + \frac{1}{\log_2 n}\right)$$
+  → **a bit more than 2×**, and the extra part shrinks as $n$ grows.
+- $O(2^n)$, exponential: $$g(2n) = 2^{2n} = (2^n)^2 = \big(g(n)\big)^2$$
+  → the runtime is **squared**, not multiplied by a constant.
 :::
