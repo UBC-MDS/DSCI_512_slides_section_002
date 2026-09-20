@@ -5,3 +5,6 @@ _site/
 .quarto/
 profile_output.txt
 _freeze/
+
+# Generated at render time by website/slides/slides_02.qmd
+website/slides/data/
