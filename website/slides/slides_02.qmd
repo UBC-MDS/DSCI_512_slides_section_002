@@ -1929,7 +1929,7 @@ viewof queue_step = Inputs.button([
 - Tell them to photograph this slide: it comes back in the lab, the quiz and job interviews.
 :::
 
-## Today's takeaways {style="font-size: 0.75em;"}
+## Today's takeaways {style="font-size: 0.95em;"}
 
 ::: {.incremental}
 - **Space complexity** predicts how much memory would need as input size grows.
