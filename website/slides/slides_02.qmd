@@ -1619,6 +1619,8 @@ growth_chart = {
     "final_avg": growth_rows[-1]["avg"],
     "total": sum(r["cost"] for r in growth_rows),
     "n": len(growth_rows),
+    # x axis ticks: the bars sit on a band scale, so label only every 10th insertion
+    "x_ticks": [1] + list(range(10, len(growth_rows) + 1, 10)),
 }
 ojs_define(growth_chart = growth_chart)
 ```
@@ -1635,7 +1637,7 @@ One bar per insertion: almost all cost 1 step, a few cost a lot.
   return Plot.plot({
     width: 880, height: 300, marginLeft: 70, marginTop: 24, marginBottom: 46,
     style: {fontSize: "16px", background: "transparent"},
-    x: {label: "insertion number →", labelAnchor: "center", grid: true},
+    x: {label: "insertion number →", labelAnchor: "center", ticks: growth_chart.x_ticks, grid: true},
     y: {label: "↑ steps for this insertion", grid: true},
     marks: [
       Plot.barY(rows, {x: "i", y: "cost", fill: d => d.resize ? "#eb6834" : "#b8b6b0"}),
