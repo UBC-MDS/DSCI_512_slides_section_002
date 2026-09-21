@@ -1164,17 +1164,19 @@ Your **ticket number** says which hook to walk to. You check **one** hook: $O(1)
 
   - **Deterministic**: The same input always produces the same output.
       - Python introduced a hash randomization.
-  - **Fixed-size output**: Hash values are of a fixed size (e.g., 64-bit integer).
-  - **Collision-resistant**: Good hash functions minimize the chance of different inputs producing the same output.
+  - **Fixed-size output**: Hash values are of a fixed size (e.g., 64-bit integer), no matter how long the input is.
+  - **Irreversible**: The hash value does not tell you what the input was. Hook 3 does not tell you whose coat hangs there.
 
 <br>
 
-- Hash functions are extremely useful, beyond what we talk about in this course
+- How to create a hash function is beyond the scope of this course
 
 ::: {.notes}
 - Deterministic is the essential one: if `@sky` hashed to hook 3 yesterday and hook 7 today, we could never find it again.
 - Hash randomization: Python picks a random seed for string hashing *per process*, so `hash("mds")` differs between runs (a security measure). Within one run it is perfectly deterministic.
-- Other uses: checking a downloaded file wasn't tampered with, storing passwords, git commit IDs, detecting duplicate photos.
+- Irreversible falls out of fixed-size output: unlimited inputs, a fixed number of possible outputs, so the output cannot carry enough information to rebuild the input. Make it concrete with `% 10`: an output of 3 could have come from 3, 13, 23, or 1 + 2. Which one? No way to tell.
+- This is why websites store the *hash* of your password, not the password. Someone who steals the database still cannot log in as you.
+- Other uses: checking a downloaded file wasn't tampered with, git commit IDs, detecting duplicate photos.
 :::
 
 ## A hash function you can do in your head {style="font-size: 0.8em;"}
@@ -1561,7 +1563,7 @@ print(usernames.contains("kelp"))
 
 ## Hash collisions {style="font-size: 0.85em;"}
 
-- **Collisions** occur when multiple objects hash to the same index.
+- A **collision** is when two or more inputs (**keys**) come out of the hash function with the same output (**hash**), and so land on the same hook.
 - Look at the rack we just built: did any two names land on the same hook?
 
 ```{pyodide}
@@ -1582,6 +1584,21 @@ With 4 names and 4 hooks, a collision happens about **90%** of the time.
 - Separate chaining is what our class already does: each hook holds a *list*, so two names simply share the hook.
 - Open addressing: if your hook is full, walk to the next free hook. Python's real dict uses a variant of this.
 - Collisions are not a bug; with a fixed number of hooks and unlimited names they are unavoidable (the pigeonhole principle). The goal is to keep them *rare*.
+:::
+
+## So how good is a hash function? {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- A **good** hash function spreads the keys out, so collisions stay rare and each hook holds a name or two.
+- A **perfect** hash function has **no** collisions at all. Only possible when you know every key in advance.
+- Lots of collisions? Still a hash function, just not a good one. In the worst case every name lands on the same hook and we are back to the pile of coats: $O(n)$.
+:::
+
+::: {.notes}
+- Point back at the 4 / 8 / 16 hook interactive: more hooks spread the same 12 names out, and the fullest hook shrank from 5 names to 2. That is what "good" buys you.
+- Perfect hashing needs the full set of keys up front, so it works for something fixed like Python's own keywords. Instagram cannot do it: a new username arrives every second.
+- Our `toy_hash` is a bad one, and it is worth saying why out loud: it only adds letters up, so `"ab"` and `"ba"` collide, and every anagram collides.
+- The correctness of a hash table never depends on the quality of the hash function, only its **speed** does. A terrible hash function still gives the right answer, slowly.
 :::
 
 ## Exercise {style="font-size: 0.85em;"}
