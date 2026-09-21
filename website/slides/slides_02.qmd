@@ -1759,10 +1759,12 @@ ds_script = [("add", "📷1"), ("add", "📷2"), ("add", "📷3"), ("remove", No
              ("add", "📷4"), ("remove", None), ("remove", None)]
 
 def replay(kind):
-    """One entry per click. kind is "stack" (take from the top) or "queue" (take from the front)."""
+    """One entry per click. kind is "stack" (take from the top) or "queue" (take from the front).
+    Colour means the operation: "sq-in" (blue) = the item that just went in,
+    "sq-out" (orange) = the item that just came out. Everything else stays grey."""
     items, out_so_far, steps = [], [], []
     for k in range(len(ds_script) + 1):
-        added = removed = None
+        op = added = removed = None
         if k > 0:
             op, item = ds_script[k - 1]
             if op == "add":
@@ -1775,33 +1777,40 @@ def replay(kind):
             if removed:
                 out_so_far.append(removed)
         next_out = len(items) - 1 if kind == "stack" else 0
-        # "end" = comes out next (orange), "new" = just joined but not next out (blue)
-        boxes = [{"label": label,
-                  "cls": "end" if i == next_out else "new" if label == added else ""}
+        # items in the container (stack: bottom to top, queue: front to back),
+        # with a small "next out" tag on the one that leaves next
+        tag = "◀ next out" if kind == "stack" else "▲ next out"
+        boxes = [{"label": label, "cls": "sq-in" if label == added else "",
+                  "tag": tag if i == next_out else ""}
                  for i, label in enumerate(items)]
-        # the sentence under the buttons, split so OJS can colour the item
+        # the sentence under the buttons: a coloured verb, then what happened
         if k == 0:
-            lead, item, item_cls, rest = f"Start: the {kind} is empty.", "", "", ""
+            verb, verb_cls, say = "Start", "", f"The {kind} is empty."
         elif added:
-            lead, item = f"Step {k} of {len(ds_script)}, add:", added
-            item_cls = "match" if boxes[-1]["cls"] == "end" else "notify"
+            verb, verb_cls = "add", "add"
             if kind == "stack":
-                rest = "goes on top, so it is the next one out."
+                say = f"{added} goes on the top."
             elif len(items) == 1:
-                rest = "joins an empty line, so it is at the front."
+                say = f"{added} joins an empty line, so it is at the front."
             else:
-                rest = f"joins the back. {items[0]} at the front is still next out."
+                say = f"{added} joins the back of the line."
         else:
-            lead, item, item_cls = f"Step {k} of {len(ds_script)}, remove:", removed, "match"
-            rest = ("comes off the top. It is the newest item." if kind == "stack"
-                    else "leaves from the front. It has waited the longest.")
+            verb, verb_cls = "remove", "remove"
+            say = (f"{removed} comes off the top. The newest item leaves first." if kind == "stack"
+                   else f"{removed} leaves from the front. It has waited the longest.")
         steps.append({
-            "boxes": boxes, "removed": removed, "out_so_far": list(out_so_far),
-            "lead": lead, "item": item, "item_cls": item_cls, "rest": rest,
-            # the script strip at the top: steps already done, the one just run, the rest
-            "ops": [{"label": f"add {it}" if op == "add" else "remove",
-                     "cls": "done" if j < k - 1 else "now" if j == k - 1 else ""}
-                    for j, (op, it) in enumerate(ds_script)],
+            "count": f"Step {k} of {len(ds_script)}", "verb": verb, "verb_cls": verb_cls, "say": say,
+            "boxes": boxes,
+            "removed": removed or "",
+            "removed_cls": "sq-out" if removed else "sq-empty",
+            # the arrow at the end used this step lights up in its colour
+            "add_cls": "on" if op == "add" else "",
+            "remove_cls": "on" if op == "remove" else "",
+            "out_so_far": list(out_so_far),
+            # the script strip: blue chips add, orange chips remove; done, now or still to come
+            "ops": [{"label": f"add {it}" if o == "add" else "remove",
+                     "cls": f"{o} {'done' if j < k - 1 else 'now' if j == k - 1 else ''}"}
+                    for j, (o, it) in enumerate(ds_script)],
         })
     return steps
 
@@ -1813,6 +1822,7 @@ ojs_define(stack_steps = replay("stack"), queue_steps = replay("queue"))
 ```{ojs}
 //| echo: false
 viewof stack_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
   ["Next step", i => Math.min(i + 1, stack_steps.length - 1)],
   ["Start over", () => 0]
 ], {value: 0})
@@ -1823,18 +1833,24 @@ viewof stack_step = Inputs.button([
 {
   // Draw only: every box, colour and sentence was computed in Python (stack_steps).
   const s = stack_steps[stack_step];
-  const ops = s.ops.map(o => html`<div class="ds-op ${o.cls}">${o.label}</div>`);
-  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
-  const lifted = html`<div class="ds-box gone ${s.removed ? "" : "ds-hidden"}">${s.removed ?? "."}</div>`;
+  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
+  const boxes = s.boxes.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag right">${b.tag}</span></div>`);
   const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
-  return html`<div class="ds-ops">${ops}</div>
-    <div class="ojs-readout">${s.lead} <span class="${s.item_cls}">${s.item}</span> ${s.rest}</div>
-    <div class="ds-stage">
-      <div>
-        <div class="ds-col tall">${boxes}<div class="ds-caption">⇅ top: in and out</div>${lifted}</div>
-        <div class="ds-caption">undo history &nbsp;·&nbsp; <span style="color:#eb6834">orange</span> = next out</div>
+  return html`<div class="sq-ops">${ops}</div>
+    <div class="sq-say"><span class="sq-count">${s.count}</span>
+      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
+    <div class="sq-stage">
+      <div class="sq-lift">
+        <div class="ds-box ${s.removed_cls}">${s.removed}</div>
+        <div class="sq-ends">
+          <span class="sq-arrow add ${s.add_cls}">⬇ add</span>
+          <span class="sq-arrow remove ${s.remove_cls}">⬆ remove</span>
+        </div>
+        <div class="sq-stack">${boxes}</div>
+        <div class="ds-caption">undo history</div>
       </div>
-      <div>
+      <div class="sq-tray">
         <div class="ds-caption">came out, in order</div>
         <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
       </div>
@@ -1844,7 +1860,8 @@ viewof stack_step = Inputs.button([
 
 ::: {.notes}
 - Ask them to predict each step before you click.
-- Add and remove happen at the same end, the top. The newest item is always the next one out.
+- Colour is the operation: blue is the item that just went in, orange is the item that just came out. Everything else is grey.
+- Add and remove happen at the same end, the top: both arrows sit on the same opening. The newest item is always the next one out.
 - Step 4: remove gives back 📷3, the newest. Remember that for the next slide.
 - Step 7: 📷1 is still at the bottom. Keep adding and it could wait forever: that is starvation, and why upload servers use queues.
 - In code, add is `push` and remove is `pop`.
@@ -1855,6 +1872,7 @@ viewof stack_step = Inputs.button([
 ```{ojs}
 //| echo: false
 viewof queue_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
   ["Next step", i => Math.min(i + 1, queue_steps.length - 1)],
   ["Start over", () => 0]
 ], {value: 0})
@@ -1865,24 +1883,30 @@ viewof queue_step = Inputs.button([
 {
   // Draw only: every box, colour and sentence was computed in Python (queue_steps).
   const s = queue_steps[queue_step];
-  const ops = s.ops.map(o => html`<div class="ds-op ${o.cls}">${o.label}</div>`);
-  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
-  const left = html`<div class="ds-box gone ${s.removed ? "" : "ds-hidden"}">${s.removed ?? "."}</div>`;
+  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
+  const boxes = s.boxes.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
   const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
-  return html`<div class="ds-ops">${ops}</div>
-    <div class="ojs-readout">${s.lead} <span class="${s.item_cls}">${s.item}</span> ${s.rest}</div>
-    <div class="ds-row center">${left}
-      <div class="ds-caption">⟵ out (front)</div>${boxes}<div class="ds-caption">⟵ in (back)</div></div>
-    <div class="ds-caption">upload queue &nbsp;·&nbsp; <span style="color:#eb6834">orange</span> = next out,
-      <span style="color:#2a78d6">blue</span> = just joined</div>
-    <div class="ds-caption">came out, in order</div>
-    <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>`;
+  return html`<div class="sq-ops">${ops}</div>
+    <div class="sq-say"><span class="sq-count">${s.count}</span>
+      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
+    <div class="sq-line">
+      <div class="sq-exit"><div class="ds-box ${s.removed_cls}">${s.removed}</div></div>
+      <span class="sq-arrow remove ${s.remove_cls}">⬅ remove<br><small>front</small></span>
+      <div class="sq-queue">${boxes}</div>
+      <span class="sq-arrow add ${s.add_cls}">⬅ add<br><small>back</small></span>
+    </div>
+    <div class="ds-caption">upload queue</div>
+    <div class="sq-tray">
+      <div class="ds-caption">came out, in order</div>
+      <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
+    </div>`;
 }
 ```
 
 ::: {.notes}
-- Same seven steps as the stack slide.
-- Add at the back, remove from the front: two different ends.
+- Same seven steps and same colours as the stack slide: blue went in, orange came out.
+- Add at the back, remove from the front: the two arrows are on opposite ends.
 - Step 4: the queue gives back 📷1, the stack gave back 📷3. Same input, different answer.
 - Look at "came out, in order": 📷1, 📷2, 📷3, exactly the order they arrived. That is FIFO, and it is fair.
 :::
