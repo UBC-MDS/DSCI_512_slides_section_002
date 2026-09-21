@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 IMAGES_DIR = REPO_ROOT / "website" / "slides" / "images"
 
 # Shown to the model so the otter and the style stay the same across lectures.
-STYLE_REFS = [IMAGES_DIR / "hello_background.png", IMAGES_DIR / "lec02_title_bg.png"]
+STYLE_REFS = [IMAGES_DIR / "hello_background.png", IMAGES_DIR / "watch.png"]
 
 # The written form of "same style as this one, same character".
 STYLE_LOCK = (
