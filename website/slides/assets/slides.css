@@ -52,8 +52,9 @@
 .reveal .ds-col { display: flex; flex-direction: column-reverse; justify-content: flex-start;
                   align-items: center; gap: 6px; min-height: 200px; }
 .reveal .ds-row { display: flex; flex-direction: row; align-items: center; gap: 6px; min-height: 48px; }
-/* Binary search rack: 15 narrow boxes in one row, blue = the coat we were looking for */
-.reveal .ds-row.bs-rack { flex-wrap: nowrap; justify-content: center; gap: 4px; }
+/* Binary search rack: 15 narrow boxes per row (30 coats wrap to two rows), blue = the coat we were looking for */
+.reveal .ds-row.bs-rack { flex-wrap: wrap; justify-content: flex-start; gap: 4px;
+                          max-width: 930px; margin: 0 auto; }
 .reveal .ds-row.bs-rack .ds-box { min-width: 0; width: 58px; padding: 0; font-size: 16px; }
 .reveal .ds-box.found { background: #2a78d6; border-color: #2a78d6; color: #ffffff; font-weight: bold; }
 .reveal .ds-caption { font-size: 0.55em; color: #52514e; margin: 0.3em 0; text-align: center; }
