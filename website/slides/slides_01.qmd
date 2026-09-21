@@ -113,6 +113,12 @@ no marks for iClicker, only for easier in class participation.
 
 ![](images/algorithm.png){fig-align="center" width="60%"}
 
+::: {.notes}
+Q: what is an algorithm? what is not? 
+
+"Season to taste, cook until it looks right." is not an algorithm.
+:::
+
 ## What is an algorithm? Really.
 
 - An algorithm is a well-defined computational procedure designed to solve a problem.
