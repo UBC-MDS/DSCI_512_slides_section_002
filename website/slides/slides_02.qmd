@@ -372,14 +372,14 @@ RAM_BYTES = float(psutil.virtual_memory().total)
 ram_label = f"{RAM_BYTES / 1e9:,.0f} GB"
 ram_capacity = RAM_BYTES / BYTES_PER_NUMBER
 ram_capacity_label = f"{ram_capacity / 1e9:,.1f} billion"
-too_many_label = f"{round(ram_capacity / 1e9 * 2):,.0f} billion"
+too_many_label = f"{round(ram_capacity / 1e9 * 3):,.0f} billion"
 ```
 
 ::: {.fragment}
 - A single number (a `float64`) takes **8 bytes**.
 - `{python} ram_label` of RAM ÷ 8 bytes ≈ **`{python} ram_capacity_label` numbers**, if nothing else were running.
 - So I can't run code that needs to hold `{python} too_many_label` numbers at once.
-  - Fun fact: GPT-4 is rumored to have approximately 1.8 trillion parameters.
+  - Fun fact: GPT-6 is rumored to have approximately 10 trillion parameters.
 :::
 
 ::: {.notes}
