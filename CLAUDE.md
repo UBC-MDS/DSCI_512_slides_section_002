@@ -95,6 +95,11 @@ run out of memory.
 
 **Never use Agora** — it belongs to a previous instructor. This section uses **iClicker**, but you do not need to show the iClicker sign-up link or qr code again after slide 1. 
 
+- **iClicker question format.** Every iClicker question lists its options as `- \(A) ...`, `- \(B) ...` and so on, one option per bullet (the backslash keeps Pandoc from turning `(A)` into an ordered list).
+- **Title slide reminder.** The speaker notes on every title slide (the `data-notes` on the title slide) must include this reminder for me, one item per line:
+  `[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.`
+  Separate lines with `<br>`, never `<ul><li>` (the list spacing leaves big gaps in the notes). Any extra title slide notes go after these, also separated by `<br>`.
+
 ## Working with me
 
 - The instructor often edits a deck while you work: re-read the file before editing and keep their changes.

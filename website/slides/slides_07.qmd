@@ -12,6 +12,8 @@ format:
     preview-links: auto
 resources:
   - assets/helper.js
+title-slide-attributes:
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too."
 ---
 
 ## Outline

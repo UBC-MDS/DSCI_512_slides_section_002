@@ -24,6 +24,7 @@ title-slide-attributes:
   data-background-image: images/hello_background.png
   data-background-size: cover
   data-background-position: left
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too."
 ---
 
 ## Meet your instructor
