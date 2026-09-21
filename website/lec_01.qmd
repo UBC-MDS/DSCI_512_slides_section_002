@@ -1,7 +1,7 @@
 ---
 title: "1. Introduction, Time Complexity, and Big O Notation"
 description: "Course logistics, what algorithms are, and analysing running time with Big O."
-description-short: "Meet the course and the teaching team. Learn what an algorithm is, compare linear and binary search, and use Big O notation to describe how running time grows."
+description-short: "Meet the course and the teaching team. Learn what an algorithm is, compare linear and exponential growth, and use Big O notation to describe how running time grows."
 ---
 
 ## Slides for Section 002
