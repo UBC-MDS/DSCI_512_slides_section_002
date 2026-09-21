@@ -1114,9 +1114,10 @@ No rule at all. To find one coat you look at **every** coat: $O(n)$.
 
 ## Strategy D: a rack of numbered hooks {style="font-size: 0.85em;"}
 
-![](images/ig_otter_coathooks.png){fig-align="center" width="55%"}
-
 Your ticket number says which hook to walk to. You check **one** hook: $O(1)$.
+
+![](images/ig_otter_coathooks.png){width="100%"}
+
 
 ::: {.notes}
 - Ask: at a real coat check, who picks the number? The attendant, when you arrive.
@@ -1129,14 +1130,12 @@ Your ticket number says which hook to walk to. You check **one** hook: $O(1)$.
 
 - Key properties of hash functions
 
+:::: {.incremental}
   - **Deterministic**: The same input always produces the same output.
       - Within one Python session. Python randomizes string hashes between sessions.
   - **Fixed-size output**: Hash values are of a fixed size (e.g., 64-bit integer), no matter how long the input is.
   - **Many to one**: Many inputs share each output, so the output does not tell you the input. Hook 3 does not tell you whose coat hangs there.
-
-<br>
-
-- How to create a hash function is beyond the scope of this course
+::::
 
 ::: {.notes}
 - Deterministic is the essential one: if `@sky` went to hook 3 yesterday and hook 7 today, we could never find it.
@@ -1906,7 +1905,7 @@ viewof queue_step = Inputs.button([
 - Tell them to photograph this slide: it comes back in the lab, the quiz and job interviews.
 :::
 
-## Today's takeaways {style="font-size: 0.85em;"}
+## Today's takeaways {style="font-size: 0.75em;"}
 
 ::: {.incremental}
 - **Space complexity** predicts memory the same way time complexity predicts runtime.
