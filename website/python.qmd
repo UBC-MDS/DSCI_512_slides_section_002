@@ -1,0 +1,92 @@
+---
+title: "Python Cheatsheet"
+description: "A refresher of the basic Python data structures from DSCI 511."
+toc-depth: 3
+---
+
+You already met Python's built-in data structures in DSCI 511. In this course we
+ask *how fast* each one is, and *why*. This page is a quick refresher of what each one can and cannot do.
+
+## 1. The four basic python data structures
+
+| | List | Tuple | Set | Dictionary |
+|---|---|---|---|---|
+| **Syntax** | `[1, 2, 3]` | `(1, 2, 3)` | `{1, 2, 3}` | `{"a": 1, "b": 2}` |
+| **Ordered?** | Yes | Yes | No | Yes (insertion order)|
+| **Indexed?** | Yes, by position: `x[0]` | Yes, by position: `x[0]` | No | Yes, by key: `x["a"]` |
+| **Mutable?** (can change after creation) | Yes | No | No change allowed at each item-level, but can add and remove items | Yes |
+| **Duplicates?** | Allowed | Allowed | Not allowed | Keys not allowed, values allowed |
+
+Two words you will see a lot:
+
+| Word | Meaning | Example |
+|---|---|---|
+| **Mutable** | Can be changed in place after it is created | `my_list.append(4)` works |
+| **Indexed** | Each item is reached through a position (or key) | `my_list[0]` gives the first item |
+
+### 1.1 List
+
+An **ordered**, **mutable** collection. Allows duplicates. The everyday workhorse.
+
+```python
+drivers = ["Ana", "Ben", "Chen"]
+
+drivers[0]              # 'Ana'         -> indexed by position
+drivers[-1]             # 'Chen'        -> negative index counts from the end
+drivers[0:2]            # ['Ana', 'Ben'] -> slicing
+drivers.append("Ben")   # add to the end (duplicates are fine)
+drivers[1] = "Bo"       # change an item in place
+len(drivers)            # 4 because we appended another Ben in the end above.
+"Chen" in drivers       # True
+```
+
+### 1.2 Tuple
+
+An **ordered**, **immutable** collection. Allows duplicates. Like a list you cannot
+change: good for a fixed group of values that belong together.
+
+```python
+pickup = (49.26, -123.25)   # (latitude, longitude)
+
+pickup[0]                   # 49.26         -> indexed by position
+lat, lon = pickup           # unpacking
+pickup[0] = 50.0            # TypeError: tuples cannot be changed
+```
+
+### 1.3 Set
+
+An **unordered**, **unindexed** collection with **no duplicates**. You can add and
+remove items, but you cannot ask for "the item at position 0".
+
+```python
+riders = {"Ana", "Ben", "Ana"}   # the second "Ana" is dropped
+
+len(riders)                      # 2 -> no duplicates (print order may vary)
+riders.add("Chen")               # add an item
+"Ben" in riders                  # True
+riders[0]                        # TypeError: sets are not indexed
+```
+
+Sets also do maths on groups:
+
+| Operation | Meaning | Example |
+|---|---|---|
+| `a & b` | In **both** (intersection) | `{1, 2, 3} & {2, 3, 4}` gives `{2, 3}` |
+| <code>a &#124; b</code> | In **either** (union) | <code>{1, 2, 3} &#124; {2, 3, 4}</code> gives `{1, 2, 3, 4}` |
+| `a - b` | In `a` but **not** `b` (difference) | `{1, 2, 3} - {2, 3, 4}` gives `{1}` |
+
+### 1.4 Dictionary
+
+A collection of **key: value** pairs. **Ordered** (by insertion), **mutable**, and
+indexed by **key**. Keys are unique; values can repeat.
+
+```python
+ratings = {"Ana": 4.9, "Ben": 4.7}
+
+ratings["Ana"]          # 4.9          -> look up a value by its key
+ratings["Chen"] = 4.8   # add a new key
+ratings["Ben"] = 4.5    # change an existing key's value
+ratings.get("Zoe")      # None         -> no error if the key is missing
+ratings["Zoe"]          # KeyError
+list(ratings)           # ['Ana', 'Ben', 'Chen'] -> the keys, in insertion order
+```

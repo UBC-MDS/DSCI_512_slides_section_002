@@ -1083,7 +1083,7 @@ viewof loglog = Inputs.toggle({label: "log-log axes", value: false})
 - Drag $n$ up to 40: $2^{40}$ is about a trillion steps.
 :::
 
-## 📈 Big O keeps only the **fastest-growing** term {style="font-size: 0.8em;"}
+## 📈 Big O is **asymptotic**, keeps only the **fastest-growing** term {style="font-size: 0.8em;"}
 
 Imagine we have an algorithm that does these three things: [1] find the rider's account by binary search in a sorted list ($\log n$), [2] notify $n$ drivers($n$), and [3] the algorithm waits for 5 seconds before matching drivers with riders ($5$). The algorithm's runtime is: 
 
