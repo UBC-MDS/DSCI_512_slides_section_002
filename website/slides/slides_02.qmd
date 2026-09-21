@@ -190,12 +190,10 @@ Halving a rack of $n$ coats until one coat is left:
 - \(C) $O(n)$
 - \(D) $O(n \log n)$
 
-::: {.fragment}
 ::: {.incremental}
 - Answer: **B**
 - 1 look leaves $n/2$, 2 looks leave $n/4$, $k$ looks leave $n/2^k$.
 - We stop when $n/2^k = 1$, so $2^k = n$, so $k = \log_2 n$.
-:::
 :::
 
 ::: {.notes}
