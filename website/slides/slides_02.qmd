@@ -1932,21 +1932,13 @@ viewof queue_step = Inputs.button([
 ## Today's takeaways {style="font-size: 0.75em;"}
 
 ::: {.incremental}
-- **Space complexity** predicts memory the same way time complexity predicts runtime.
-  - On this laptop, $O(n)$ per user survives to a billion. $O(n^2)$ per pair only fits up to `{python} fit_max_n[1]["n_label"]` users.
-  - Space complexity decides whether code is possible, not just whether it is fast.
-- **Measure it**: `psutil` (machine), `nbytes` (array), `getsizeof` (object, shallow!), `memory_usage(deep=True)` (dataframe).
-  - Data types matter: right dtypes made the same table `{python} memory_chart["shrink"]`× smaller.
-- **Hash tables** turn "search everything" into "walk to one hook": $O(1)$ insert, delete and search.
-  - The cost is memory (empty buckets) and the occasional $O(n)$ resize, which averages out to $O(1)$ amortized.
-- **Stacks (LIFO)** for most recent first, **queues (FIFO)** for longest waiting first.
-- Almost every choice today was a time and space trade-off.
+- **Space complexity** predicts how much memory would need as input size grows.
+- **Measure space usage**: `psutil` (machine), `nbytes` (array), `getsizeof` (object), `memory_usage(deep=True)` (dataframe).
+- **Hash tables**: $O(1)$ insert, delete and search.
+- **Stacks (LIFO)** last in, first out.
+- **queues (FIFO)** first in, first out.
 :::
 
-::: {.notes}
-- Next lecture: the n² user-to-user table when it is mostly zeros (graphs, sparse matrices).
-- Stacks and queues return in lecture 4 as depth-first and breadth-first search.
-:::
 
 # Questions?
 
