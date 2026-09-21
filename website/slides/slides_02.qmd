@@ -26,7 +26,7 @@ resources:
 title-slide-attributes:
   data-background-image: images/lec02_title_bg.png
   data-background-size: cover
-  data-background-position: right bottom
+  data-background-position: left bottom
   data-notes: "<ul><li> Open iClicker before starting. The first vote is two slides from here.</li><li> Raise of hand: who has checked a coat at a restaurant, a bag at a museum, or picked something up from a lost-and-found?</li></ul>"
 ---
 
