@@ -45,7 +45,7 @@ Two hours later you come back, and they walk off and return with **your** coat i
 :::
 
 ::: {.notes}
-- Let them sit in the question before showing any options. 
+- Let them sit with the question for a while. 
 :::
 
 ::: footer
@@ -1865,8 +1865,6 @@ viewof cmp_step = Inputs.range([0, compare_steps.length - 1], {step: 1, value: 0
 ## 🎯 Today's takeaways {style="font-size: 0.85em;"}
 
 ::: {.incremental}
-- 🔍 **Binary search** halves a *sorted* list every look: $O(\log n)$. Double the data, pay one extra look.
-  - The base of the log is a constant factor, so Big O just writes $O(\log n)$.
 - 💾 **Space complexity** predicts memory the same way time complexity predicts runtime.
   - On this laptop, $O(n)$ per user survives to a billion. $O(n^2)$ per *pair* dies at `{python} fit_max_n[1]["n_label"]` users.
   - Space complexity decides whether code is **possible**, not just whether it is fast.
