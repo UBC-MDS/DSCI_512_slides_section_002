@@ -81,6 +81,13 @@ with a comment saying what it prepares and for which slide, and ends with statem
 expressions. Hidden cells share the kernel, so don't overwrite variables students rely on.
 Comments must match the code ("repeat 7 times" goes with `repeat=7`).
 
+**No Jupyter or IPython magics.** The course no longer uses Jupyter notebooks, so every piece of
+code (visible or hidden) must run as a plain Python script. Never use `%` / `%%` magics
+(`%timeit`, `%%timeit`, `%prun`, `%lprun`, `%load_ext`, `%memit`, ...), `!` shell commands or
+`get_ipython()`. Use the package instead: `timeit.timeit(...)` / `timeit.repeat(...)` for timing,
+`cProfile.run(...)` for function-level profiling, `line_profiler.LineProfiler` for line-by-line
+profiling, and `print(...)` the results.
+
 **Run it in the browser when you can.** Any code students might want to type and run in class
 goes in a `{pyodide}` cell, not a static `{.python}` block or a render time `{python}` cell,
 as long as it finishes in about a second or two. Use `{python}` only when the code cannot run
