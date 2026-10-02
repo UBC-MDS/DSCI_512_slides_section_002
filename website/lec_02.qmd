@@ -1,7 +1,7 @@
 ---
 title: "2. Space Complexity and Basic Data Structures"
-description: "Measure memory use and meet hash tables, stacks and queues."
-description-short: "Reason about how much memory code uses. Explore hashing, Python dictionaries and sets, and the stack and queue data structures."
+description: "Measure memory use and meet hash tables."
+description-short: "Reason about how much memory code uses. Explore hashing, Python dictionaries and sets."
 ---
 
 ## Slides for Section 002
