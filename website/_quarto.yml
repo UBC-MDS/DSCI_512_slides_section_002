@@ -29,11 +29,7 @@ website:
         text: Home
       - href: lecture.qmd
         text: "Lectures"
-      - href: math.qmd
-        text: "Math Cheatsheet"
-      - href: python.qmd
-        text: "Python Cheatsheet"
-
+        
   page-navigation: true
 
   sidebar:
