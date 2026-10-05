@@ -1779,9 +1779,9 @@ print(by_country)
 
 # Questions?
 
-<center>![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGtmcWw5dWZvN2VwNHhhaW80eG1wM2hld3RyOWZyYjE5empuY2RtayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NS7gPxeumewkWDOIxi/giphy.gif){width="600"}</center>
+<center>![](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3c2ZmZXRwbHhsdmhuazU5Ym9xZGNwcWhibHFka2Z5eG9lOHJpcWhxYyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/hEIuLmpW9DmGA/giphy.gif){width="600"}</center>
 
 ::: footer
-[GIPHY](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGtmcWw5dWZvN2VwNHhhaW80eG1wM2hld3RyOWZyYjE5empuY2RtayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NS7gPxeumewkWDOIxi/giphy.gif)
+[GIPHY](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3c2ZmZXRwbHhsdmhuazU5Ym9xZGNwcWhibHFka2Z5eG9lOHJpcWhxYyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/hEIuLmpW9DmGA/giphy.gif)
 :::
 
