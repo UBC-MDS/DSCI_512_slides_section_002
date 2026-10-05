@@ -25,7 +25,7 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] Before class: log in to JupyterHub and GitHub, open the project template repo for the demo<br>[5] Connect my writing notepad to the laptop""
+  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] connect my writing notepad to the laptop""
 ---
 
 ## Outline
