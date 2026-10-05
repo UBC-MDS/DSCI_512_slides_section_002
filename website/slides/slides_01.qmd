@@ -89,6 +89,10 @@ stays with that student for studying.
 
 ## Grading breakdown {style="font-size: 0.8em;"}
 
+::: {.callout-note}
+In-person attendence for lab quiz is mandatory.
+:::
+
 | Assessment | Weight |
 |------------|--------|
 | Lab 1     | 9%  |
