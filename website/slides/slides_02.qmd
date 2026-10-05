@@ -261,7 +261,6 @@ You have been handed three tasks:
 ::: {.incremental}
 1. Load the user table onto your laptop. Will 3 billion users even fit in memory?
 2. Make the username check instant. Which data structure?
-3. Ship two app features: the photo editor's undo button, and the upload queue.
 :::
 
 ::: {.fragment}
