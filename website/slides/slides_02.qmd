@@ -534,6 +534,9 @@ viewof n_buckets = Inputs.radio([4, 8, 16], {value: 4, label: "how many buckets?
 ```
 
 ::: {.notes}
+**Load factor**: the ratio of the number of items to the number of buckets!
+Q: what happens when the load factor is too high?
+
 - Click through a few names at 4 buckets, then switch to 8 and 16: the fullest bucket shrinks 5 → 3 → 2.
 - At 16 buckets, 6 sit empty.
 - Ask: 1 bucket? (One long list again, O(n).) A million buckets for 12 names? (Fast, but almost every bucket sits empty.)
@@ -554,6 +557,8 @@ viewof n_buckets = Inputs.radio([4, 8, 16], {value: 4, label: "how many buckets?
 ::::
 
 ::: {.notes}
+Other methods: **folding methods**, **mid-square methods**, etc.
+
 - Deterministic is the essential one: if `@sky` went to bucket 3 yesterday and bucket 7 today, we could never find it.
 - Randomization: Python picks a new seed per process, so `hash("mds")` differs between runs, but is fixed within one run.
 - Irreversible with `% 10`: an output of 3 could come from 3, 13 or 23.
@@ -850,6 +855,9 @@ With 4 names and 4 buckets, a collision happens about **90%** of the time.
 :::
 
 ::: {.notes}
+- Other methods: **Open addressing (linear probing, quadratic probing, double hashing --> rehashing with prime number. Linear probing tend to --> clustering)**
+- **Chaining is closed addressing**
+
 - 90%: chance of no collision is 4!/4⁴ = 24/256 ≈ 9%.
 - Separate chaining is what our class already does: a bucket holds a list.
 - Open addressing: take the next free bucket. Python's dict uses a variant.
