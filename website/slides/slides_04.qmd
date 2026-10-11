@@ -1,8 +1,9 @@
 ---
-title: "DSCI 512 Lecture 4 : Sparse Matrices, Trees, and Graph Searches"
+title: "DSCI 512 Lecture 4 : Trees, Stacks, Queues, and Graph Searches"
 author: "Sky (Kehan) Sheng"
 format:
   live-revealjs:
+    css: assets/slides.css
     include-in-header:
       - text: |
           <script src="assets/unregister-coi-sw.js"></script>
@@ -15,413 +16,598 @@ format:
     menu:
       side: right
       width: wide
-engine: markdown
+engine: jupyter
 pyodide:
   packages:
-    - numpy
-    - scipy
+    - networkx
 resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
+  data-background-image: images/lec04_title_bg.png
+  data-background-size: cover
+  data-background-position: right bottom
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Q: raise of hand: who has a LinkedIn account? Have you noticed the 1st, 2nd, 3rd next to people's names?"
 ---
+
+```{python}
+#| echo: false
+# Hidden: imports and drawing helpers for the whole deck, kept in one place so
+# the visible cells below contain only the code students should read.
+import timeit
+from collections import deque
+
+import networkx as nx
+
+
+def edge_key(u, v):
+    """One name per undirected edge, the same whichever end you start from."""
+    return "|".join(sorted((str(u), str(v))))
+
+
+def layout(G, pos, pad=0.5):
+    """Where to draw every node and edge of G, plus the axis ranges. Drawn by OJS."""
+    xs = [x for x, _ in pos.values()]
+    ys = [y for _, y in pos.values()]
+    return {"nodes": [{"id": str(u), "x": pos[u][0], "y": pos[u][1]} for u in G.nodes],
+            "edges": [{"x1": pos[u][0], "y1": pos[u][1], "x2": pos[v][0], "y2": pos[v][1]}
+                      for u, v in G.edges],
+            "x_domain": [min(xs) - pad, max(xs) + pad],
+            "y_domain": [min(ys) - pad, max(ys) + pad]}
+
+
+def tree_pos(T, root, width=8):
+    """Root at the top, each level on its own row (same idea as draw_tree in the notes)."""
+    pos = {}
+    for depth, level in enumerate(nx.bfs_layers(T, root)):
+        for i, node in enumerate(level):
+            pos[node] = ((i + 0.5) / len(level) * width, -depth)
+    return pos
+
+
+def names(items):
+    """[1, 2, 3] -> "1, 2 and 3"."""
+    items = [str(x) for x in items]
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def ordinal(d):
+    return {1: "1st", 2: "2nd", 3: "3rd"}.get(d, f"{d}th")
+```
+
+```{pyodide}
+#| include: false
+# Hidden setup for the runnable cells: the classes, the LinkedIn graph and the
+# two searches, so a later cell still works when an earlier slide was skipped.
+from collections import deque
+
+import networkx as nx
+
+connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "clam"),
+               ("otter", "nori"), ("clam", "bubbles"), ("kelp", "mochi"), ("nori", "ada"),
+               ("mochi", "pixel"), ("pixel", "ada")]
+G = nx.Graph(connections)
+G.add_node("waffle")
+small_tree = nx.balanced_tree(2, 2)
+
+
+class Stack:
+    def __init__(self):
+        self.data = list()
+
+    def push(self, item):
+        self.data.append(item)
+
+    def pop(self):
+        return self.data.pop()
+
+    def isEmpty(self):
+        return len(self.data) == 0
+
+    def __str__(self):
+        return str(self.data)
+
+
+class Queue(Stack):
+    def pop(self):
+        return self.data.pop(0)
+
+
+def bfs_connected(g, start, goal, verbose=False):
+    to_visit = deque([start])
+    visited = {start}
+    while to_visit:
+        node = to_visit.popleft()
+        if verbose:
+            print("At node", node)
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                to_visit.append(neighbour)
+    return False
+
+
+def dfs_connected(g, start, goal, verbose=False):
+    to_visit = [start]
+    visited = {start}
+    while to_visit:
+        node = to_visit.pop()
+        if verbose:
+            print("At node", node)
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                to_visit.append(neighbour)
+    return False
+```
 
 ## Logistics
 
 - Practice Quiz 1 is out.
 - Cheatsheet 1 submission is open.
-- **Quiz 1**: Tuesday - Friday
-  - Make sure you book a slot for all 4 Quizzes.
-- 512 Quiz contains both multiple choice and coding questions.
-  - Syllabus: lecture 1 - 4 (please review all the material covered in the lecture notes)
-  - 7-9 multiple choice questions
+- **Quiz 1**: Tuesday to Friday
+  - Make sure you book a slot for all 4 quizzes.
+- The 512 quiz has both multiple choice and coding questions.
+  - Syllabus: lectures 1 to 4 (please review all the material in the lecture notes)
+  - 7 to 9 multiple choice questions
   - 2 coding questions (auto graded)
 
-## Comparing two representations
+## How does LinkedIn know ada is "3rd"? {style="font-size: 0.9em;"}
 
-::: incremental
-- Adjacency matrix
-  - Straightforward and intuitive representation
-  - Space complexity: $O(|V|^2)$.
-  - Lookup time (checking if any two nodes are connected): $O(1)$ (why?).
+:::{.columns}
+::: {.column width="55%"}
+You search LinkedIn for a data scientist named ada. Next to her name: **3rd**.
 
-- Adjacency list
-  - A compact representation
-  - Space complexity: $O(|V|+|E|)$.
-  - Lookup time: $O(|V|)$ (why?).
-
-- **Question**: If $|E|$ is much less than $|V^2|$, which representation is better  in terms of space complexity?
-  - **Answer**: the adjacency list is more efficient in this case.
+You have never met ada. LinkedIn has about 1 billion members.
+:::
+::: {.column width="45%"}
+![](images/li_otter_degrees.png){width="100%"}
+:::
 :::
 
-## Question
-
-- Can we have lookup speed of the adjacency matrix and the storage efficiency of the adjacency list?
-    - Sparse matrices!!!
-    - In fact, `networkx` uses sparse matrix to store the adjacency matrix:
-
-## Introduction to sparse matrices
-
-![](images/ad_matrix.png){fig-align="center" width="40%"}
-
-## Introduction to sparse matrices
-
-- Sparse matrices are matrices with most of its elements being $0$.
-- In CS, sparse matrix is a data structure to efficiently store and manipulate large datasets with mostly zero values.
-
-## Sparse datasets come up a lot in practice.
-
-- **Social networks**: Most users are not connected, leading to many zeros in the graph adjacency matrix.
-- **Word counts**: Documents can be represented by the words they contain, but typically, only a small subset of all possible words appear in a given document.
-- **Ratings**: We might represent an Amazon item by user ratings, but only a small fraction of users rate any particular item.
-- And many other cases.
+::: {.fragment}
+How does LinkedIn know she is 3rd, and not 2nd or 4th? 🤔
+:::
 
 ::: {.notes}
-Ask if anyone wants to share?
+- 1st: you are connected. 2nd: a friend of a friend. 3rd: one more step out.
+- Last lecture we called `nx.shortest_path_length` without asking how it works. Today we open the box.
+- Let them guess. Hold the answer until BFS.
 :::
 
-## `scipy.sparse`
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst · Member count: [LinkedIn, About us](https://news.linkedin.com/about-us)
+:::
 
-- `scipy.sparse` provides the standard Python implementation for sparse matrices.
+# Trees {background-image="images/li_otter_orgchart.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-- Example
+Every LinkedIn company page has an org chart: each employee has one manager.
 
-```{pyodide}
-from scipy.sparse import csr_matrix, csc_matrix
-import numpy as np
-dense_matrix = np.array([
-    [1, 0, 0, 0],
-    [0, 0, 2, 0],
-    [0, 3, 0, 0],
-    [0, 0, 0, 4]
-])
-# Convert the dense matrix to a sparse matrix
-csr = csr_matrix(dense_matrix)
-print(csr)
-```
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
+:::
 
-- Example
-```{pyodide}
-# We can convert a scipy sparse matrix back to a numpy array.
-print(csr.toarray())
-```
+## What is a tree? {style="font-size: 0.85em;"}
 
-## A bigger sparse matrix
+A **tree** is a graph that is connected and has no cycles: exactly **one** path between any two nodes.
 
-- Suppose we have a 100000 by 100000 matrix:
-  - A dense matrix would take up 100000 * 100000 * 8 / 1e9 = 80 GB.
-  - A sparse matrix with 1000000 non-zero elements would take only 1000000 * 8 * 3 / 1e6 = 24 MB.
+![](images/tree.jpg){fig-align="center" width="85%"}
 
-- That is why we don't want to store the full matrix with many zeros.
-
-## Basic `scipy.sparse` operations
-
-```{pyodide}
-print(csr.shape)
-print(csr.nnz)  # non-zero elements of the matrix
-print(np.sum(csr, axis = 0))  # regular numpy functions work on sparse matrices
-print(csr.data)
-```
-
-. . .
-
-- Regular numpy functions work on sparse matrices, although they might be fast/slow depending on various factors.
-
-## Sparse matrix representations
-
-- CSR: Compressed Sparse Row array
-
-```{pyodide}
-x = csr_matrix(dense_matrix)
-print(x.data)
-print(x.indices)
-print(x.indptr)
-```
+::: {.fragment}
+We draw it upside down: the root at the top, the leaves at the bottom.
+:::
 
 ::: {.notes}
-  - We store an adjacency list per row
-  - So if we want Row 4, we just grab it right away.
+- Org chart: the CEO is the root, every employee has exactly one manager above them.
+- Lecture 3's friend graph is not a tree: sky, clam and kelp form a cycle.
 :::
 
-- CSC: Compressed Sparse Column array
+```{python}
+#| echo: false
+# Hidden: the tree T = nx.balanced_tree(2, 3) from the notes, with its parent,
+# children, subtree and depth worked out for every node; OJS only draws.
+T = nx.balanced_tree(2, 3)
+T_root = 0
+T_parent = {child: parent for parent, child in nx.bfs_edges(T, T_root)}
+T_children = {n: [c for c in T.neighbors(n) if T_parent.get(c) == n] for n in T.nodes}
+T_depth = nx.shortest_path_length(T, T_root)
 
-```{pyodide}
-x = csc_matrix(dense_matrix)
-print(x.data)
-print(x.indices)
-print(x.indptr)
+
+def below(n):
+    """n plus every node under it: the subtree that starts at n."""
+    return [n] + [d for c in T_children[n] for d in below(c)]
+
+
+tree_views = {}
+for n in T.nodes:
+    subtree = below(n)
+    node_role = {u: "friend" for u in subtree}
+    if n in T_parent:
+        node_role[T_parent[n]] = "you"
+    node_role[n] = "pick"
+    edge_role = {edge_key(u, c): "friend" for u in subtree for c in T_children[u]}
+    kids = T_children[n]
+    facts = ["the root, no parent" if n == T_root else f"parent {T_parent[n]}",
+             f"children {names(kids)}" if kids else "no children, so it is a leaf",
+             f"subtree {{{', '.join(str(u) for u in sorted(subtree))}}}",
+             f"depth {T_depth[n]}"]
+    tree_views[n] = {"node_roles": [node_role.get(u, "other") for u in T.nodes],
+                     "edge_roles": [edge_role.get(edge_key(u, v), "base") for u, v in T.edges],
+                     "say": f"Node {n}: " + ", ".join(facts) + "."}
+
+T_height = max(T_depth.values())
+tree_view = {**layout(T, tree_pos(T, T_root), pad=0.4), "views": tree_views,
+             "choices": list(T.nodes),
+             "summary": f"{T.number_of_nodes()} nodes, {T.number_of_edges()} edges, height {T_height}."}
+ojs_define(tree_view = tree_view)
 ```
 
-- We need to chooose the appropriate format for different operations.
+## Tree words {style="font-size: 0.75em;"}
 
-## Rows versus columns operations
-
-| Feature               | CSR                          | CSC                          |
-|----------------------|------------------------------|------------------------------|
-| Storage Arrays       | Values, Column Indices, Row Pointers | Values, Row Indices, Column Pointers |
-| Optimized For        | Row operations               | Column operations             |
-| Access Pattern       | Fast row slicing             | Fast column slicing           |
-| Use Cases            | Matrix-vector multiplication, row-wise operations | Column-wise computations, matrix factorization |
-
-::: {.notes}
-CSR (Compressed Sparse Row) and CSC (Compressed Sparse Column) are two common formats for storing sparse matrices.
-:::
-
-## Don't use CSR matrices for operations which require looping over columns
-
-```python
-from scipy.sparse import csr_matrix
-n = 10000
-dense_matrix = np.random.rand(n, n)
-mask = np.random.rand(n, n) < 0.01
-sparse_matrix = dense_matrix * mask
-csr = csr_matrix(sparse_matrix)
+```{ojs}
+//| echo: false
+viewof tree_pick = Inputs.select(tree_view.choices, {value: 4, label: "node"})
 ```
 
-```python
-%%timeit -r1 -n1
-
-for i in range(n):
-    csr[i,:]
+```{ojs}
+//| echo: false
+{
+  // Draw only: parent, children and subtree were worked out in Python (tree_view).
+  const s = tree_view.views[tree_pick];
+  const fill = {pick: "#eb6834", you: "#52514e", friend: "#2a78d6", other: "#b8b6b0"};
+  const nodes = tree_view.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const edges = tree_view.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  return html`<div class="ojs-readout">${s.say}</div>${Plot.plot({
+    width: 820, height: 250, margin: 14,
+    style: {fontSize: "15px", background: "transparent"},
+    x: {axis: null, domain: tree_view.x_domain}, y: {axis: null, domain: tree_view.y_domain},
+    marks: [
+      Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: d => d.role === "friend" ? "#2a78d6" : "#d9d8d4", strokeWidth: 3}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 14, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", fill: "white", fontWeight: "bold"})
+    ]
+  })}`;
+}
 ```
-
-<br>
-
-```python
-%%timeit -r1 -n1
-
-for i in range(n):
-  csr[:,i]
-```
-
-## We should avoid looping directly through sparse matrices in general
-
-- Loping through the rows of a csr matrix is fine.
-- Looping through the columns of a csr matrix can be disaster (why?).
-  - If we want to get elements from column 1, we have to iterate through every row and check if there’s an element in column 1!
-  - Convert to CSC format instead:
-
-. . .
-
-```python
-csc = csr.tocsc()
-```
-
-::: {.notes}
-- Because it is stored row by row.
-- To grab a single column, it needs to loop through each row and look for items in that column.
-:::
-
-## Trees
-
-- a tree is an undirected connected graph containing no cycles
-
-![](images/tree.jpg){fig-align="center" width="100%"}
-
-<!--
-## Tree Terminology
-
-1. A **node** is a fundamental part of a tree. It stores data.
-2. The first node in a tree is called the **root** node.
-3. A link connecting one node to another is called an **edge**.
-4. A **child** node is an immediate successor of another node.
-5. A **parent** node is an immediate predecessor of another node.
-    - A node can have zero, one, or many child nodes.
-    - A node can only have one parent node.
-6. Nodes without links to other child nodes are called **leaves**, or **leaf nodes**. -->
-
-## Why do we need to study trees?
-
-- Many systems involve data that has a parent–child relationship, such as:
-  - File systems (folders and subfolders),
-  - Organization charts (manager–employee hierarchy).
-- Specialized trees are often used for efficient searching and sorting algorithms.
-  - Binary Search Trees (BSTs) $->$ next week
-  - Heaps $->$ next term
-- Trees help model relationships like
-  - decision trees, random forests, and gradient-boosted trees in machine learning.
-
-## Stacks
-
-- A stack is a data structure that allows us to insert items and retrieve them later using the **Last In, First Out** (LIFO) principle.
-  - Example: Think of it like a stack of books, where the last book placed on top is the first one to be removed.
-
-![](images/stack.png){width=300 fig-align="center"}
-
-## Stack implementation using a `list`
-
-```{.python}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-<!-- #### Stack implementation using a `list`
-
-```{.python code-line-numbers="1,2,3"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Stack implementation using a `list`
-
-```{.python code-line-numbers="5,6"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Stack implementation using a `list`
-
-```{.python code-line-numbers="8,9"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Stack implementation using a `list`
-
-```{.python code-line-numbers="11,12"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Stack implementation using a `list`
-
-```{.python code-line-numbers="14,15"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-``` -->
-
-<!-- #### Stack implementation using a `list`
-
-```{pyodide}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-``` -->
-
-## Stack operations
-
-![](images/stack_op.png){width=250 fig-align="left"}
-
-## Exercise
-
-If a stack contains `n` items, what is the time complexity to retrieve the bottom item?
-
-**A**: $O(1)$ <br>
-**B**: $O(n)$ <br>
-**C**: $O(log(n))$ <br>
-**D**: $O(n^2)$
 
 ::: {.incremental}
-
-- Answer: $O(n)$
-- To retrieve the bottom item, we would have to pop all the elements above it.
-
+- Root: the top node. Parent: the node directly above (dark). Children: the nodes directly below.
+- Leaf: no children. Subtree: a node plus everything below it (orange and blue). Every subtree is a **tree**.
+- Height: edges on the longest path from the root to a leaf. This tree: `{python} T_height`. Balanced: left and right subtrees have about the same height.
 :::
 
-## Queues
+::: {.notes}
+- Every node has exactly one parent, except the root, which has none. Any number of children.
+- Try node 9 (parent 4), node 2 (subtree 2, 5, 6, 11 to 14), node 0 (the whole tree).
+- This is `nx.balanced_tree(2, 3)` from the notes: every node has 2 children, 3 levels below the root.
+:::
 
-- A queue is a data structure that operates on the **First In, First Out**(FIFO) principle.
-  - Example: waiting in line—people are served in the order they arrive.
+## iClicker: how many edges? {style="font-size: 0.8em;"}
 
-<br>
+A tree has $V$ nodes. How many edges does it have?
 
-![](images/queue.png){width=500 fig-align="center"}
+- \(A) $V - 1$
+- \(B) $V$
+- \(C) $V + 1$
+- \(D) $\frac{V(V-1)}{2}$
 
-## Queue implementation using a `list`
+::: {.fragment}
+- Answer: **A**. Every node except the root has exactly one edge up to its parent.
+- Add one edge: a cycle. Remove one: two pieces. A tree is the cheapest way to connect $V$ nodes.
+:::
 
-```{.python}
-class Queue:
+```{pyodide}
+T = nx.balanced_tree(2, 3)
+print("is it a tree?", nx.is_tree(T))   # connected and no cycles
+print(T.number_of_nodes(), "nodes,", T.number_of_edges(), "edges")
+```
+
+::: {.notes}
+- Lecture 3: a complete graph has V(V − 1)/2 edges. A tree has V − 1. The two extremes of "connected".
+:::
+
+## Why trees? {style="font-size: 0.85em;"}
+
+:::: {.columns}
+::: {.column width="55%"}
+::: {.incremental}
+- File systems: folders inside folders.
+- Org charts: each employee has one manager.
+- Web pages: HTML tags nested inside tags.
+- Machine learning: decision trees, random forests (DSCI 571, 573).
+- Fast search: binary search trees (lecture 6), heaps, the B-trees inside databases.
+:::
+:::
+::: {.column width="45%"}
+```text
+Root Folder
+ ├── Documents
+ │    ├── Resume.pdf
+ │    └── Notes.txt
+ └── Pictures
+      ├── Vacation/
+      │     └── beach.jpg
+      └── profile.png
+```
+:::
+::::
+
+::: {.notes}
+- A balanced binary search tree finds an item in O(log n), like binary search in lecture 2.
+:::
+
+## A tree in Python {style="font-size: 0.8em;"}
+
+Each node stores its data and a list of its children:
+
+```{pyodide}
+class Node:
+    def __init__(self, data):
+        self.data = data      # the value stored in this node
+        self.children = []    # the child nodes, empty for a leaf
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+    def print_tree(self, level=0):
+        print("  " * level + str(self.data))   # indent by level
+        for child in self.children:
+            child.print_tree(level + 1)          # each child's subtree, one level deeper
+```
+
+```{pyodide}
+root = Node("Root Folder")
+documents, pictures = Node("Documents"), Node("Pictures")
+root.add_child(documents)
+root.add_child(pictures)
+documents.add_child(Node("Resume.pdf"))
+pictures.add_child(Node("profile.png"))
+root.print_tree()
+```
+
+::: {.notes}
+- `print_tree` calls itself on each child: recursion, lecture 5. It works because every subtree is a tree.
+- `networkx` treats a tree as just another graph; our own `Node` class is the usual way to write one by hand.
+:::
+
+# Stacks and queues {background-image="images/ig_otter_undo.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+
+You are writing a LinkedIn post with a few photos. Undo, and the photos uploading in the background.
+
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
+:::
+
+## Stack and queue {style="font-size: 0.7em;"}
+
+:::: {.columns}
+::: {.column width="50%"}
+### Stack: LIFO
+
+*Last In, First Out*
+
+![](images/stack.png){width="60%" fig-align="center"}
+
+Undo while you edit. Every edit goes on top, and undo takes off the most recent one.
+:::
+::: {.column width="50%"}
+### Queue: FIFO
+
+*First In, First Out*
+
+![](images/queue.png){width="95%" fig-align="center"}
+
+The upload queue. Each photo joins the back, and the server takes the one that has waited longest.
+:::
+::::
+
+::: {.fragment}
+Both add at the back. They differ only in **which end you take from**.
+:::
+
+::: {.notes}
+- Stack: a pile of plates. Queue: the line at a coffee shop.
+- Ask: why is undo a stack? Undoing the oldest edit first would be nonsense.
+- Ask: why is upload a queue? Fairness: photos go up in the order you added them.
+- They are building blocks for deques, priority queues and heaps, and for BFS and DFS later today.
+:::
+
+```{python}
+#| echo: false
+# Hidden: replay ONE list of operations through a stack and through a queue, for
+# the two step-through slides below. Every box, colour class and sentence is
+# worked out here; OJS only draws.
+ds_script = [("add", "📷1"), ("add", "📷2"), ("add", "📷3"), ("remove", None),
+             ("add", "📷4"), ("remove", None), ("remove", None)]
+
+def replay(kind):
+    """One entry per click. kind is "stack" (take from the top) or "queue" (take from the front).
+    Colour means the operation: "sq-in" (blue) = the item that just went in,
+    "sq-out" (orange) = the item that just came out. Everything else stays grey."""
+    items, out_so_far, steps = [], [], []
+    for k in range(len(ds_script) + 1):
+        op = added = removed = None
+        if k > 0:
+            op, item = ds_script[k - 1]
+            if op == "add":
+                items.append(item)              # both add at the same place: the top / the back
+                added = item
+            elif kind == "stack":
+                removed = items.pop()           # LIFO: off the top
+            else:
+                removed = items.pop(0)          # FIFO: off the front
+            if removed:
+                out_so_far.append(removed)
+        next_out = len(items) - 1 if kind == "stack" else 0
+        # items in the container (stack: bottom to top, queue: front to back),
+        # with a small "next out" tag on the one that leaves next
+        tag = "◀ next out" if kind == "stack" else "▲ next out"
+        boxes = [{"label": label, "cls": "sq-in" if label == added else "",
+                  "tag": tag if i == next_out else ""}
+                 for i, label in enumerate(items)]
+        # the sentence under the buttons: a coloured verb, then what happened
+        if k == 0:
+            verb, verb_cls, say = "Start", "", f"The {kind} is empty."
+        elif added:
+            verb, verb_cls = "add", "add"
+            if kind == "stack":
+                say = f"{added} goes on the top."
+            elif len(items) == 1:
+                say = f"{added} joins an empty line, so it is at the front."
+            else:
+                say = f"{added} joins the back of the line."
+        else:
+            verb, verb_cls = "remove", "remove"
+            say = (f"{removed} comes off the top. The newest item leaves first." if kind == "stack"
+                   else f"{removed} leaves from the front. It has waited the longest.")
+        steps.append({
+            "count": f"Step {k} of {len(ds_script)}", "verb": verb, "verb_cls": verb_cls, "say": say,
+            "boxes": boxes,
+            "removed": removed or "",
+            "removed_cls": "sq-out" if removed else "sq-empty",
+            # the arrow at the end used this step lights up in its colour
+            "add_cls": "on" if op == "add" else "",
+            "remove_cls": "on" if op == "remove" else "",
+            "out_so_far": list(out_so_far),
+            # the script strip: blue chips add, orange chips remove; done, now or still to come
+            "ops": [{"label": f"add {it}" if o == "add" else "remove",
+                     "cls": f"{o} {'done' if j < k - 1 else 'now' if j == k - 1 else ''}"}
+                    for j, (o, it) in enumerate(ds_script)],
+        })
+    return steps
+
+ojs_define(stack_steps = replay("stack"), queue_steps = replay("queue"))
+```
+
+## How a stack works: last in, first out {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof stack_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, stack_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every box, colour and sentence was computed in Python (stack_steps).
+  const s = stack_steps[stack_step];
+  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
+  const boxes = s.boxes.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag right">${b.tag}</span></div>`);
+  const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
+  return html`<div class="sq-ops">${ops}</div>
+    <div class="sq-say"><span class="sq-count">${s.count}</span>
+      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
+    <div class="sq-stage">
+      <div class="sq-lift">
+        <div class="ds-box ${s.removed_cls}">${s.removed}</div>
+        <div class="sq-ends">
+          <span class="sq-arrow add ${s.add_cls}">⬇ add</span>
+          <span class="sq-arrow remove ${s.remove_cls}">⬆ remove</span>
+        </div>
+        <div class="sq-stack">${boxes}</div>
+        <div class="ds-caption">undo history</div>
+      </div>
+      <div class="sq-tray">
+        <div class="ds-caption">came out, in order</div>
+        <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
+      </div>
+    </div>`;
+}
+```
+
+::: {.notes}
+- Ask them to predict each step before you click.
+- Colour is the operation: blue is the item that just went in, orange is the item that just came out. Everything else is grey.
+- Add and remove happen at the same end, the top: both arrows sit on the same opening. The newest item is always the next one out.
+- Step 4: remove gives back 📷3, the newest. Remember that for the next slide.
+- Step 7: 📷1 is still at the bottom. Keep adding and it could wait forever: that is starvation, and why upload servers use queues.
+- In code, add is `push` and remove is `pop`.
+:::
+
+## How a queue works: first in, first out {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof queue_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, queue_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every box, colour and sentence was computed in Python (queue_steps).
+  const s = queue_steps[queue_step];
+  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
+  const boxes = s.boxes.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
+  return html`<div class="sq-ops">${ops}</div>
+    <div class="sq-say"><span class="sq-count">${s.count}</span>
+      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
+    <div class="sq-line">
+      <div class="sq-exit"><div class="ds-box ${s.removed_cls}">${s.removed}</div></div>
+      <span class="sq-arrow remove ${s.remove_cls}">⬅ remove<br><small>front</small></span>
+      <div class="sq-queue">${boxes}</div>
+      <span class="sq-arrow add ${s.add_cls}">⬅ add<br><small>back</small></span>
+    </div>
+    <div class="ds-caption">upload queue</div>
+    <div class="sq-tray">
+      <div class="ds-caption">came out, in order</div>
+      <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
+    </div>`;
+}
+```
+
+::: {.notes}
+- Same seven steps and same colours as the stack slide: blue went in, orange came out.
+- Add at the back, remove from the front: the two arrows are on opposite ends.
+- Step 4: the queue gives back 📷1, the stack gave back 📷3. Same input, different answer.
+- Look at "came out, in order": 📷1, 📷2, 📷3, exactly the order they arrived. That is FIFO, and it is fair.
+:::
+
+## Stack in code {style="font-size: 0.8em;"}
+
+The top of the stack is the **end** of the list.
+
+```{.python code-line-numbers="5,6,8,9"}
+class Stack:
+    def __init__(self):
+        self.data = list()
+
+    def push(self, item):
+        self.data.append(item)    # add to the top
+
+    def pop(self):
+        return self.data.pop()    # take from the top
+
+    def isEmpty(self):
+        return len(self.data) == 0
+
+    def __str__(self):
+        return str(self.data)
+```
+
+::: {.fragment}
+`append` and `pop()` both work at the end of a list: $O(1)$, nothing else moves.
+:::
+
+## Try it: a stack {style="font-size: 0.8em;"}
+
+```{pyodide}
+class Stack:
     def __init__(self):
         self.data = list()
 
@@ -429,56 +615,47 @@ class Queue:
         self.data.append(item)
 
     def pop(self):
-        return self.data.pop(0)
+        return self.data.pop()
 
     def isEmpty(self):
         return len(self.data) == 0
 
     def __str__(self):
-        return self.data.__str__()
+        return str(self.data)
+
+s = Stack()
+for item in ["first", "second", "third", "fourth"]:
+    s.push(item)
+print(s)
+while not s.isEmpty():
+    print(s.pop())
 ```
 
-<!-- #### Queue implementation using a `list`
+::: {.notes}
+- Ask them to predict the printout first: items come out in reverse order.
+:::
 
-```{.python code-line-numbers="1,2,3"}
-class Queue:
-    def __init__(self):
-        self.data = list()
+## Question: the bottom of a stack {style="font-size: 0.8em;"}
 
-    def push(self, item):
-        self.data.append(item)
+A stack holds $n$ items. What is the time complexity of getting the **bottom** item, the first one that went in?
 
-    def pop(self):
-        return self.data.pop(0)
+- \(A) $O(1)$
+- \(B) $O(n)$
+- \(C) $O(\log n)$
+- \(D) $O(n^2)$
 
-    def isEmpty(self):
-        return len(self.data) == 0
+::: {.fragment}
+- Answer: **B**. A stack only lets you take from the top, so you pop all $n$ items to reach the bottom.
+:::
 
-    def __str__(self):
-        return self.data.__str__()
-```
+::: {.notes}
+- Think, pair, share: not an iClicker question.
+- Editor terms: press undo n times to get back to the original photo.
+:::
 
-## Queue implementation using a `list`
+## Queue in code {style="font-size: 0.8em;"}
 
-```{.python code-line-numbers="5,6"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Queue implementation using a `list`
+The only change from `Stack`: take from the **front** of the list.
 
 ```{.python code-line-numbers="8,9"}
 class Queue:
@@ -486,59 +663,19 @@ class Queue:
         self.data = list()
 
     def push(self, item):
-        self.data.append(item)
+        self.data.append(item)    # join the back ("enqueue")
 
     def pop(self):
-        return self.data.pop(0)
+        return self.data.pop(0)   # leave from the front ("dequeue")
 
     def isEmpty(self):
         return len(self.data) == 0
 
     def __str__(self):
-        return self.data.__str__()
+        return str(self.data)
 ```
 
-## Queue implementation using a `list`
-
-```{.python code-line-numbers="11,12"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## Queue implementation using a `list`
-
-```{.python code-line-numbers="14,15"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-``` -->
-
-<!-- #### Queue implementation using a `list`
+## Try it: a queue {style="font-size: 0.8em;"}
 
 ```{pyodide}
 class Queue:
@@ -555,104 +692,641 @@ class Queue:
         return len(self.data) == 0
 
     def __str__(self):
-        return self.data.__str__()
-``` -->
+        return str(self.data)
 
-## Queue operations
+q = Queue()
+for item in ["first", "second", "third", "fourth"]:
+    q.push(item)
+print(q)
+while not q.isEmpty():
+    print(q.pop())
+```
 
-![](images/queue_op.png){width=500 fig-align="left"}
-
-## Exercise
-
-If we have a queue `[A, B, C, D]` with `A` at the head of the queue, what will the queue look like after the following operations:
-
-- push `E` onto the queue
-- push `F` onto the queue
-- remove one item from the queue
-- push `A` onto the queue
-
-::: {.incremental}
-
-- Answer: `[B, C, D, E, F, A]`
-
+::: {.notes}
+- Same order out as in.
 :::
 
-## Graph search algorithms
+## iClicker: what is in the queue? {style="font-size: 0.8em;"}
 
-::: incremental
-- When we model data as a graph, we have to search through the graph to address various questions, such as:
-  - Is there a path between two vertices?
-  - What is the shortest distance between two vertices?
-- To do so, we will need some algorithms to traverse the graph.
-:::
+A queue holds `[A, B, C, D]`, with `A` at the front. After these steps:
 
-## Breadth-first search (BFS)
+1. push `E`
+2. push `F`
+3. pop one item
+4. push `A`
 
-::: incremental
-- BFS explores the edges of the graph to find all the vertices in that can be reached from  $s$.
-- Process:
-  - Initially all the vertices are "undiscovered".
-  - BFS expands the frontier between discovered and undiscovered vertices uniformly across the breadth of the frontier.
+- \(A) `[A, B, C, E, F]`
+- \(B) `[A, F, E, B, C, D]`
+- \(C) `[B, C, D, E, F, A]`
+- \(D) `[B, C, D, E, F]`
+
+::: {.fragment}
+- Answer: **C**. `E` and `F` join the back, `pop` removes `A` from the front, then `A` joins the back again.
 :::
 
 ::: {.notes}
-All nodes at the current distance from the starting node are explored before moving on to nodes at the next distance.
+- Watch for: pop takes A off the front, not F off the back.
+- A can rejoin: queues allow duplicates.
 :::
 
-## Exercise: what is the time and space complexity of BFS?
+## ⚠️ `list.pop(0)` is slow {style="font-size: 0.75em;"}
 
-::: incremental
-- Time complexity: $O(|V|+|E|)$.
-  - Each vertex is processed once, and each edge is examined once when exploring adjacent vertices.
-- Space Complexity: $O(|V|)$
-  - Queue is $O(|V|)$.
-  - The list of visited nodes is $O(|V|)$.
+A list stores items side by side. Removing the first one shifts every other item one spot left: $O(n)$.
+
+`collections.deque` ("deck", a double-ended queue) adds and removes at both ends in $O(1)$: `append` to join the back, `popleft` to leave the front.
+
+```{python}
+#| echo: true
+n = 100_000
+
+def empty_list_queue(n):
+    q = list(range(n))
+    while q:
+        q.pop(0)        # O(n) each time: shift everything left
+
+def empty_deque(n):
+    q = deque(range(n))
+    while q:
+        q.popleft()     # O(1) each time
+
+t_list = timeit.timeit(lambda: empty_list_queue(n), number=1)
+t_deque = timeit.timeit(lambda: empty_deque(n), number=1)
+print(f"list.pop(0):     {t_list * 1e3:8.1f} ms")
+print(f"deque.popleft(): {t_deque * 1e3:8.1f} ms   ({t_list / t_deque:,.0f}x faster)")
+```
+
+```{python}
+#| echo: false
+# Hidden: the bar chart on the next slide, from the same t_list and t_deque printed above.
+deque_rows = [{"how": "list.pop(0)", "kind": "O(n²) in total", "ms": t_list * 1e3},
+              {"how": "deque.popleft()", "kind": "O(n) in total", "ms": t_deque * 1e3}]
+for row in deque_rows:
+    row["bar_label"] = f"{row['ms']:,.1f} ms"
+deque_chart = {
+    "rows": deque_rows,
+    "order": [row["how"] for row in deque_rows],
+    "kinds": [row["kind"] for row in deque_rows],
+    "x_domain": [0, max(row["ms"] for row in deque_rows) * 1.25],
+    "n_label": f"{n:,}",
+    "ratio_label": f"{t_list / t_deque:,.0f}",
+}
+ojs_define(deque_chart = deque_chart)
+```
+
+## Emptying a queue of 100,000 items {style="font-size: 0.7em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: both times were measured in Python (deque_chart).
+Plot.plot({
+  width: 860, height: 200, marginLeft: 150, marginRight: 110, marginTop: 20, marginBottom: 46,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {label: "milliseconds to empty the whole queue →", labelAnchor: "center", grid: true,
+      domain: deque_chart.x_domain},
+  y: {label: null, domain: deque_chart.order},
+  color: {domain: deque_chart.kinds, range: ["#eb6834", "#2a78d6"], legend: true, swatchSize: 16},
+  marks: [
+    Plot.barX(deque_chart.rows, {y: "how", x: "ms", fill: "kind", rx: 4}),
+    Plot.text(deque_chart.rows, {y: "how", x: "ms", text: "bar_label",
+                                 dx: 8, textAnchor: "start", fontWeight: "bold"}),
+    Plot.ruleX([0])
+  ]
+})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Print only: every number below was computed in Python (deque_chart).
+  const d = deque_chart;
+  return html`<div class="ojs-readout">With ${d.n_label} items, <span class="notify">deque</span> is about
+    <b>${d.ratio_label}×</b> faster than <span class="match">list.pop(0)</span>.</div>`;
+}
+```
+
+::: {.fragment}
+| structure | insert | delete | search | use it when |
+|---|---|---|---|---|
+| stack (LIFO) | $O(1)$ push | $O(1)$ pop | $O(n)$ | most recent first: undo, back button |
+| queue (FIFO) | $O(1)$ push | $O(1)$ with `deque` | $O(n)$ | oldest first: job queues, BFS |
 :::
 
-## Depth-first search (DFS)
-
-::: incremental
-- DFS explores deeper into the graph whenever possible.
-- Change the data structure from a `Queue` to a `Stack`.
+::: {.notes}
+- n pops at O(n) each is O(n²) in total. The deque does it in O(n).
+- For a handful of items `list.pop(0)` is fine. For big queues, use `deque`.
+- The table belongs with lecture 2's cheat sheet: photograph them together.
 :::
 
-## Exercise: what is the time and space complexity of DFS?
+# Graph search {background-image="images/li_otter_search.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-::: incremental
-- Time complexity: $O(V+E)$.
-  - DFS explores each vertex and edge once.
-- Space Complexity: $O(V)$.
-  - Stack is $O(V)$.
-  - The list of discovered (visited) nodes is $O(V)$.
+Back to ada. How far is she from you?
+
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
 :::
 
-## DFS vs BFS
+```{python}
+#| echo: false
+# Hidden: the LinkedIn connection graph for the search slides. Same edges, in the
+# same order, as the visible pyodide cells, so the search order matches.
+li_pos = {"sky": (0.0, 0.0), "otter": (-1.2, 1.0), "clam": (1.4, 1.0), "kelp": (-0.6, -1.2),
+          "nori": (-2.4, 1.0), "bubbles": (2.6, 1.6), "mochi": (-1.8, -1.6),
+          "ada": (-3.4, 0.0), "pixel": (-3.0, -1.2), "waffle": (2.4, -1.1)}
+connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "clam"),
+               ("otter", "nori"), ("clam", "bubbles"), ("kelp", "mochi"), ("nori", "ada"),
+               ("mochi", "pixel"), ("pixel", "ada")]
+li = nx.Graph(connections)
+li.add_node("waffle")
+li_layout = layout(li, li_pos, pad=0.6)
 
-|                  | BFS         | DFS         |
-|------------------|-------------|-------------|
-| Data structure   | Queue       | Stack       |
-| Time Complexity  | $O(V+E)$    | $O(V+E)$    |
-| Space Complexity | $O(V)$      | $O(V)$      |
 
-::: incremental
-- However, BFS often requires more memory, especially in wide graphs.
-  - BFS holds all nodes in the frontier.
-  - DFS holds only the nodes in the current path, which typically requires less space.
+def record_search(G, start, goal, kind):
+    """Run BFS (kind="bfs", a queue) or DFS (kind="dfs", a stack) exactly like
+    bfs_connected / dfs_connected, and record one step per node taken out."""
+    bfs = kind == "bfs"
+    word, take_end, add_end = ("queue", "front", "back") if bfs else ("stack", "top", "top")
+    to_visit = deque([start]) if bfs else [start]
+    visited, found_from, dist, order = {start}, {start: None}, {start: 0}, []
+    steps = []
+
+    def snapshot(now, say, path=()):
+        path_edges = {edge_key(u, v) for u, v in zip(path, path[1:])}
+        tree_edges = {edge_key(u, p) for u, p in found_from.items() if p is not None}
+        roles = []
+        for u in G.nodes:
+            roles.append("path" if u in path else "now" if u == now else "done" if u in order
+                         else "waiting" if u in visited else "other")
+        labels = [f"{u} (you)" if u == start else
+                  f"{u} ({ordinal(dist[u])})" if bfs and u in visited else u for u in G.nodes]
+        items = list(to_visit)
+        next_out = 0 if bfs else len(items) - 1
+        return {"node_roles": roles, "labels": labels, "say": say,
+                "edge_roles": ["path" if edge_key(u, v) in path_edges else
+                               "tree" if edge_key(u, v) in tree_edges else "base" for u, v in G.edges],
+                "boxes": [{"label": u, "cls": "end" if i == next_out else ""} for i, u in enumerate(items)],
+                "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):"}
+
+    steps.append(snapshot(None, f"Start: put {start} in the {word} and mark it as seen. Goal: {goal}."))
+    while to_visit:
+        node = to_visit.popleft() if bfs else to_visit.pop()
+        order.append(node)
+        if node == goal:
+            path = [node]
+            while found_from[path[-1]] is not None:
+                path.append(found_from[path[-1]])
+            path = path[::-1]
+            route = " → ".join(path)
+            if bfs:
+                say = (f"Take {node} from the {take_end}: found! Walk back the way each user was found: "
+                       f"{route}. {len(path) - 1} edges, so {goal} is {ordinal(len(path) - 1)}.")
+            else:
+                say = (f"Take {node} from the {take_end}: found, after taking out only {len(order)} users. "
+                       f"But the path is {route}: {len(path) - 1} edges, not the shortest.")
+            steps.append(snapshot(node, say, path))
+            break
+        new = []
+        for neighbour in G.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                found_from[neighbour] = node
+                dist[neighbour] = dist[node] + 1
+                to_visit.append(neighbour)
+                new.append(neighbour)
+        say = (f"Take {node} from the {take_end}. "
+               + (f"Not seen yet: {names(new)}, added to the {add_end}." if new else "No new neighbours."))
+        steps.append(snapshot(node, say))
+    for k, step in enumerate(steps):
+        step["count"] = f"Step {k} of {len(steps) - 1}"
+    return {"steps": steps, "order": order}
+
+
+bfs_run = record_search(li, "sky", "ada", "bfs")
+dfs_run = record_search(li, "sky", "ada", "dfs")
+ojs_define(li_layout = li_layout, bfs_run = bfs_run, dfs_run = dfs_run)
+```
+
+## Can I get from here to there? {style="font-size: 0.8em;"}
+
+Many graph questions come down to walking the graph one edge at a time:
+
+::: {.incremental}
+- Is ada reachable from you at all? (Are the two nodes **connected**?)
+- What is the fewest number of hops? (The **shortest path**.)
+- Which groups of people are linked? (The **connected components**.)
 :::
 
-## Exercise
-
-::: incremental
-- If you wanted to find the shortest path between two nodes in an unweighted graph, would you use BFS or DFS? Why?
-  - BFS explores all nodes at the current distance level before moving on to nodes at the next distance level.
-  - The first time you reach the target node, you've found the shortest path.
-  -  You will explore this in Exercise 2 of `lab2`.
+::: {.fragment}
+You can eyeball 10 users. Not the Facebook graph in lab 2: 60,000 people and 800,000 friendships.
 :::
 
-## Other graph problems
+::: {.notes}
+- Lecture 3's `nx.shortest_path_length` and `nx.connected_components` both do this walk.
+:::
 
-::: incremental
-- There are many other well-known problems in graph theory, e.g., **traveling salesman problem**.
-- A lot of real-world problems can be mapped to these problems.
-- **However**, some of the problems are [NP-Hard](https://www.geeksforgeeks.org/np-completeness-set-1/), meaning there are no known efficient algorithms to solve these problems.
+## The plan {style="font-size: 0.8em;"}
+
+::: {.incremental}
+1. Put the start node in a "to visit" list.
+2. Take a node out and visit it.
+3. Add its neighbours to the list, **unless we have already seen them**.
+4. Repeat until the list is empty.
+:::
+
+::: {.fragment}
+The only real choice is which node to take out next:
+
+| "to visit" list is a... | take out... | search |
+|---|---|---|
+| queue (`deque`, `popleft`) | the oldest node | breadth-first search (BFS) |
+| stack (`list`, `pop`) | the newest node | depth-first search (DFS) |
+:::
+
+::: {.notes}
+- Step 3 needs a `visited` set. Without it a cycle like sky → otter → clam → sky sends us round forever.
+- A set because "have I seen this?" is O(1) (lecture 2).
+- Visualize both on [VisuAlgo](https://visualgo.net/en/dfsbfs?slide=1).
+:::
+
+## Breadth-first search: search in rings {style="font-size: 0.7em;"}
+
+```{ojs}
+//| echo: false
+viewof bfs_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, bfs_run.steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the search was run in Python (bfs_run); every colour, label and box comes from there.
+  const s = bfs_run.steps[bfs_step];
+  const fill = {now: "#eb6834", path: "#eb6834", done: "#2a78d6", waiting: "#a9c8ef", other: "#b8b6b0"};
+  const stroke = {path: "#eb6834", tree: "#2a78d6", base: "#d9d8d4"};
+  const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
+  const edges = li_layout.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${Plot.plot({
+      width: 860, height: 300, margin: 14,
+      style: {fontSize: "16px", background: "transparent"},
+      x: {axis: null, domain: li_layout.x_domain}, y: {axis: null, domain: li_layout.y_domain},
+      marks: [
+        Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
+                          strokeWidth: d => d.role === "base" ? 2 : 4}),
+        Plot.dot(nodes, {x: "x", y: "y", r: 13, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+        Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -23, fontWeight: "bold"})
+      ]
+    })}
+    <div class="ds-row center"><span class="ds-caption">${s.box_caption}</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+}
+```
+
+::: {.notes}
+- Orange = the node we just took out, blue = done, light blue = waiting in the queue, grey = not seen yet.
+- The orange box in the queue is the next one out.
+- Ask them to predict who comes out next before each click.
+- Every 1st comes out before any 2nd, every 2nd before any 3rd: rings, like ripples in a pond.
+- The blue lines are where each user was first found from. Last step: walk them back from ada.
+- waffle never lights up: no connection at all.
+:::
+
+## BFS in code {style="font-size: 0.75em;"}
+
+```{.python code-line-numbers="2,3|6|11-14"}
+def bfs_connected(g, start, goal, verbose=False):
+    to_visit = deque([start])   # a queue holding just the start node
+    visited = {start}           # nodes we have already put in the queue
+
+    while to_visit:                    # while the queue is not empty
+        node = to_visit.popleft()      # take the OLDEST node, from the front
+        if verbose:
+            print("At node", node)
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                to_visit.append(neighbour)   # join the back of the queue
+
+    return False   # the queue ran out and we never reached goal
+```
+
+::: {.notes}
+- Click through the highlights: the queue and the visited set, take from the front, add unseen neighbours to the back.
+:::
+
+## Try it: BFS {style="font-size: 0.75em;"}
+
+```{pyodide}
+connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "clam"),
+               ("otter", "nori"), ("clam", "bubbles"), ("kelp", "mochi"), ("nori", "ada"),
+               ("mochi", "pixel"), ("pixel", "ada")]
+G = nx.Graph(connections)
+G.add_node("waffle")      # a user with no connections
+
+print(bfs_connected(G, "sky", "ada", verbose=True))
+print(bfs_connected(G, "sky", "waffle"))
+```
+
+::: {.notes}
+- `bfs_connected` is defined in a hidden cell, exactly as on the previous slide.
+- Same visit order as the step-through: sky, otter, clam, kelp, nori, bubbles, mochi, ada.
+:::
+
+## The BFS tree, and shortest paths {style="font-size: 0.8em;"}
+
+```{pyodide}
+print(list(nx.bfs_edges(G, "sky")))   # (found from, found), in the order BFS finds them
+print(nx.shortest_path(G, "sky", "ada"))
+print(nx.shortest_path_length(G, "sky", "ada"))
+```
+
+::: {.incremental}
+- Every node is found once, from exactly one node: no cycles. These edges form a **tree** with the start at the root, one level per ring.
+- BFS visits every 1st before any 2nd, every 2nd before any 3rd. So the **first** time it reaches a node, it used a shortest path.
+- That is how LinkedIn's "3rd" works, and how `nx.shortest_path_length` works on an unweighted graph.
+:::
+
+::: {.notes}
+- The blue lines in the step-through are the BFS tree. `nx.bfs_tree(G, "sky")` builds it as a graph.
+- waffle is not in the tree: BFS from sky never reaches it.
+- Weighted graph: fewest edges is not the same as cheapest. That needs Dijkstra's algorithm.
+- Lab 2: change BFS to keep each node's distance.
+:::
+
+## iClicker: how fast is BFS? {style="font-size: 0.8em;"}
+
+A graph with $V$ nodes and $E$ edges, stored as an adjacency list. Time complexity of BFS in the worst case?
+
+- \(A) $O(V)$
+- \(B) $O(E)$
+- \(C) $O(V + E)$
+- \(D) $O(V^2)$
+
+::: {.fragment}
+- Answer: **C**. Each node goes in and out of the queue once: $O(V)$. Looping over neighbours adds up to every degree, $2E$: $O(E)$.
+- Space: $O(V)$. The queue and the `visited` set each hold at most $V$ nodes.
+:::
+
+::: {.notes}
+- Keep both letters, like the adjacency list in lecture 3.
+:::
+
+## Question: a list as the queue? {style="font-size: 0.8em;"}
+
+What if BFS used a plain list, with `list.pop(0)` instead of `deque.popleft()`?
+
+::: {.fragment}
+- Still the right answer, just slower. `pop(0)` is $O(V)$, called up to $V$ times: $O(V^2 + E)$.
+- A million nodes: seconds versus days.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question.
+:::
+
+## Depth-first search: go deep first {style="font-size: 0.7em;"}
+
+```{ojs}
+//| echo: false
+viewof dfs_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, dfs_run.steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the search was run in Python (dfs_run); every colour, label and box comes from there.
+  const s = dfs_run.steps[dfs_step];
+  const fill = {now: "#eb6834", path: "#eb6834", done: "#2a78d6", waiting: "#a9c8ef", other: "#b8b6b0"};
+  const stroke = {path: "#eb6834", tree: "#2a78d6", base: "#d9d8d4"};
+  const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
+  const edges = li_layout.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${Plot.plot({
+      width: 860, height: 300, margin: 14,
+      style: {fontSize: "16px", background: "transparent"},
+      x: {axis: null, domain: li_layout.x_domain}, y: {axis: null, domain: li_layout.y_domain},
+      marks: [
+        Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
+                          strokeWidth: d => d.role === "base" ? 2 : 4}),
+        Plot.dot(nodes, {x: "x", y: "y", r: 13, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+        Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -23, fontWeight: "bold"})
+      ]
+    })}
+    <div class="ds-row center"><span class="ds-caption">${s.box_caption}</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+}
+```
+
+::: {.notes}
+- Same graph, same goal, same colours. Only the list changed: a stack.
+- After sky, the newest is kelp, so DFS dives kelp → mochi → pixel → ada around the bottom.
+- It found ada after taking out only 5 users, BFS needed 8. But its path has 4 edges: DFS would have called ada "4th".
+- Maze analogy: keep one hand on the wall, back up at a dead end.
+:::
+
+## DFS in code: one line changes {style="font-size: 0.75em;"}
+
+```{.python code-line-numbers="2,6"}
+def dfs_connected(g, start, goal, verbose=False):
+    to_visit = [start]          # a list used as a stack
+    visited = {start}
+
+    while to_visit:
+        node = to_visit.pop()   # take the NEWEST node, from the top
+        if verbose:
+            print("At node", node)
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)
+                to_visit.append(neighbour)   # push onto the top of the stack
+
+    return False
+```
+
+```{pyodide}
+print(dfs_connected(G, "sky", "ada", verbose=True))
+print(list(nx.dfs_edges(G, "sky")))   # networkx's DFS: a slightly different order
+```
+
+::: {.notes}
+- A graph has many valid DFS orders, depending on which neighbour you try first.
+- networkx marks a node visited when it visits it, not when it first sees it: the textbook DFS. Ours is simpler and still correct for "are these connected?".
+:::
+
+```{python}
+#| echo: false
+# Hidden: the small tree for the trace question, and both visit orders, worked out
+# with the same search as the step-throughs (a goal of -1 visits everything).
+small_tree = nx.balanced_tree(2, 2)
+small_layout = layout(small_tree, tree_pos(small_tree, 0, width=6), pad=0.4)
+bfs_trace = ", ".join(str(u) for u in record_search(small_tree, 0, -1, "bfs")["order"])
+dfs_trace = ", ".join(str(u) for u in record_search(small_tree, 0, -1, "dfs")["order"])
+ojs_define(small_layout = small_layout)
+```
+
+## Question: trace it {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: positions computed in Python (small_layout).
+Plot.plot({
+  width: 520, height: 200, margin: 14,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {axis: null, domain: small_layout.x_domain}, y: {axis: null, domain: small_layout.y_domain},
+  marks: [
+    Plot.link(small_layout.edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#b8b6b0", strokeWidth: 2}),
+    Plot.dot(small_layout.nodes, {x: "x", y: "y", r: 15, fill: "#2a78d6", stroke: "white", strokeWidth: 2}),
+    Plot.text(small_layout.nodes, {x: "x", y: "y", text: "id", fill: "white", fontWeight: "bold"})
+  ]
+})
+```
+
+Start at 0. Neighbours come out smallest first: node 0's are `[1, 2]`. In what order do BFS and DFS visit the nodes?
+
+::: {.fragment}
+- BFS: `{python} bfs_trace`. One level at a time.
+- DFS: `{python} dfs_trace`. It pushes 1 then 2, so 2 is on top. It finishes the right subtree before going back for 1.
+:::
+
+```{pyodide}
+small_tree = nx.balanced_tree(2, 2)
+bfs_connected(small_tree, 0, -1, verbose=True)   # -1 is not a node: visit all
+```
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them two minutes on paper.
+- Then ask: time and space of DFS? Same as BFS, O(V + E) and O(V). Only the order changed, not how many go in.
+:::
+
+## BFS vs DFS {style="font-size: 0.7em;"}
+
+| | BFS | DFS |
+|---|---|---|
+| "to visit" list | queue (`deque`) | stack (`list`) |
+| order | rings: closest nodes first | one path as deep as it can, then back up |
+| time | $O(V + E)$ | $O(V + E)$ |
+| space (worst case) | $O(V)$ | $O(V)$ |
+| shortest path (fewest edges)? | yes | no |
+| good for | shortest paths, degrees of separation | mazes, puzzles, every path, finding cycles |
+
+::: {.incremental}
+- BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
+- DFS holds roughly the path it is on. A **deep** graph, like a long chain, makes that path long.
+- "Are these connected?" Either works.
+:::
+
+## iClicker: BFS or DFS? {style="font-size: 0.8em;"}
+
+You want the fewest number of flights from Vancouver to Taipei.
+
+- \(A) BFS
+- \(B) DFS
+
+::: {.fragment}
+- Answer: **A**. BFS checks every airport one flight away, then two flights away, and so on. The first time it reaches Taipei, it used the fewest flights.
+- DFS might fly Vancouver → Toronto → London → Dubai → ... even when there is a direct flight.
+:::
+
+## Question: connected components {style="font-size: 0.8em;"}
+
+How would you use BFS (or DFS) to find every connected component, like `nx.connected_components`?
+
+::: {.fragment}
+- Search from any node. Everything it reaches is one component.
+- Pick a node you have not visited yet, and search again. Repeat until every node is visited.
+- Each node and edge is still handled once: $O(V + E)$.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question.
+- On our graph: one search from sky finds 9 users, then waffle is a component on its own.
+:::
+
+## Today's cheat sheet {style="font-size: 0.7em;"}
+
+Searching a graph with $V$ nodes and $E$ edges:
+
+| | BFS | DFS |
+|---|---|---|
+| "to visit" list | queue: `deque`, `append` + `popleft` | stack: `list`, `append` + `pop` |
+| time | $O(V + E)$ | $O(V + E)$ |
+| space | $O(V)$ | $O(V)$ |
+| shortest path (fewest edges)? | yes | no |
+| `networkx` | `nx.bfs_edges`, `nx.bfs_tree`, `nx.shortest_path` | `nx.dfs_edges` |
+
+## Today's takeaways {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- A tree is a connected graph with no cycles: one path between any two nodes, and $V - 1$ edges.
+- A stack takes from the top (LIFO), a queue from the front (FIFO). Use `deque` for queues.
+- A graph search keeps a "to visit" list and a `visited` set, so it never loops round a cycle.
+- BFS uses a queue and searches in rings: the first time it reaches a node, it used a shortest path.
+- DFS uses a stack and goes as deep as it can first. Both are $O(V + E)$ time and $O(V)$ space.
+:::
+
+# Questions?
+
+# (Bonus Slide) PageRank {style="font-size: 0.8em;"}
+
+## (Bonus Slide) Which page is most important? {style="font-size: 0.85em;"}
+
+BFS and DFS tell us what is connected. [PageRank](https://en.wikipedia.org/wiki/PageRank), the algorithm that made Google, asks which node matters most.
+
+Web pages are nodes in a **directed** graph: an edge from A to B if A links to B. Simulate a random surfer:
+
+::: {.incremental}
+1. Start on a random page.
+2. With probability $\alpha$, get bored and jump to a random page. Otherwise click a random link.
+3. Repeat many times. A page's rank is how often the surfer landed on it.
+:::
+
+::: {.notes}
+- This is one kind of [centrality](https://en.wikipedia.org/wiki/Centrality).
+- The real PageRank is computed with linear algebra, no simulation needed.
+:::
+
+## (Bonus Slide) The random surfer in code {style="font-size: 0.75em;"}
+
+```{pyodide}
+import random
+from collections import Counter
+
+def page_rank(G, alpha=0.1, iters=100_000):
+    visits = Counter()                      # counts start at 0 (lecture 3)
+    nodes = list(G.nodes())
+    current = random.choice(nodes)
+    for _ in range(iters):
+        links = list(G.neighbors(current))  # the pages this page links to
+        if random.random() < alpha or not links:
+            current = random.choice(nodes)  # bored, or no links: jump anywhere
+        else:
+            current = random.choice(links)  # click a random link
+        visits[current] += 1
+    return visits
+
+sfg = nx.scale_free_graph(10, seed=20)      # a few pages get most of the links, like the web
+random.seed(512)
+print(page_rank(sfg).most_common())
+print(sorted(((n, len(list(sfg.predecessors(n)))) for n in sfg.nodes()), key=lambda p: -p[1]))
+```
+
+::: {.fragment}
+Compare the two lists: a page linked from a popular page can outrank one with more links. **Who** links to you matters more than how many.
+:::
+
+::: {.notes}
+- Second list: incoming links per page, most first.
+- Two kinds of randomness: the surfer's jumps are part of the model, the finite simulation is noise. `nx.pagerank(sfg)` gives the exact answer.
 :::

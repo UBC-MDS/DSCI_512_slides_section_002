@@ -22,279 +22,195 @@ pyodide:
     - numpy
     - scipy
     - networkx
+    - pandas
 resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
+  data-background-image: images/lec03_title_bg.png
+  data-background-size: cover
+  data-background-position: right bottom
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Q: raise of hand: who has had Instagram suggest someone you actually know?"
 ---
 
-## Python `dict`
+```{python}
+#| echo: false
+# Hidden: imports for the whole deck, kept in one place so the visible cells
+# below contain only the code students should read.
+import math
+import timeit
 
-- It is similar to a `set` but with key-value pairs:
-  - The entries are called "keys," and the associated data are the "values."
-- Python `dict` is implemented using a hash table, so we have $O(1)$ operations like insertion, deletion, and lookup.
-- Only the keys are hashed, so only the keys have to be hashable.
-
-## Hash table growth and amortized cost
-
-- Resizing occurs infrequently, and between resize events, insertions are very fast.
-- The cost "averages out":
-    - After adding $n$ elements, we spend $O(n)$ time on growth.
-    - An average of $O(1)$ per insertion.
-
-![](images/hash_growth.png){fig-align="center" width="45%"}
-
-## `dict` operations
-
-```{pyodide}
-# Adding an item
-d = dict()
-d[5] = "a"
-d["b"] = 9
-d
+import networkx as nx
+import numpy as np
+import psutil
+import scipy.sparse
 ```
 
 ```{pyodide}
-# Searching for an item in keys
-print(5 in d)
-print(9 in d)
+#| include: false
+# Hidden setup for the runnable cells: the same friend network, likes and
+# adjacency matrix as the visible cells, so a later cell still works when an
+# earlier slide was skipped.
+from collections import Counter, defaultdict
+
+import networkx as nx
+
+friendships = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("sky", "mochi"),
+               ("clam", "kelp"), ("nori", "clam"), ("nori", "kelp"), ("nori", "mochi"),
+               ("bubbles", "otter"), ("bubbles", "clam"), ("pixel", "otter"),
+               ("pixel", "ada"), ("waffle", "river")]
+G = nx.Graph()
+G.add_edges_from(friendships)
+
+likes = ["otter", "clam", "otter", "kelp", "otter"]
+by_user = defaultdict(list)
+users = list(G.nodes)
+A = nx.to_numpy_array(G, nodelist=users, dtype=int)
 ```
 
-```{pyodide}
-# Attempting to use a mutable object (like a list) as a key will result in an error:
-d[[1,2,3]] = 10
-```
-
-<!-- #### More examples of dictionary
-```{pyodide}
-# Iteration syntax
-for key, val in d.items():
-    print("key =", key, " val =", val)
-```
-
-```{pyodide}
-# A dictionary can be a value inside another dictionary
-g = dict()
-g[5] = d
-g
-``` -->
-
-## Introducing `defaultdict`
-```{pyodide}
-grades = {'Alice': 85, 'Bob': 90}
-```
-
-```{pyodide}
-print(grades['Alice'])
-```
-
-```{pyodide}
-print(grades['Charlie'])
-```
+## Where we stopped last time {style="font-size: 0.85em;"}
 
 ::: {.incremental}
-- ![](images/key_error.png){fig-align="left" width="80%"}
+- We got to "Smaller is not always safe".
+- The rest of lecture 2 (slides 56 to 62) shrinks Instagram's user table about 10× by picking the right dtypes. Read it on your own: [lecture 2 slides](slides_02.html#/instagrams-user-table). Lab 2 practises it.
+- One idea to bring into today: a table with one number per **pair** of users needs $O(n^2)$ memory.
 :::
 
-## Introducing `defaultdict`
+::: {.notes}
+- Two minutes, no more. Do not reteach the dtype slides.
+- The pair table is the bridge: today Instagram's friend list is exactly that table.
+:::
 
-[`defaultdict`](https://docs.python.org/3/library/collections.html#defaultdict-objects) is a subclass of `dict` from the `collections` module that automatically handles missing keys.
+## How does Instagram know who you might know? {style="font-size: 0.9em;"}
 
-```python
-from collections import defaultdict
-dd = defaultdict(default_factory)
-```
-- `default_factory` is a function that provides the default value for a missing key. Usually, it's a type like `list`, `int`, `set`, etc.
+:::{.columns}
+::: {.column width="55%"}
+You open Instagram. A card says **Suggested for you: nori**.
 
-- When a key is missing, `defaultdict` calls `default_factory` to create a default value and inserts it into the dictionary
+You have never met nori, but the card says *Followed by clam, kelp and mochi*.
+:::
+::: {.column width="45%"}
+![](images/ig_otter_suggested.png){width="100%"}
+:::
+:::
 
-## Introducing `defaultdict`
+::: {.fragment}
+Out of 3 billion users, how did Instagram pick nori? 🤔
+:::
 
-```{.python code-line-numbers="1,2,3"}
-from collections import defaultdict
-
-counts = defaultdict(int)
-for fruit in ['apple', 'banana', 'apple']:
-    counts[fruit] += 1
-
-print(counts)
-```
-
-## Introducing `defaultdict`
-
-```{.python code-line-numbers="4,5"}
-from collections import defaultdict
-
-counts = defaultdict(int)
-for fruit in ['apple', 'banana', 'apple']:
-    counts[fruit] += 1
-
-print(counts)
-```
-
-<!-- #### Introducing `defaultdict`
-
-```{.python code-line-numbers="7"}
-from collections import defaultdict
-
-counts = defaultdict(int)
-for fruit in ['apple', 'banana', 'apple']:
-    counts[fruit] += 1
-
-print(counts)
-``` -->
-
-## Introducing `defaultdict`
-
-```{pyodide}
-from collections import defaultdict
-
-counts = defaultdict(int)
-for fruit in ['apple', 'banana', 'apple']:
-    counts[fruit] += 1
-
-print(counts)
-```
-
-## Introducing `defaultdict`
-
-```{pyodide}
-groups = defaultdict(list)
-pairs = [('a', 1), ('a', 2), ('b', 3)]
-for key, val in pairs:
-    groups[key].append(val)
-
-print(groups)
-```
-
-```{pyodide}
-print(type(grades))
-print(type(counts))
-```
-
-<!-- #### Introducing `defaultdict`
-- **Key take-aways**
-
-    - `dict` is simple and you control all key creation.
-    - `defaultdict` automatically initializes missing keys.
-    - Use `defaultdict(int)` for counting, `defaultdict(list)` for grouping, and `defaultdict(set)` for collecting unique items.
- -->
-
-# Task 3: undo and the upload queue {background-image="images/ig_otter_undo.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+::: {.notes}
+- Let them guess before moving on. Someone usually says "mutual friends".
+- Follow up: what does Instagram need to store to answer that quickly?
+:::
 
 ::: footer
 Image generated by OpenAI GPT-image-2.5-sunburst
 :::
 
-## Stack and Queue {style="font-size: 0.7em;"}
+```{python}
+#| echo: false
+# Hidden: the Instagram friend network behind every graph picture in this deck.
+# Same 13 friendships as the visible pyodide cells. Positions are placed by hand
+# so the drawing is identical on every slide.
+friend_pos = {
+    "sky": (0.0, 0.0), "otter": (-1.4, 1.0), "clam": (1.0, 1.3), "kelp": (1.6, 0.0),
+    "mochi": (1.0, -1.2), "nori": (3.0, 0.5), "bubbles": (-0.2, 2.4),
+    "pixel": (-2.8, 0.2), "ada": (-4.2, 0.2), "waffle": (-3.8, -1.4), "river": (-2.4, -1.4),
+}
+friendships = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("sky", "mochi"),
+               ("clam", "kelp"), ("nori", "clam"), ("nori", "kelp"), ("nori", "mochi"),
+               ("bubbles", "otter"), ("bubbles", "clam"), ("pixel", "otter"),
+               ("pixel", "ada"), ("waffle", "river")]
+friends = nx.Graph()
+friends.add_nodes_from(friend_pos)
+friends.add_edges_from(friendships)
+users = list(friends.nodes)
 
-:::: {.columns}
-::: {.column width="50%"}
-### Stack: LIFO
 
-*Last In, First Out*
+def edge_key(u, v):
+    """One name per undirected edge, the same whichever end you start from."""
+    return "|".join(sorted((u, v)))
 
-![](images/stack.png){width="60%" fig-align="center"}
 
-The photo editor's undo. Every edit is stacked on top, and undo takes off the most recent one.
-:::
-::: {.column width="50%"}
-### Queue: FIFO
+def layout(G, pos, pad=0.5):
+    """Where to draw every node and edge of G, plus the axis ranges. Drawn by OJS."""
+    xs = [x for x, _ in pos.values()]
+    ys = [y for _, y in pos.values()]
+    return {"nodes": [{"id": u, "x": pos[u][0], "y": pos[u][1]} for u in G.nodes],
+            "edges": [{"x1": pos[u][0], "y1": pos[u][1], "x2": pos[v][0], "y2": pos[v][1]}
+                      for u, v in G.edges],
+            "x_domain": [min(xs) - pad, max(xs) + pad],
+            "y_domain": [min(ys) - pad, max(ys) + pad + 0.3]}
 
-*First In, First Out*
 
-![](images/queue.png){width="95%" fig-align="center"}
+def roles(G, node_role=None, edge_role=None, labels=None, show_edges=True):
+    """A colour role for every node and edge of G, in the same order as layout(G).
+    Nodes: "you", "friend", "pick" or "other". Edges: "friend", "path" or "base"."""
+    node_role, edge_role, labels = node_role or {}, edge_role or {}, labels or {}
+    return {"node_roles": [node_role.get(u, "other") for u in G.nodes],
+            "edge_roles": [edge_role.get(edge_key(u, v), "base") for u, v in G.edges],
+            "labels": [labels.get(u, u) for u in G.nodes],
+            "show_edges": show_edges}
 
-The upload queue. Your photo joins the back, and the server takes the one that has waited longest.
-:::
-::::
 
-::: {.fragment}
-Both add at the back. They differ only in **which end you take from**.
-:::
+def names(items):
+    """["clam", "kelp", "mochi"] -> "clam, kelp and mochi"."""
+    items = list(items)
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
-::: {.notes}
-- Stack: a pile of books. Queue: the line at a coffee shop.
-- Ask: why is undo a stack? Undoing the oldest edit first would be nonsense.
-- Ask: why is upload a queue? Fairness.
-- Implementations, `deque` and exercises are in the bonus slides.
-:::
+
+friend_layout = layout(friends, friend_pos)
+```
 
 ```{python}
 #| echo: false
-# Hidden: replay ONE list of operations through a stack and through a queue, for
-# the two step-through slides below. Every box, colour class and sentence is
-# worked out here; OJS only draws.
-ds_script = [("add", "📷1"), ("add", "📷2"), ("add", "📷3"), ("remove", None),
-             ("add", "📷4"), ("remove", None), ("remove", None)]
+# Hidden: the "Suggested for you" step-through on the next slide.
+# Finds sky's friends of friends and counts mutual friends here; OJS only draws.
+you = "sky"
+your_friends = list(friends.neighbors(you))
+mutual = {}                                   # friend of a friend -> the mutual friends
+for friend in your_friends:
+    for fof in friends.neighbors(friend):
+        if fof != you and fof not in your_friends:
+            mutual.setdefault(fof, []).append(friend)
+ranked = sorted(mutual, key=lambda u: -len(mutual[u]))
+top = ranked[0]
 
-def replay(kind):
-    """One entry per click. kind is "stack" (take from the top) or "queue" (take from the front).
-    Colour means the operation: "sq-in" (blue) = the item that just went in,
-    "sq-out" (orange) = the item that just came out. Everything else stays grey."""
-    items, out_so_far, steps = [], [], []
-    for k in range(len(ds_script) + 1):
-        op = added = removed = None
-        if k > 0:
-            op, item = ds_script[k - 1]
-            if op == "add":
-                items.append(item)              # both add at the same place: the top / the back
-                added = item
-            elif kind == "stack":
-                removed = items.pop()           # LIFO: off the top
-            else:
-                removed = items.pop(0)          # FIFO: off the front
-            if removed:
-                out_so_far.append(removed)
-        next_out = len(items) - 1 if kind == "stack" else 0
-        # items in the container (stack: bottom to top, queue: front to back),
-        # with a small "next out" tag on the one that leaves next
-        tag = "◀ next out" if kind == "stack" else "▲ next out"
-        boxes = [{"label": label, "cls": "sq-in" if label == added else "",
-                  "tag": tag if i == next_out else ""}
-                 for i, label in enumerate(items)]
-        # the sentence under the buttons: a coloured verb, then what happened
-        if k == 0:
-            verb, verb_cls, say = "Start", "", f"The {kind} is empty."
-        elif added:
-            verb, verb_cls = "add", "add"
-            if kind == "stack":
-                say = f"{added} goes on the top."
-            elif len(items) == 1:
-                say = f"{added} joins an empty line, so it is at the front."
-            else:
-                say = f"{added} joins the back of the line."
-        else:
-            verb, verb_cls = "remove", "remove"
-            say = (f"{removed} comes off the top. The newest item leaves first." if kind == "stack"
-                   else f"{removed} leaves from the front. It has waited the longest.")
-        steps.append({
-            "count": f"Step {k} of {len(ds_script)}", "verb": verb, "verb_cls": verb_cls, "say": say,
-            "boxes": boxes,
-            "removed": removed or "",
-            "removed_cls": "sq-out" if removed else "sq-empty",
-            # the arrow at the end used this step lights up in its colour
-            "add_cls": "on" if op == "add" else "",
-            "remove_cls": "on" if op == "remove" else "",
-            "out_so_far": list(out_so_far),
-            # the script strip: blue chips add, orange chips remove; done, now or still to come
-            "ops": [{"label": f"add {it}" if o == "add" else "remove",
-                     "cls": f"{o} {'done' if j < k - 1 else 'now' if j == k - 1 else ''}"}
-                    for j, (o, it) in enumerate(ds_script)],
-        })
-    return steps
+friend_roles = {you: "you", **{f: "friend" for f in your_friends}}
+friend_edges = {edge_key(you, f): "friend" for f in your_friends}
+fof_edges = {edge_key(f, u): "path" for u in mutual for f in mutual[u]}
+top_edges = {edge_key(f, top): "path" for f in mutual[top]}
 
-ojs_define(stack_steps = replay("stack"), queue_steps = replay("queue"))
+suggest_steps = [
+    {**roles(friends, show_edges=False),
+     "say": f"{len(users)} Instagram users. Who is friends with whom?"},
+    {**roles(friends),
+     "say": "Draw a line between two users who follow each other."},
+    {**roles(friends, {you: "you"}),
+     "say": f"You are {you}."},
+    {**roles(friends, friend_roles, friend_edges),
+     "say": f"Your {len(your_friends)} friends: {names(your_friends)}."},
+    {**roles(friends, {**friend_roles, **{u: "pick" for u in mutual}}, {**friend_edges, **fof_edges},
+             {u: f"{u} ({len(mutual[u])})" for u in mutual}),
+     "say": "Their friends you don't follow yet, with the number of mutual friends: "
+            + ", ".join(f"{u} ({len(mutual[u])})" for u in ranked) + "."},
+    {**roles(friends, {**friend_roles, top: "pick"}, {**friend_edges, **top_edges},
+             {top: f"{top} ({len(mutual[top])})"}),
+     "say": f"Suggested for you: {top}, followed by {names(mutual[top])}."},
+]
+for k, step in enumerate(suggest_steps):
+    step["count"] = f"Step {k} of {len(suggest_steps) - 1}"
+
+ojs_define(friend_layout = friend_layout, suggest_steps = suggest_steps)
 ```
 
-## How a stack works: last in, first out {style="font-size: 0.8em;"}
+## Draw it {style="font-size: 0.8em;"}
 
 ```{ojs}
 //| echo: false
-viewof stack_step = Inputs.button([
+viewof suggest_step = Inputs.button([
   ["Back", i => Math.max(i - 1, 0)],
-  ["Next step", i => Math.min(i + 1, stack_steps.length - 1)],
+  ["Next step", i => Math.min(i + 1, suggest_steps.length - 1)],
   ["Start over", () => 0]
 ], {value: 0})
 ```
@@ -302,1212 +218,1239 @@ viewof stack_step = Inputs.button([
 ```{ojs}
 //| echo: false
 {
-  // Draw only: every box, colour and sentence was computed in Python (stack_steps).
-  const s = stack_steps[stack_step];
-  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
-  const boxes = s.boxes.map(b =>
-    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag right">${b.tag}</span></div>`);
-  const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
-  return html`<div class="sq-ops">${ops}</div>
-    <div class="sq-say"><span class="sq-count">${s.count}</span>
-      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
-    <div class="sq-stage">
-      <div class="sq-lift">
-        <div class="ds-box ${s.removed_cls}">${s.removed}</div>
-        <div class="sq-ends">
-          <span class="sq-arrow add ${s.add_cls}">⬇ add</span>
-          <span class="sq-arrow remove ${s.remove_cls}">⬆ remove</span>
-        </div>
-        <div class="sq-stack">${boxes}</div>
-        <div class="ds-caption">undo history</div>
-      </div>
-      <div class="sq-tray">
-        <div class="ds-caption">came out, in order</div>
-        <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
-      </div>
-    </div>`;
+  // Print only: the sentence was written in Python (suggest_steps).
+  const s = suggest_steps[suggest_step];
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>`;
 }
 ```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every position, colour role and label was computed in Python.
+  const s = suggest_steps[suggest_step];
+  const base = friend_layout;
+  const fill = {you: "#52514e", friend: "#2a78d6", pick: "#eb6834", other: "#b8b6b0"};
+  const stroke = {friend: "#2a78d6", path: "#eb6834", base: "#d9d8d4"};
+  const nodes = base.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
+  const edges = s.show_edges ? base.edges.map((d, i) => ({...d, role: s.edge_roles[i]})) : [];
+  return Plot.plot({
+    width: 900, height: 390, margin: 20,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: base.x_domain}, y: {axis: null, domain: base.y_domain},
+    marks: [
+      Plot.link(edges, {filter: d => d.role === "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: stroke.base, strokeWidth: 2}),
+      Plot.link(edges, {filter: d => d.role !== "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: d => stroke[d.role], strokeWidth: 4}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 14, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -25, fontWeight: "bold"})
+    ]
+  });
+}
+```
+
+::: {.fragment}
+Users and lines between them: this is called a **graph**.
+:::
 
 ::: {.notes}
 - Ask them to predict each step before you click.
-- Colour is the operation: blue is the item that just went in, orange is the item that just came out. Everything else is grey.
-- Add and remove happen at the same end, the top: both arrows sit on the same opening. The newest item is always the next one out.
-- Step 4: remove gives back 📷3, the newest. Remember that for the next slide.
-- Step 7: 📷1 is still at the bottom. Keep adding and it could wait forever: that is starvation, and why upload servers use queues.
-- In code, add is `push` and remove is `pop`.
+- Dark = you, blue = your friends, orange = friends of friends.
+- Step 4: nori has 3 mutual friends, bubbles 2, pixel 1. The most mutual friends wins the card.
+- waffle and river never light up. Remember them for "connected".
 :::
 
-## How a queue works: first in, first out {style="font-size: 0.8em;"}
+## Graph, defined {style="font-size: 0.85em;"}
 
-```{ojs}
-//| echo: false
-viewof queue_step = Inputs.button([
-  ["Back", i => Math.max(i - 1, 0)],
-  ["Next step", i => Math.min(i + 1, queue_steps.length - 1)],
-  ["Start over", () => 0]
-], {value: 0})
-```
+A graph $G = (V, E)$ has
 
-```{ojs}
-//| echo: false
-{
-  // Draw only: every box, colour and sentence was computed in Python (queue_steps).
-  const s = queue_steps[queue_step];
-  const ops = s.ops.map(o => html`<div class="sq-op ${o.cls}">${o.label}</div>`);
-  const boxes = s.boxes.map(b =>
-    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
-  const out = s.out_so_far.map(label => html`<div class="ds-box out">${label}</div>`);
-  return html`<div class="sq-ops">${ops}</div>
-    <div class="sq-say"><span class="sq-count">${s.count}</span>
-      <span class="sq-verb ${s.verb_cls}">${s.verb}</span> ${s.say}</div>
-    <div class="sq-line">
-      <div class="sq-exit"><div class="ds-box ${s.removed_cls}">${s.removed}</div></div>
-      <span class="sq-arrow remove ${s.remove_cls}">⬅ remove<br><small>front</small></span>
-      <div class="sq-queue">${boxes}</div>
-      <span class="sq-arrow add ${s.add_cls}">⬅ add<br><small>back</small></span>
-    </div>
-    <div class="ds-caption">upload queue</div>
-    <div class="sq-tray">
-      <div class="ds-caption">came out, in order</div>
-      <div class="ds-row center">${out.length ? out : html`<span class="ds-caption">nothing yet</span>`}</div>
-    </div>`;
-}
-```
-
-::: {.notes}
-- Same seven steps and same colours as the stack slide: blue went in, orange came out.
-- Add at the back, remove from the front: the two arrows are on opposite ends.
-- Step 4: the queue gives back 📷1, the stack gave back 📷3. Same input, different answer.
-- Look at "came out, in order": 📷1, 📷2, 📷3, exactly the order they arrived. That is FIFO, and it is fair.
-:::
-
-## Stack and queue cheat sheet {style="font-size: 0.7em;"}
-
-| structure | insert | delete | search | use it when |
-|---|---|---|---|---|
-| `Stack` (LIFO) | $O(1)$ push | $O(1)$ pop | $O(n)$ | most recent first: undo, back button |
-| `Queue` (FIFO) | $O(1)$ push | $O(1)$ with `deque` | $O(n)$ | fairest first: job queues, BFS |
-
-::: {.notes}
-- These two rows belong with the data structure table from last lecture, so photograph them together.
-:::
-
-## Outline
-
-- Graphs intro
-- Graph types
-- Graph representations
-- Sparse Matrices
-
-## Learning Objectives
-
-By the end of this lecture, you will be able to:
-
-- Map real-world problems to various kinds of graphs (directed/undirected, weighted/unweighted).
-- Convert between adjacency matrices and their corresponding graphs.
-- Manipulate scipy sparse matrix objects in Python.
-- Analyze the space complexity of sparse and dense matrix representations.
-- Appropriately use row-wise vs. column-wise sparse matrices.
-
-## Introduction to graphs
-- A graph is a data structure to model relationships between entities.
-
-::: {.notes}
-- Graphs are more general than the trees we studied earlier, as they allow for a broader range of connections and structures.
-- Unlike trees, which have a hierarchical form, graphs can represent any set of relationships, including cyclic and non-hierarchical ones.
-:::
-
-<!-- :::{.columns}
-::: {.column width="60%"}
-- A graph $G=(V,E)$ is a set of vertices $V$ and edges $E$ where each edge $(u,v)$ connects a pair of vertices $u,v \in V$
-    - $V$: is a set of vertices or nodes.
-    - $E$: is a set of edges.
-:::
-::: {.column width="40%"}
- ![](images/g_n.png){width="130"}
-:::
-::: -->
-More formally:
-
-- A graph $G=(V,E)$ is a set of vertices $V$ and edges $E$ where each edge $(u,v)$ connects a pair of vertices $u,v \in V$
-    - $V$: is a set of vertices or nodes.
-    - $E$: is a set of edges.
-
-![](images/g_n.png){fig-align="center" width="50%"}
-
-## Introduction to graphs
-- Many Types of Data are Graphs
-
-![](images/g_examples2.png){fig-align="center" width="90%"}
-
-## Introduction to graphs
-- Many Types of Data are Graphs
-
-![](images/g_examples1.png){fig-align="center" width="90%"}
-
-## Introduction to graphs
-
-- Another example: cities are nodes and flights are edges connecting cities
-![](images/lec03_fig01.png){width=70% fig-align="center"}
-
-## Graph terminology
-- Vertices $u$ and $v$ are **neighbors** if there is an edge $(u,v)$ between them.
-- The **degree** of a vertex: the number of edges connected to that vertex.
-- A **<span style="color:red;">path</span>** is a sequence of edges that connect a sequence of distinct nodes.
-- A **cycle** is a path with the same start and end node, and all other nodes are distinct.
-
-![](images/path.png){fig-align="center" width="40%"}
-
-## Graph terminology
-
-- A graph is **connected** if there exists a path between every pair of nodes.
-- A graph is **disconnected** if at least one pair of nodes does not have a path connecting them.
-
-![](images/connected_vs_disconnected.png){fig-align="center" width="80%"}
-
-## Complete graph
-
-- A graph is **complete** if every pair of vertices is connected by an edge.
-
-![](images/lec03_fig02.png){width=70% fig-align="center"}
-
-::: incremental
-- What is the degree of vertex "VAN" above?
-- In a complete graph with $n$ node, each node has a degree of $n−1$.
-:::
-
-## Undirected vs directed graph
-
-- **Undirected**:
-  - Relationships between entities are **bidirectional** or **symmetric**.
-  - If there is a connection from A to B, the reverse connection also holds.
-  - Example: Facebook.
-
-- **Directed**:
-  - The relationship between entities is **directional** or **asymmetric**.
-  - Example: Twitter.
-  - Directed graphs can also have **self-connections**.
-    - Example: Markov chain.
-
-## Example: twitter follower relationship
-![](images/lec03_fig03.png){width=70% fig-align="center"}
-
-## Unweighted vs weighted graph
-
-- **Unweighted**:
-  - All edges are considered equal.
-  - An edge simply indicates whether a relationship exists between two nodes.
-  - Example: a friendship network.
-
-- **Weighted**:
-  - Each edge is assigned a numerical value or weight.
-  - Example: A transportation network where the weights represent the cost or distance between two cities.
-- More detailed modeling of relationships and are useful for problems involving optimization.
-
-## Example: the cost to fly between two airports
-![](images/lec03_fig04.png){width=70% fig-align="center"}
-
-## `networkx`: a Python library for complex networks
-
--  Creating an undirected Graph:
-
-```{.python code-line-numbers="1,"}
-G = nx.Graph()
-G.add_node("VAN") # Vancouver
-G.add_node("TOR") # Toronto
-G.add_edge("VAN", "TOR") # Add edges
-nx.draw(G, nx.shell_layout(G), **draw_params) # Draw the graph
-```
-
-## `networkx`: a Python library for complex networks
-
--  Creating an undirected Graph:
-
-```{.python code-line-numbers="2,3"}
-G = nx.Graph()
-G.add_node("VAN") # Vancouver
-G.add_node("TOR") # Toronto
-G.add_edge("VAN", "TOR") # Add edges
-nx.draw(G, nx.shell_layout(G), **draw_params) # Draw the graph
-```
-
-## `networkx`: a Python library for complex networks
-
--  Creating an undirected Graph:
-
-```{.python code-line-numbers="4"}
-G = nx.Graph()
-G.add_node("VAN") # Vancouver
-G.add_node("TOR") # Toronto
-G.add_edge("VAN", "TOR") # Add edges
-nx.draw(G, nx.shell_layout(G), **draw_params) # Draw the graph
-```
-
-## `networkx`: a Python library for complex networks
-
--  Creating an undirected Graph:
-
-```{.python code-line-numbers="5"}
-G = nx.Graph()
-G.add_node("VAN") # Vancouver
-G.add_node("TOR") # Toronto
-G.add_edge("VAN", "TOR") # Add edges
-nx.draw(G, nx.shell_layout(G), **draw_params) # Draw the graph
-```
-
-## `networkx`: a Python library for complex networks
-
--  Creating an undirected Graph:
-
-![](images/lec03_fig05.png){width=70% fig-align="center"}
-
-## `networkx`: a Python library for complex networks
-
--  Creating a directed graph with `DiGraph()`
-
-```python
-G = nx.DiGraph()
-G.add_node("VAN")
-G.add_node("TOR")
-G.add_edge("VAN", "TOR") # Add directional edges
-nx.draw(G, nx.shell_layout(G), **draw_params)
-```
-
-![](images/lec03_fig06.png){width=70% fig-align="center"}
-
-## Adding weights to edges
-
-```python
-G = nx.Graph()
-
-G.add_node("VAN")
-G.add_node("EDM")
-G.add_node("TOR")
-
-G.add_edge("VAN", "EDM", weight=110)
-G.add_edge("VAN", "TOR", weight=250)
-G.add_edge("TOR", "EDM", weight=150)
-
-nx.draw(G, nx.spring_layout(G), **draw_params)
-labels = nx.get_edge_attributes(G, 'weight')
-nx.draw_networkx_edge_labels(G, nx.spring_layout(G), edge_labels=labels, font_size=20)
-```
-
-## Adding weights to edges
-
-![](images/lec03_fig07.png){width=70% fig-align="center"}
-
-## Graph representations
-
-- How to represent a graph $G=(V,E)$ more efficiently?
-
--  **Adjacency matrix representation**
-    - Supppose the vertices are numbered $1,2,\dots,|V|$ in some arbitrary manner.
-    - The adjacency matrix $A$ is a $|V| \times |V|$ matrix such that
-    $$a_{i,j} =
-    \begin{cases}
-    1,\ \text{if } (i,j) \in E \\
-    0,\ \text{otherwise}.
-    \end{cases}$$
-
-- **Adjacency list representation**
-    - For each vertex $u$, we maintain an adjacency list contains all the vertices $v$ such that there is an edge $(u,v)\in E$.
-
-## Example graph
-![](images/lec03_fig08.png){width=70% fig-align="center"}
-
-```{pyodide}
-import scipy
-import networkx as nx
-G4 = nx.bull_graph()
-adj = nx.adjacency_matrix(G4).toarray()
-print(adj)
-```
-
-```{pyodide}
-adj_list_dict = {node: list(neighbors) for node, neighbors in G4.adjacency()}
-print(adj_list_dict)
-```
-
-## Exercise
-![](images/lec03_fig09.png){width=70% fig-align="center"}
-
-```{pyodide}
-import scipy
-import networkx as nx
-G4 = nx.bull_graph()
-adj = nx.adjacency_matrix(G4).toarray()
-print(adj)
-```
-
-```{pyodide}
-adj_list_dict = {node: list(neighbors) for node, neighbors in G4.adjacency()}
-print(adj_list_dict)
-```
-
-## Question
-
-::: incremental
-- What is the space complexity of an adjacency matrix, in terms of $|V|$, the number of vertices, and $|E|$, the number of edges?
-- Answer: $O(|V|^2)$.
-:::
-
-## Question
-
-::: incremental
-- What is the space complexity of an adjacency list, in terms of $|V|$ and $|E|$?
-- Answer: $O(|E| + |V|)$.
-:::
-
-## Comparing two representations
-
-::: incremental
-- Adjacency matrix
-  - Straightforward and intuitive representation
-  - Space complexity: $O(|V|^2)$.
-  - Lookup time (checking if any two nodes are connected): $O(1)$ (why?).
-
-- Adjacency list
-  - A compact representation
-  - Space complexity: $O(|V|+|E|)$.
-  - Lookup time: $O(|V|)$ (why?).
-:::
-
-## Question
-
-::: incremental
-- If $|E|$ is much less than $|V^2|$, which representation is better  in terms of space complexity?
-  - **Answer**: the adjacency list is more efficient in this case.
-:::
-
-## Question
-
-- Can we have lookup speed of the adjacency matrix and the storage efficiency of the adjacency list?
-    - Sparse matrices!!!
-    - In fact, `networkx` uses sparse matrix to store the adjacency matrix:
-
-. . .
-
-```{pyodide}
-am_matrix = nx.adjacency_matrix(G4)
-type(am_matrix)
-```
-
-## Introduction to sparse matrices
-
-- Sparse matrices are matrices with most of its elements being $0$.
-- In CS, sparse matrix is a data structure to efficiently store and manipulate large datasets with mostly zero values.
-
-## Sparse datasets come up a lot in practice.
-
-- **Social networks**: Most users are not connected, leading to many zeros in the graph adjacency matrix.
-- **Word counts**: Documents can be represented by the words they contain, but typically, only a small subset of all possible words appear in a given document.
-- **Ratings**: We might represent an Amazon item by user ratings, but only a small fraction of users rate any particular item.
-- And many other cases.
-
-::: {.notes}
-Ask if anyone wants to share?
-:::
-
-## `scipy.sparse`
-
-- `scipy.sparse` provides the standard Python implementation for sparse matrices.
-
-- Example
-
-```{pyodide}
-from scipy.sparse import csr_matrix, csc_matrix, lil_matrix, coo_matrix
-import numpy as np
-dense_matrix = np.array([
-    [1, 0, 0, 0],
-    [0, 0, 2, 0],
-    [0, 3, 0, 0],
-    [0, 0, 0, 4]
-])
-# Convert the dense matrix to a sparse matrix
-csr = csr_matrix(dense_matrix)
-print(csr)
-```
-
-- Example
-```{pyodide}
-# We can convert a scipy sparse matrix back to a numpy array.
-print(csr.toarray())
-```
-
-## A bigger sparse matrix
-
-- Suppose we have a 100000 by 100000 matrix:
-  - A dense matrix would take up 100000 * 100000 * 8 / 1e9 = 80 GB.
-  - A sparse matrix with 1000000 non-zero elements would take only 1000000 * 8 * 3 / 1e6 = 24 MB.
-
-- That is why we don't want to store the full matrix with many zeros.
-
-## Basic `scipy.sparse` operations
-
-```{pyodide}
-print(csr.shape)
-print(csr.nnz)  # non-zero elements of the matrix
-print(np.sum(csr, axis = 0))  # regular numpy functions work on sparse matrices
-print(csr.data)
-```
-
-. . .
-
-- Regular numpy functions work on sparse matrices, although they might be fast/slow depending on various factors.
-
-## Building sparse matrices
-
-To create an empty sparse martrix, we just need to provide the shape.
-
-```{pyodide}
-from scipy.sparse import csr_matrix, csc_matrix, lil_matrix
-
-x = csr_matrix((10,10))
-x.shape
-```
-
-## Sparse matrix representations
-
-- CSR: Compressed Sparse Row array
-
-```{pyodide}
-x = csr_matrix(dense_matrix)
-print(x.data)
-print(x.indices)
-print(x.indptr)
-```
-
-::: {.notes}
-  - We store an adjacency list per row
-  - So if we want Row 4, we just grab it right away.
-:::
-
-- CSC: Compressed Sparse Column array
-
-```{pyodide}
-x = csc_matrix(dense_matrix)
-print(x.data)
-print(x.indices)
-print(x.indptr)
-```
-
-- We need to chooose the appropriate format for different operations.
-
-## Rows versus columns operations
-
-| Feature               | CSR                          | CSC                          |
-|----------------------|------------------------------|------------------------------|
-| Storage Arrays       | Values, Column Indices, Row Pointers | Values, Row Indices, Column Pointers |
-| Optimized For        | Row operations               | Column operations             |
-| Access Pattern       | Fast row slicing             | Fast column slicing           |
-| Use Cases            | Matrix-vector multiplication, row-wise operations | Column-wise computations, matrix factorization |
-
-::: {.notes}
-CSR (Compressed Sparse Row) and CSC (Compressed Sparse Column) are two common formats for storing sparse matrices.
-:::
-
-## Don't use CSR matrices for operations which require looping over columns
-
-```python
-from scipy.sparse import csr_matrix
-n = 10000
-dense_matrix = np.random.rand(n, n)
-mask = np.random.rand(n, n) < 0.01
-sparse_matrix = dense_matrix * mask
-csr = csr_matrix(sparse_matrix)
-```
-
-```python
-%%timeit -r1 -n1
-
-for i in range(n):
-    csr[i,:]
-```
-
-<br>
-
-```python
-%%timeit -r1 -n1
-
-for i in range(n):
-  csr[:,i]
-```
-
-## We should avoid looping directly through sparse matrices in general
-
-- Loping through the rows of a csr matrix is fine.
-- Looping through the columns of a csr matrix can be disaster (why?).
-  - If we want to get elements from column 1, we have to iterate through every row and check if there’s an element in column 1!
-  - Convert to CSC format instead:
-
-. . .
-
-```python
-csc = csr.tocsc()
-```
-
-::: {.notes}
-- Because it is stored row by row.
-- To grab a single column, it needs to loop through each row and look for items in that column.
-:::
-
-## `Numpy` Matrix vs. Array
-
-- When we do an operation on sparse matrix that removes one of the dimensions, you actually don't have a sparse matrix anymore:
-
-. . .
-
-```{pyodide}
-from scipy.sparse import csr_matrix
-x = csr_matrix([[1, 0, 0], [0, 0, 3], [0, 0, 0]])
-sum_x = x.sum(axis=0)
-
-sum_x
-```
-
-. . .
-
-- Surprisingly, we get a numpy matrix, not numpy array!
-
-## Matrix vs. Array
-
-::: incremental
-- See [the official document](https://numpy.org/devdocs/user/numpy-for-matlab-users.html#array-or-matrix-which-should-i-use).
-- TL;DR: we shoud covert to numpy array using `np.asarray`.
-:::
-
-. . .
-
-```{pyodide}
-np.asarray(sum_x)
-```
-
-## Note: Indexing
-- With a regular numpy array, `x[i,j]` and `x[i][j]` are equivalent:
-
-```{pyodide}
-x = np.random.rand(10,10)
-print(x[1, 2])
-print(x[1][2])
-```
-
-## Indexing a sparse matrix:
-
-```{pyodide}
-from scipy.sparse import csr_matrix
-x_sparse = csr_matrix(x)
-x_sparse[1, 2]
-# x_sparse[1][2]
-# x_sparse[1]
-```
-
-- The sparse matrix returns a different shape.
-- This is because sparse matrices must always be 2d (same problem as non-sparse matrices)
-- In general, use the `x[1,2]` notation when possible because chaining the `[]` can be problematic in several places (e.g., also pandas).
-
-# Questions?
-
-## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
-
-# (Bonus Slide) Stacks in detail {background-image="images/ig_otter_undo.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
-
-::: footer
-Image generated by OpenAI GPT-image-2.5-sunburst
-:::
-
-## (Bonus Slide) Stacks {style="font-size: 0.85em;"}
-
-- A stack is a data structure that allows us to insert items and retrieve them later using the **Last In, First Out** (LIFO) principle.
-  - Example: Think of it like a stack of books, where the last book placed on top is the first one to be removed.
-
-![](images/stack.png){width=280 fig-align="center"}
-
-::: {.notes}
-- Push = put one on top, pop = take the top one off.
-:::
-
-## (Bonus Slide) Where you already use a stack {style="font-size: 0.85em;"}
-
-::: {.incremental}
-- Instagram's photo editor: every edit is pushed; Undo pops the most recent one.
-- `Ctrl+Z` / `Cmd+Z` in every app you own.
-- Your browser's Back button: the last page you visited is the first you go back to.
-- `{ }` `( )` `[ ]`: how your editor knows a bracket is unmatched.
-:::
+- $V$, a set of **vertices** (also called nodes): the users.
+- $E$, a set of **edges**: the friendships. Each edge $(u, v)$ connects two vertices $u, v \in V$.
 
 ::: {.fragment}
-Coming up in this course: the call stack (lecture 5, recursion) and depth-first search (lecture 4).
+Many kinds of data are graphs:
+
+| data | vertices | edges |
+|---|---|---|
+| social network | people | who is friends with whom |
+| the internet | web pages | which page links to which |
+| transportation | cities | direct flights |
+| MDS courses | courses | which course you need first |
 :::
 
 ::: {.notes}
-- Ask which of these they used today.
+- A table is good when rows stand on their own. A graph is good when the connections are what we care about.
+- Prerequisites: DSCI 511 before DSCI 512 is an edge.
+:::
+
+## Build it in `networkx` {style="font-size: 0.85em;"}
+
+```{pyodide}
+import networkx as nx
+
+friendships = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("sky", "mochi"),
+               ("clam", "kelp"), ("nori", "clam"), ("nori", "kelp"), ("nori", "mochi"),
+               ("bubbles", "otter"), ("bubbles", "clam"), ("pixel", "otter"),
+               ("pixel", "ada"), ("waffle", "river")]
+
+G = nx.Graph()                    # an empty undirected graph
+G.add_edges_from(friendships)     # one edge per pair, the nodes are added for you
+
+print("number of nodes:", G.number_of_nodes())   # V
+print("number of edges:", G.number_of_edges())   # E
+```
+
+::: {.fragment}
+One at a time: `G.add_node("ada")`, `G.add_edge("sky", "otter")`. Many at once: `add_nodes_from`, `add_edges_from`.
+:::
+
+::: {.notes}
+- Same 11 users and 13 friendships as the picture.
+- `nx.draw(G)` draws it with matplotlib. Positions are random each run unless you pass `pos=nx.spring_layout(G, seed=0)`: only nodes and edges matter, not where they are drawn.
+- `list(G.nodes())` and `list(G.edges())` list them.
 :::
 
 ```{python}
 #| echo: false
-# Hidden: replay a short editing session for the interactive on the next slide.
-# The stack after every step is computed here; OJS only draws the boxes.
-editor_script = [("edit", "crop"), ("edit", "Clarendon"), ("edit", "bright +20"),
-                 ("undo", None), ("edit", "sticker"), ("edit", "caption"),
-                 ("undo", None), ("undo", None)]
+# Hidden: neighbours and degree of every user, for the next slide and for the
+# "same graph, two ways" slide. The adjacency list is built exactly like the
+# visible defaultdict cell, so the order of the neighbours matches.
+adj_list = {u: [] for u in users}
+for u, v in friendships:
+    adj_list[u].append(v)
+    adj_list[v].append(u)
+friend_matrix = nx.to_numpy_array(friends, nodelist=users, dtype=int)
+assert all(friend_matrix[users.index(u)].sum() == len(adj_list[u]) for u in users)
 
-edit_stack, undo_steps = [], [{"k": 0, "action": "open the photo", "stack": [],
-                               "removed": None, "note": "nothing to undo yet"}]
-for k, (action, label) in enumerate(editor_script, start=1):
-    if action == "edit":
-        edit_stack.append(label)
-        undo_steps.append({"k": k, "action": f"apply {label}", "stack": list(edit_stack),
-                           "removed": None, "note": f"pushed '{label}' on top"})
-    else:
-        removed = edit_stack.pop()
-        undo_steps.append({"k": k, "action": "press undo", "stack": list(edit_stack),
-                           "removed": removed, "note": f"popped '{removed}', the most recent edit"})
+user_views = {}
+for u in users:
+    nbrs = adj_list[u]
+    user_views[u] = {
+        **roles(friends, {u: "you", **{v: "friend" for v in nbrs}},
+                {edge_key(u, v): "friend" for v in nbrs}),
+        "degree_say": f"{u}'s neighbours: {names(nbrs)}. Degree = {len(nbrs)}.",
+        "matrix_say": f"Row {u} has a 1 under {names(nbrs)}. Add up the row: {len(nbrs)}, the degree.",
+        # which line of the list and which row of the matrix to highlight
+        "list_cls": ["on" if w == u else "" for w in users],
+        "row_cls": ["on" if w == u else "faded" for w in users],
+    }
 
-# the caption under the boxes, written here so OJS only prints it
-for s_ in undo_steps:
-    s_["caption"] = ("orange = top of the stack (the next thing undo removes)"
-                     if s_["stack"] else "the stack is empty")
-ojs_define(undo_steps = undo_steps)
+adj_view = {
+    "users": users,
+    "short": [u[:3] for u in users],                   # column headers: sky, ott, cla, ...
+    "rows": friend_matrix.tolist(),
+    "lines": [f"{u}: [{', '.join(adj_list[u])}]" for u in users],
+}
+ojs_define(user_views = user_views, adj_view = adj_view)
 ```
 
-## (Bonus Slide) Step through an editing session {style="font-size: 0.8em;"}
+## Neighbours and degree {style="font-size: 0.8em;"}
 
+:::: {.columns}
+::: {.column width="38%"}
+- $u$ and $v$ are **neighbours** if there is an edge between them.
+- The **degree** of a vertex is the number of edges touching it.
+
+```{pyodide}
+print(list(G.neighbors("sky")))
+print(G.degree("sky"))
+print(dict(G.degree()))
+```
+:::
+::: {.column width="62%"}
 ```{ojs}
 //| echo: false
-viewof step = Inputs.range([0, undo_steps.length - 1], {step: 1, value: 0, label: "step"})
+viewof deg_who = Inputs.select(adj_view.users, {value: "sky", label: "user"})
 ```
 
 ```{ojs}
 //| echo: false
 {
-  const s = undo_steps[step];                    // the stack at this step, computed in Python
-  return html`<div class="ojs-readout">Step ${s.k}: ${s.action}, ${s.note}</div>`;
-}
-```
-
-```{ojs}
-//| echo: false
-{
-  // Draw only: the boxes below were computed in Python (undo_steps).
-  const s = undo_steps[step];
-  const boxes = s.stack.map((label, i) =>
-    html`<div class="ds-box ${i === s.stack.length - 1 ? "end" : ""}">${label}</div>`);
-  const popped = s.removed ? html`<div class="ds-box out">${s.removed} ↩︎</div>` : "";
-  return html`<div class="ds-col">${boxes}</div>
-    <div class="ds-caption">${s.caption} ${popped}</div>`;
-}
-```
-
-::: {.notes}
-- At step 4 undo removes `bright +20`, not `crop`.
-- Ask: time of one undo? O(1), you only touch the top.
-:::
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-```{.python}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-- Start empty
-
-```{.python code-line-numbers="1,2,3"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-- `push`: add to the **end** of the list, that end is the "top"
-
-```{.python code-line-numbers="5,6"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-::: {.notes}
-- `append` adds at the end and is O(1), no other element has to move.
-:::
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-- `pop`: take from the **same end**. Last in, first out.
-
-```{.python code-line-numbers="8,9"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-::: {.notes}
-- `list.pop()` with no argument removes the last element, also O(1). Remember this: the queue version is not so lucky.
-:::
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-- `isEmpty`: is there anything left to undo?
-
-```{.python code-line-numbers="11,12"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-::: {.notes}
-- This is what greys out the undo button in the app.
-:::
-
-## (Bonus Slide) Stack implementation using a `list` {style="font-size: 0.8em;"}
-
-- `__str__`: how it prints
-
-```{.python code-line-numbers="14,15"}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Try it yourself {style="font-size: 0.8em;"}
-
-```{pyodide}
-class Stack:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop()
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Stack operations {style="font-size: 0.85em;"}
-
-```{pyodide}
-# The photo editor's undo history:
-edits = Stack()
-edits.push("crop")
-print(edits)
-```
-
-. . .
-
-```{pyodide}
-edits.push("Clarendon")
-print(edits)
-```
-
-. . .
-
-```{pyodide}
-# Press undo: the most recent edit comes off
-edits.pop()
-print(edits)
-```
-
-::: {.notes}
-- Get them to predict the printout before each cell runs.
-:::
-
-## (Bonus Slide) Exercise {style="font-size: 0.85em;"}
-
-If a stack contains `n` items, what is the time complexity to retrieve the bottom item?
-
-A: $O(1)$ <br>
-B: $O(n)$ <br>
-C: $O(\log n)$ <br>
-D: $O(n^2)$
-
-::: {.incremental}
-
-- Answer: $O(n)$
-- To retrieve the bottom item, we would have to pop all the elements above it.
-
-:::
-
-::: {.notes}
-- Editor terms: press undo n times to get back to the original photo.
-- A stack is O(1) only for what it is designed for. Pick the structure for the operation you do most.
-:::
-
-# (Bonus Slide) Queues in detail {background-image="images/ig_otter_queue.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
-
-::: footer
-Image generated by OpenAI GPT-image-2.5-sunburst
-:::
-
-## (Bonus Slide) Queues {style="font-size: 0.85em;"}
-
-- A queue is a data structure that operates on the **First In, First Out** (FIFO) principle.
-  - Example: waiting in line, people are served in the order they arrive.
-
-<br>
-
-![](images/queue.png){width=460 fig-align="center"}
-
-::: {.notes}
-- Queue is British English for line-up.
-:::
-
-## (Bonus Slide) Where you already use a queue {style="font-size: 0.85em;"}
-
-::: {.incremental}
-- You tap Share. Your photo joins Instagram's processing queue: resize, compress, make thumbnails. First uploaded, first processed.
-- Printer jobs: the department printer serves documents in the order they arrive.
-- Customer support tickets, and the "you are number 7 in line" message.
-- The "play next" queue in your music app.
-:::
-
-::: {.fragment}
-Coming up in this course: breadth-first search (lecture 4) is a queue in a trench coat.
-:::
-
-::: {.notes}
-- Ask: queue or stack for Instagram uploads? Then ask why: fairness is a real engineering requirement.
-:::
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-```{.python}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-- Start empty
-
-```{.python code-line-numbers="1,2,3"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-- `push` (enqueue): join the **back** of the line, identical to the stack
-
-```{.python code-line-numbers="5,6"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-- `pop` (dequeue): leave from the **front**. `pop(0)` is the only line that differs from `Stack`!
-
-```{.python code-line-numbers="8,9"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-::: {.notes}
-- Make them find the one character that differs from `Stack`.
-- ⚠️ `pop(0)` is secretly slow. Measured at the end of this section.
-:::
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-- `isEmpty`: anything left to process?
-
-```{.python code-line-numbers="11,12"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Queue implementation using a `list` {style="font-size: 0.8em;"}
-
-- `__str__`: how it prints
-
-```{.python code-line-numbers="14,15"}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Try it yourself {style="font-size: 0.8em;"}
-
-```{pyodide}
-class Queue:
-    def __init__(self):
-        self.data = list()
-
-    def push(self, item):
-        self.data.append(item)
-
-    def pop(self):
-        return self.data.pop(0)
-
-    def isEmpty(self):
-        return len(self.data) == 0
-
-    def __str__(self):
-        return self.data.__str__()
-```
-
-## (Bonus Slide) Queue operations {style="font-size: 0.85em;"}
-
-```{pyodide}
-# Photos waiting to be processed (enqueue)
-uploads = Queue()
-uploads.push("beach.jpg")
-print(uploads)
-```
-
-. . .
-
-```{pyodide}
-uploads.push("otter.jpg")
-print(uploads)
-```
-. . .
-
-```{pyodide}
-# The server takes the next job (dequeue): the one that has waited longest
-uploads.pop()
-print(uploads)
-```
-
-::: {.notes}
-- With a Stack, `otter.jpg` would have jumped the line.
-:::
-
-## (Bonus Slide) Exercise {style="font-size: 0.85em;"}
-
-If we have a queue `[A, B, C, D]` with `A` at the head of the queue, what will the queue look like after the following operations:
-
-- push `E` onto the queue
-- push `F` onto the queue
-- remove one item from the queue
-- push `A` onto the queue
-
-::: {.incremental}
-
-- Answer: `[B, C, D, E, F, A]`
-
-:::
-
-::: {.notes}
-- Watch for: "remove one item" takes A off the front, not F off the back.
-- A can rejoin at the back: queues allow duplicates.
-:::
-
-
-```{python}
-#| echo: false
-# Hidden: measure how long it really takes to remove from the FRONT of a
-# 100,000-item list vs. a deque. Fastest of 5 repeats; noise only makes it slower.
-import timeit
-
-queue_size = 100_000
-bench_setup = f"from collections import deque\nL = list(range({queue_size}))\nD = deque(range({queue_size}))"
-
-def per_call(stmt, number=1_000):
-    return min(timeit.repeat(stmt, setup=bench_setup, number=number, repeat=5)) / number
-
-deque_rows = [{"how": "list.pop(0)", "kind": "O(n)",
-               "ns": per_call("L.pop(0); L.append(0)") * 1e9},
-              {"how": "deque.popleft()", "kind": "O(1)",
-               "ns": per_call("D.popleft(); D.append(0)") * 1e9}]
-for row in deque_rows:
-    row["bar_label"] = f"{row['ns']:,.0f} ns  ({row['kind']})"
-
-ratio = round(deque_rows[0]["ns"] / deque_rows[1]["ns"])
-deque_chart = {
-    "rows": deque_rows,
-    "order": [row["how"] for row in deque_rows],           # bar order
-    "kinds": [row["kind"] for row in deque_rows],           # legend / colour order
-    # bars start at 1 ns, not 0: a log axis has no zero
-    "x_domain": [1, max(row["ns"] for row in deque_rows) * 1.2],
-    "n_label": f"{queue_size:,}",
-    "ratio_label": f"{ratio:,}",
-}
-ojs_define(deque_chart = deque_chart)
-```
-
-## (Bonus Slide) ⚠️ Our `Queue` is secretly slow {style="font-size: 0.8em;"}
-
-`list.pop(0)` removes the front item, and then **shifts every remaining item one place left**. That is $O(n)$, not $O(1)$.
-
-```{ojs}
-//| echo: false
-// Draw only: both timings were measured in Python (deque_chart).
-{
-  const rows = deque_chart.rows;
-  return Plot.plot({
-    width: 820, height: 210, marginLeft: 160, marginRight: 170, marginTop: 20, marginBottom: 46,
-    style: {fontSize: "16px", background: "transparent"},
-    // bars start at 1 ns, not 0: a log axis has no zero
-    x: {type: "log", label: "nanoseconds to remove one item (log scale) →",
-        labelAnchor: "center", grid: true, domain: deque_chart.x_domain},
-    y: {label: null, domain: deque_chart.order},
-    color: {domain: deque_chart.kinds, range: ["#eb6834", "#2a78d6"], legend: true, swatchSize: 16},
+  // Draw only: roles were computed in Python (user_views).
+  const s = user_views[deg_who];
+  const base = friend_layout;
+  const fill = {you: "#52514e", friend: "#2a78d6", pick: "#eb6834", other: "#b8b6b0"};
+  const nodes = base.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const edges = base.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  return html`${Plot.plot({
+    width: 600, height: 300, margin: 16,
+    style: {fontSize: "15px", background: "transparent"},
+    x: {axis: null, domain: base.x_domain}, y: {axis: null, domain: base.y_domain},
     marks: [
-      Plot.barX(rows, {y: "how", x1: 1, x2: "ns", fill: "kind", rx: 4}),
-      Plot.text(rows, {y: "how", x: "ns", text: "bar_label",
-                       dx: 8, textAnchor: "start", fontWeight: "bold"})
+      Plot.link(edges, {filter: d => d.role === "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#d9d8d4", strokeWidth: 2}),
+      Plot.link(edges, {filter: d => d.role !== "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#2a78d6", strokeWidth: 4}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 11, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -20, fontWeight: "bold"})
+    ]
+  })}<div class="ojs-readout">${s.degree_say}</div>`;
+}
+```
+:::
+::::
+
+::: {.notes}
+- Pick sky (4), then nori (3), then ada (1).
+- In a simple graph (no self-loops, no repeated edges), degree = number of neighbours.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the shortest path between every pair of users, for the next slide.
+# nx.shortest_path does the work here; OJS only colours what it is told to.
+path_lookup = {}
+for a in users:
+    for b in users:
+        if a == b:
+            on_nodes, on_edges, say = [a], [], "Pick two different users."
+        elif nx.has_path(friends, a, b):
+            p = nx.shortest_path(friends, a, b)
+            on_nodes, on_edges = p, [edge_key(u, v) for u, v in zip(p, p[1:])]
+            say = (f"{' → '.join(p)}: {len(p) - 1} edge{'s' if len(p) > 2 else ''}, "
+                   f"so the distance from {a} to {b} is {len(p) - 1}.")
+        else:
+            on_nodes, on_edges = [a, b], []
+            say = f"No path from {a} to {b} at all."
+        path_lookup[f"{a}|{b}"] = {**roles(friends, {u: "pick" for u in on_nodes},
+                                           {e: "path" for e in on_edges}),
+                                   "say": say}
+ojs_define(path_lookup = path_lookup)
+```
+
+## Paths and distance {style="font-size: 0.7em;"}
+
+```{ojs}
+//| echo: false
+viewof path_from = Inputs.select(adj_view.users, {value: "nori", label: "from"})
+```
+
+```{ojs}
+//| echo: false
+viewof path_to = Inputs.select(adj_view.users, {value: "ada", label: "to"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the shortest path was found in Python (path_lookup).
+  const s = path_lookup[`${path_from}|${path_to}`];
+  const base = friend_layout;
+  const nodes = base.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const edges = base.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  return html`<div class="ojs-readout">${s.say}</div>${Plot.plot({
+    width: 820, height: 270, margin: 14,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: base.x_domain}, y: {axis: null, domain: base.y_domain},
+    marks: [
+      Plot.link(edges, {filter: d => d.role === "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#d9d8d4", strokeWidth: 2}),
+      Plot.link(edges, {filter: d => d.role !== "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#eb6834", strokeWidth: 5}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 12, fill: d => d.role === "pick" ? "#eb6834" : "#b8b6b0",
+                       stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -22, fontWeight: "bold"})
+    ]
+  })}`;
+}
+```
+
+::: {.incremental}
+- A **path** is a sequence of vertices joined by edges. Its length is the number of edges.
+- The shortest one is the **distance**: "degrees of separation".
+- A **cycle** is a path that starts and ends at the same vertex: sky → clam → kelp → sky.
+:::
+
+::: {.notes}
+- Start with nori to ada: 5 edges. Then nori to bubbles: 2.
+- nori → kelp → clam → sky → otter → pixel → ada is also a path, but longer.
+- Then try sky to waffle: no path at all. That is the next slide.
+- A cycle does not reuse an edge.
+:::
+
+## Shortest path in code {style="font-size: 0.85em;"}
+
+```{pyodide}
+print(nx.shortest_path(G, "nori", "ada"))          # the users along a shortest path
+print(nx.shortest_path_length(G, "nori", "ada"))   # its length: the number of edges
+```
+
+::: {.fragment}
+How does `networkx` find it? Breadth-first search, next lecture.
+:::
+
+::: {.notes}
+- "Suggested for you" only looks at distance 2: friends of friends.
+:::
+
+```{python}
+#| echo: false
+# Hidden: colour each user by connected component, for the next slide.
+components = list(nx.connected_components(friends))
+component_role = {}
+for k, component in enumerate(components):
+    for u in component:
+        component_role[u] = "friend" if k == 0 else "pick"   # blue, then orange
+component_view = {
+    **roles(friends, component_role,
+            {edge_key(u, v): component_role[u] for u, v in friends.edges}),
+    "say": f"{len(components)} connected components: "
+           + " and ".join("{" + ", ".join(sorted(c)) + "}" for c in components) + ".",
+}
+ojs_define(component_view = component_view)
+```
+
+## Connected or not? {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the components were found in Python (component_view).
+  const s = component_view;
+  const base = friend_layout;
+  const color = {friend: "#2a78d6", pick: "#eb6834"};
+  const nodes = base.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const edges = base.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  return html`${Plot.plot({
+    width: 820, height: 300, margin: 16,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: base.x_domain}, y: {axis: null, domain: base.y_domain},
+    marks: [
+      Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => color[d.role], strokeWidth: 3}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 12, fill: d => color[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -22, fontWeight: "bold"})
+    ]
+  })}<div class="ojs-readout">${s.say}</div>`;
+}
+```
+
+::: {.incremental}
+- **Connected**: there is a path between every pair of vertices.
+- Our graph is **disconnected**: no path from sky to waffle. Instagram can't suggest waffle through friends.
+- Each separate group is a **connected component**.
+:::
+
+## Connected components in code {style="font-size: 0.85em;"}
+
+```{pyodide}
+print(nx.is_connected(G))              # True only if every pair has a path
+print(list(nx.connected_components(G)))   # one set of users per component
+```
+
+```{python}
+#| echo: false
+# Hidden: complete graphs with 2 to 10 users for the slider two slides down.
+# Positions on a circle, edges and every number in the sentence are computed here.
+complete_views = {}
+for n_users in range(2, 11):
+    group = users[:n_users]
+    circle = {u: (round(math.cos(math.pi / 2 + 2 * math.pi * k / n_users), 3),
+                  round(math.sin(math.pi / 2 + 2 * math.pi * k / n_users), 3))
+              for k, u in enumerate(group)}
+    K = nx.complete_graph(group)
+    n_edges = K.number_of_edges()
+    assert n_edges == n_users * (n_users - 1) // 2
+    view = layout(K, circle, pad=0.5)
+    for node in view["nodes"]:                 # labels sit just outside the circle
+        node["lx"], node["ly"] = round(node["x"] * 1.28, 3), round(node["y"] * 1.22, 3)
+    complete_views[n_users] = {
+        **view,
+        "say": f"{n_users} users, everyone friends with everyone: each user has degree "
+               f"{n_users - 1}, and there are {n_users} × {n_users - 1} / 2 = {n_edges} edges.",
+    }
+ojs_define(complete_views = complete_views)
+```
+
+## iClicker: how many edges? {style="font-size: 0.8em;"}
+
+A group chat of $V$ users where everyone follows everyone. This is a **complete graph**: every pair of vertices has an edge.
+
+How many edges does it have?
+
+- \(A) $V - 1$
+- \(B) $V$
+- \(C) $\frac{V(V-1)}{2}$
+- \(D) $V^2$
+
+::: {.fragment}
+- Answer: **C**
+- Each user has degree $V - 1$. Adding up all $V$ degrees counts every edge twice, once from each end.
+:::
+
+::: {.notes}
+- Ask first: what is the degree of each vertex? V − 1, everyone except yourself.
+- Check with the slider on the next slide.
+:::
+
+## Check it {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof complete_n = Inputs.range([2, 10], {step: 1, value: 5, label: "number of users V"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: positions, edges and the sentence were computed in Python (complete_views).
+  const s = complete_views[complete_n];
+  return html`<div class="ojs-readout">${s.say}</div>${Plot.plot({
+    width: 420, height: 380, margin: 20,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: s.x_domain}, y: {axis: null, domain: s.y_domain},
+    marks: [
+      Plot.link(s.edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#2a78d6", strokeWidth: 2}),
+      Plot.dot(s.nodes, {x: "x", y: "y", r: 12, fill: "#2a78d6", stroke: "white", strokeWidth: 2}),
+      Plot.text(s.nodes, {x: "lx", y: "ly", text: "id", fontWeight: "bold"})
+    ]
+  })}`;
+}
+```
+
+::: {.fragment}
+About half of $V^2$: a complete graph has $O(V^2)$ edges. Keep this in mind for memory.
+:::
+
+::: {.notes}
+- `nx.complete_graph(G.nodes)` builds one in code.
+- Real social networks are nowhere near complete. That is the whole point of sparse matrices later.
+:::
+
+# Graph types {style="font-size: 0.8em;"}
+
+```{python}
+#| echo: false
+# Hidden: the directed "who follows whom" graph for the next slide.
+# Arrows, in-degree, out-degree and every sentence are worked out here; OJS only draws.
+follow_pos = {"sky": (0.0, 0.0), "otter": (-1.7, 0.4), "clam": (1.7, 0.4),
+              "kelp": (1.3, -1.2), "natgeo": (0.0, 1.5)}
+follows = [("sky", "natgeo"), ("otter", "natgeo"), ("clam", "natgeo"),
+           ("sky", "otter"), ("otter", "sky"), ("kelp", "sky")]
+follow_graph = nx.DiGraph()
+follow_graph.add_nodes_from(follow_pos)
+follow_graph.add_edges_from(follows)
+
+
+def arrow_layout(D, pos, shift=0.09):
+    """Arrow coordinates for a directed graph. A two-way pair is drawn as two
+    arrows side by side, each shifted a little to its own right."""
+    arrows = []
+    for u, v, data in D.edges(data=True):
+        (x1, y1), (x2, y2) = pos[u], pos[v]
+        dx = dy = 0.0
+        if D.has_edge(v, u):
+            length = math.hypot(x2 - x1, y2 - y1)
+            dx, dy = shift * (y2 - y1) / length, -shift * (x2 - x1) / length
+        arrows.append({"x1": x1 + dx, "y1": y1 + dy, "x2": x2 + dx, "y2": y2 + dy,
+                       # weight label: halfway along, pushed further to the arrow's right
+                       "lx": (x1 + x2) / 2 + 2.6 * dx, "ly": (y1 + y2) / 2 + 2.6 * dy,
+                       "weight": data.get("weight")})
+    return arrows
+
+
+follow_lookup = {}
+for u in follow_graph.nodes:
+    fans, following = list(follow_graph.predecessors(u)), list(follow_graph.successors(u))
+    follow_lookup[u] = {
+        "node_roles": ["you" if w == u else "other" for w in follow_graph.nodes],
+        # arrows into u are blue (followers), arrows out of u are orange (following)
+        "edge_roles": ["in" if b == u else "out" if a == u else "base" for a, b in follow_graph.edges],
+        "in_say": f"in-degree {len(fans)}" + (f" ({names(fans)})" if fans else ""),
+        "out_say": f"out-degree {len(following)}" + (f" ({names(following)})" if following else ""),
+    }
+
+follow_view = {
+    **layout(follow_graph, follow_pos, pad=0.5),
+    "arrows": arrow_layout(follow_graph, follow_pos),
+    "users": list(follow_graph.nodes),
+    "lookup": follow_lookup,
+}
+ojs_define(follow_view = follow_view)
+```
+
+## Instagram follows are one-way {style="font-size: 0.8em;"}
+
+:::: {.columns}
+::: {.column width="45%"}
+- **Undirected**: an edge goes both ways. Facebook friends: if Alice is friends with Bob, Bob is friends with Alice.
+- **Directed**: an edge has a direction, drawn as an arrow. You can follow natgeo without natgeo following you.
+
+::: {.fragment}
+Degree splits in two:
+
+- <span style="color:#2a78d6">in-degree</span>: arrows in, followers
+- <span style="color:#eb6834">out-degree</span>: arrows out, following
+:::
+:::
+::: {.column width="55%"}
+```{ojs}
+//| echo: false
+viewof follow_who = Inputs.radio(follow_view.users, {value: "natgeo", label: "user"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: arrows and degrees were computed in Python (follow_view).
+  const s = follow_view.lookup[follow_who];
+  const color = {in: "#2a78d6", out: "#eb6834", base: "#c9c7c1"};
+  const nodes = follow_view.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const arrows = follow_view.arrows.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  return html`${Plot.plot({
+    width: 520, height: 330, margin: 16,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: follow_view.x_domain}, y: {axis: null, domain: follow_view.y_domain},
+    marks: [
+      Plot.arrow(arrows, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => color[d.role],
+                          strokeWidth: 3, insetStart: 16, insetEnd: 16, headLength: 12}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 13, fill: d => d.role === "you" ? "#52514e" : "#b8b6b0",
+                       stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -24, fontWeight: "bold"})
+    ]
+  })}<div class="ojs-readout">${follow_who}: <span class="notify">${s.in_say}</span>,
+    <span class="match">${s.out_say}</span></div>`;
+}
+```
+:::
+::::
+
+::: {.notes}
+- natgeo: 3 followers, follows nobody.
+- sky and otter follow each other: a two-way relationship is two edges, one each way.
+- Directed graphs can also have self-loops, an edge from a node to itself. You'll meet them in Markov chains (DSCI 575).
+:::
+
+## Directed graphs in code {style="font-size: 0.85em;"}
+
+```{pyodide}
+D = nx.DiGraph()                  # an empty directed graph
+D.add_edges_from([("sky", "natgeo"), ("otter", "natgeo"), ("clam", "natgeo"),
+                  ("sky", "otter"), ("otter", "sky"), ("kelp", "sky")])   # ("sky", "natgeo"): sky -> natgeo
+
+print("natgeo in-degree: ", D.in_degree("natgeo"))    # followers
+print("natgeo out-degree:", D.out_degree("natgeo"))   # following
+```
+
+```{python}
+#| echo: false
+# Hidden: two weighted graphs for the next slide. Line widths grow with the weight,
+# and every label position is computed here.
+dm_pos = {"sky": (0.0, 0.0), "otter": (-1.6, 1.1), "clam": (1.6, 1.1), "kelp": (0.0, -1.3)}
+dm_graph = nx.Graph()
+dm_graph.add_weighted_edges_from([("sky", "otter", 120), ("sky", "clam", 15),
+                                  ("otter", "clam", 40), ("sky", "kelp", 3)])
+like_pos = {"sky": (0.0, 0.0), "otter": (-1.6, 1.1), "clam": (1.6, 1.1)}
+like_graph = nx.DiGraph()
+like_graph.add_weighted_edges_from([("sky", "otter", 40), ("otter", "sky", 3),
+                                    ("sky", "clam", 12), ("clam", "sky", 12)])
+
+
+def weighted_view(G, pos):
+    """Layout plus one record per edge: its weight, its line width and where the label goes."""
+    view = layout(G, pos, pad=0.45)
+    if G.is_directed():
+        lines = arrow_layout(G, pos, shift=0.12)
+    else:
+        lines = [{"x1": pos[u][0], "y1": pos[u][1], "x2": pos[v][0], "y2": pos[v][1],
+                  "lx": (pos[u][0] + pos[v][0]) / 2, "ly": (pos[u][1] + pos[v][1]) / 2,
+                  "weight": w} for u, v, w in G.edges(data="weight")]
+    top_weight = max(line["weight"] for line in lines)
+    for line in lines:
+        line["width"] = round(1.5 + 7 * line["weight"] / top_weight, 1)
+    view["lines"] = lines
+    return view
+
+
+weighted = {"dm": weighted_view(dm_graph, dm_pos), "likes": weighted_view(like_graph, like_pos)}
+ojs_define(weighted = weighted)
+```
+
+## Weighted graphs {style="font-size: 0.8em;"}
+
+**Weighted**: every edge carries a number. Unweighted: an edge either exists or it doesn't.
+
+:::: {.columns}
+::: {.column width="50%"}
+```{ojs}
+//| echo: false
+{
+  // Draw only: widths and label positions were computed in Python (weighted.dm).
+  const w = weighted.dm;
+  return Plot.plot({
+    width: 460, height: 300, margin: 10,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: w.x_domain}, y: {axis: null, domain: w.y_domain},
+    marks: [
+      Plot.link(w.lines, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#2a78d6", strokeWidth: "width"}),
+      Plot.text(w.lines, {x: "lx", y: "ly", text: "weight", fontWeight: "bold",
+                          stroke: "white", strokeWidth: 5, fill: "#0b0b0b"}),
+      Plot.dot(w.nodes, {x: "x", y: "y", r: 13, fill: "#b8b6b0", stroke: "white", strokeWidth: 2}),
+      Plot.text(w.nodes, {x: "x", y: "y", text: "id", dy: -24, fontWeight: "bold"})
+    ]
+  });
+}
+```
+
+Undirected: messages sent between two friends.
+:::
+::: {.column width="50%"}
+```{ojs}
+//| echo: false
+{
+  // Draw only: widths and label positions were computed in Python (weighted.likes).
+  const w = weighted.likes;
+  return Plot.plot({
+    width: 460, height: 300, margin: 10,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: w.x_domain}, y: {axis: null, domain: w.y_domain},
+    marks: [
+      Plot.arrow(w.lines, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#eb6834",
+                           strokeWidth: "width", insetStart: 16, insetEnd: 18, headLength: 5}),
+      Plot.text(w.lines, {x: "lx", y: "ly", text: "weight", fontWeight: "bold",
+                          stroke: "white", strokeWidth: 5, fill: "#0b0b0b"}),
+      Plot.dot(w.nodes, {x: "x", y: "y", r: 13, fill: "#b8b6b0", stroke: "white", strokeWidth: 2}),
+      Plot.text(w.nodes, {x: "x", y: "y", text: "id", dy: -24, fontWeight: "bold"})
+    ]
+  });
+}
+```
+
+Directed: likes one user gave the other.
+:::
+::::
+
+::: {.notes}
+- Left: sky and otter talk the most. Instagram's "Close Friends" could start from this.
+- Right: sky liked otter's posts 40 times, otter liked sky's only 3 times. Same pair, two different numbers, so it has to be directed.
+- Flights are the classic example: price (undirected) and flight time (directed, because of the wind).
+:::
+
+## Weighted graphs in code {style="font-size: 0.85em;"}
+
+```{pyodide}
+W = nx.Graph()
+W.add_edge("sky", "otter", weight=120)   # weight=... stores a number on the edge
+W.add_edge("sky", "clam", weight=15)
+W.add_edge("otter", "clam", weight=40)
+W.add_edge("sky", "kelp", weight=3)
+
+print(nx.get_edge_attributes(W, "weight"))   # {edge: weight} for every edge
+```
+
+## Question: which kind of graph? {style="font-size: 0.8em;"}
+
+City roads, including one-way streets, with travel times.
+
+- \(A) undirected, unweighted
+- \(B) undirected, weighted
+- \(C) directed, unweighted
+- \(D) directed, weighted
+
+::: {.fragment}
+- Answer: **D**. One-way streets need a direction, and travel time is the weight.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
+:::
+
+## Your turn {style="font-size: 0.8em;"}
+
+| | directed? | weighted? |
+|---|---|---|
+| which actors have been in a film together | [no]{.fragment} | [no]{.fragment} |
+| how many films each pair of actors made together | [no]{.fragment} | [yes, the count]{.fragment} |
+| which web pages link to which other pages | [yes]{.fragment} | [no]{.fragment} |
+
+::: {.notes}
+- Give them 30 seconds with a neighbour, then reveal row by row.
+- Web pages: A can link to B without B linking back.
+:::
+
+# How do we store a graph? {background-image="images/ig_otter_store_graph.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+
+Two standard ways: an adjacency list and an adjacency matrix. The list is a `dict`, so first a short detour.
+
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
+:::
+
+## A plain `dict` and a missing key {style="font-size: 0.8em;"}
+
+Who liked your posts today? Count the likes per user.
+
+```{pyodide}
+likes = ["otter", "clam", "otter", "kelp", "otter"]
+
+counts = {}
+for user in likes:
+    counts[user] += 1     # "otter" is not a key yet
+```
+
+::: {.fragment}
+You have to check every key yourself:
+
+```{pyodide}
+counts = {}
+for user in likes:
+    if user not in counts:    # first time we see this user: start at 0
+        counts[user] = 0
+    counts[user] += 1
+print(counts)
+```
+:::
+
+::: {.notes}
+- The first cell raises `KeyError: 'otter'`.
+- `counts.get("ada", 0)` returns 0 for a missing key, but only reads: it adds nothing.
+:::
+
+## `defaultdict` does the check for you {style="font-size: 0.8em;"}
+
+`defaultdict(f)` calls `f()` to make the value for a key it has not seen yet.
+
+```{pyodide}
+from collections import defaultdict
+
+counts = defaultdict(int)       # a missing key starts at int(), which is 0
+for user in likes:
+    counts[user] += 1
+print(counts)
+```
+
+```{pyodide}
+posts = [("sky", "beach.jpg"), ("otter", "clam.jpg"), ("sky", "sunset.jpg")]
+
+by_user = defaultdict(list)     # a missing key starts at list(), which is []
+for user, photo in posts:
+    by_user[user].append(photo)
+print(by_user)
+```
+
+::: {.fragment}
+`int` to count, `list` to group, `set` to collect unique items.
+:::
+
+::: {.notes}
+- Still a hash table underneath: same O(1) lookups as `dict`.
+:::
+
+## Two things to watch {style="font-size: 0.8em;"}
+
+⚠️ Just looking at a missing key adds it:
+
+```{pyodide}
+print("ada" in by_user)   # False: `in` only checks
+by_user["ada"]            # looking it up adds "ada": []
+print("ada" in by_user)   # True now
+```
+
+::: {.fragment}
+Why `defaultdict(list)` and not `defaultdict(list())`?
+:::
+
+::: {.fragment}
+- `defaultdict` needs a **function** it can call for every missing key. `list` is that function.
+- `list()` is one empty list that already exists. It raises a `TypeError`.
+:::
+
+::: {.notes}
+- Same reason it is `defaultdict(int)`, not `defaultdict(0)`.
+- Plain dict: you control every key that gets created. defaultdict can hide a typo by quietly adding a key.
+:::
+
+## `Counter` is made for counting {style="font-size: 0.8em;"}
+
+```{pyodide}
+from collections import Counter
+
+counts = Counter(likes)          # count the whole list in one step
+print(counts)
+print(counts["ada"])             # 0: no KeyError, and nothing is added
+print(counts.most_common(1))     # the top liker
+```
+
+::: {.fragment}
+How many r's are in "strawberry"? One line.
+
+```{pyodide}
+Counter("strawberry").most_common(1)
+```
+:::
+
+::: {.fragment}
+| you want to... | use |
+|---|---|
+| look things up, every key known up front | `dict` |
+| group items under a key | `defaultdict(list)` or `defaultdict(set)` |
+| count things | `Counter` or `defaultdict(int)` |
+:::
+
+::: {.notes}
+- Strawberry: early chatbots famously got this wrong. A string is a sequence of letters, so Counter counts letters.
+:::
+
+## Back to "Suggested for you" {style="font-size: 0.8em;"}
+
+Count mutual friends with a `Counter`:
+
+```{pyodide}
+from collections import Counter
+
+mutual = Counter()
+for friend in G.neighbors("sky"):              # sky's friends
+    for fof in G.neighbors(friend):            # their friends
+        if fof != "sky" and not G.has_edge("sky", fof):
+            mutual[fof] += 1                    # one more mutual friend
+
+print(mutual.most_common())
+```
+
+::: {.fragment}
+That is the card from the start of class.
+:::
+
+::: {.notes}
+- nori 3, bubbles 2, pixel 1, the same numbers as the step-through.
+- `G.has_edge("sky", fof)`: already friends, don't suggest.
+:::
+
+## Adjacency list {style="font-size: 0.8em;"}
+
+For every user, keep a list of their friends: a `dict` of lists.
+
+```{pyodide}
+from collections import defaultdict
+
+adj_list = defaultdict(list)
+for u, v in friendships:
+    adj_list[u].append(v)
+    adj_list[v].append(u)    # undirected: the edge goes both ways
+
+dict(adj_list)
+```
+
+::: {.fragment}
+Directed graph? Drop the second `append`: an edge from `u` to `v` only goes in `u`'s list.
+:::
+
+::: {.notes}
+- This is how the picture on the next slides is built, same order of neighbours.
+:::
+
+## Adjacency list with `networkx` {style="font-size: 0.8em;"}
+
+Edge lists often come as a table. `nx.from_pandas_edgelist` turns one into a graph:
+
+```{pyodide}
+import pandas as pd
+
+friends_df = pd.DataFrame(friendships, columns=["user", "friend"])   # one row per edge
+G2 = nx.from_pandas_edgelist(friends_df, "user", "friend")          # one edge per row
+nx.to_dict_of_lists(G2)                                            # its adjacency list
+```
+
+## iClicker: space of an adjacency list {style="font-size: 0.8em;"}
+
+What is the space complexity of an adjacency list, with $V$ vertices and $E$ edges?
+
+- \(A) $O(V)$
+- \(B) $O(E)$
+- \(C) $O(VE)$
+- \(D) $O(V + E)$
+
+::: {.fragment}
+- Answer: **D**
+- One key per vertex: $O(V)$. Each edge appears once, or twice if undirected: $O(E)$.
+- Not $O(E)$: a graph can have vertices and no edges. Not $O(V^2)$: most graphs are far from complete.
+:::
+
+::: {.notes}
+- $2E$ is still $O(E)$.
+- If the graph is complete, E is about V²/2 and O(V + E) becomes O(V²). The formula still holds, E is just big.
+:::
+
+## Adjacency matrix {style="font-size: 0.8em;"}
+
+Number the vertices $1, \dots, V$. The adjacency matrix $A$ is $V \times V$:
+
+$$a_{ij} =
+\begin{cases}
+1, & \text{if there is an edge from } i \text{ to } j \\
+0, & \text{otherwise}
+\end{cases}$$
+
+```{pyodide}
+import pandas as pd
+
+users = list(G.nodes)
+A = nx.to_numpy_array(G, nodelist=users, dtype=int)   # rows and columns in the order of `users`
+pd.DataFrame(A, index=users, columns=users)
+```
+
+::: {.notes}
+- $a_{ij}$ is the entry in row $i$, column $j$.
+- Lecture 2: one number per pair of users. Here it is.
+:::
+
+## Same graph, two ways {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof adj_who = Inputs.select(adj_view.users, {value: "clam", label: "user"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the graph roles, the list lines and the matrix rows were computed in Python.
+  const s = user_views[adj_who];
+  const base = friend_layout;
+  const fill = {you: "#52514e", friend: "#2a78d6", other: "#b8b6b0"};
+  const nodes = base.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
+  const edges = base.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+  const graph = Plot.plot({
+    width: 290, height: 240, margin: 12,
+    style: {fontSize: "13px", background: "transparent"},
+    x: {axis: null, domain: base.x_domain}, y: {axis: null, domain: base.y_domain},
+    marks: [
+      Plot.link(edges, {filter: d => d.role === "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#d9d8d4", strokeWidth: 1.5}),
+      Plot.link(edges, {filter: d => d.role !== "base", x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+                        stroke: "#2a78d6", strokeWidth: 3}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 7, fill: d => fill[d.role], stroke: "white", strokeWidth: 1.5}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -14, fontWeight: "bold"})
+    ]
+  });
+  const list = adj_view.lines.map((line, i) => html`<div class="${s.list_cls[i]}">${line}</div>`);
+  const header = html`<tr><th></th>${adj_view.short.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = adj_view.rows.map((row, i) => html`<tr class="${s.row_cls[i]}">
+      <th>${adj_view.short[i]}</th>${row.map(v => html`<td class="${v ? "one" : ""}">${v}</td>`)}</tr>`);
+  return html`<div class="adj-wrap">
+      <div class="adj-panel">${graph}<div class="ds-caption">graph</div></div>
+      <div class="adj-panel"><div class="adj-list">${list}</div><div class="ds-caption">adjacency list</div></div>
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table><div class="ds-caption">adjacency matrix</div></div>
+    </div>
+    <div class="ojs-readout">${s.matrix_say}</div>`;
+}
+```
+
+::: {.notes}
+- Same information three times. The list stores only the friends, the matrix stores a 0 for every non-friend too.
+- The matrix is symmetric because the graph is undirected: row clam, column sky and row sky, column clam are both 1.
+- Pick waffle: one 1 in a row of 11. Most of the matrix is zeros.
+:::
+
+## Reading the matrix {style="font-size: 0.85em;"}
+
+```{pyodide}
+print("degrees:   ", A.sum(axis=1))           # add up each row
+print("symmetric? ", (A == A.T).all())        # A.T is the transpose
+print("sky-nori?  ", A[users.index("sky"), users.index("nori")])   # one lookup: O(1)
+```
+
+::: {.incremental}
+- Row sum = degree.
+- Undirected, so $a_{ij} = a_{ji}$: symmetric. A directed graph's matrix usually isn't.
+- Is there an edge? One lookup, `A[i, j]`: $O(1)$.
+:::
+
+## Question: space of an adjacency matrix {style="font-size: 0.8em;"}
+
+- \(A) $O(VE)$
+- \(B) $O(E^2)$
+- \(C) $O(V^2)$
+- \(D) $O(V + E)$
+
+::: {.fragment}
+- Answer: **C**. One number per **pair** of vertices, edge or not.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
+:::
+
+## Directed: read it off the matrix {style="font-size: 0.8em;"}
+
+The follow graph from earlier, as a matrix:
+
+```{python}
+#| echo: false
+#| output: asis
+# Hidden: the follow graph as a markdown table, written from the adjacency
+# matrix networkx builds, so it cannot be mistyped.
+follow_users = list(follow_graph.nodes)
+follow_matrix = nx.to_numpy_array(follow_graph, nodelist=follow_users, dtype=int)
+follow_table = "| row follows column | " + " | ".join(follow_users) + " |\n"
+follow_table += "|---" * (len(follow_users) + 1) + "|\n"
+for u, row in zip(follow_users, follow_matrix):
+    follow_table += f"| {u} | " + " | ".join(str(v) for v in row) + " |\n"
+print(follow_table)
+```
+
+::: {.incremental}
+- Who follows whom? Draw it on paper.
+- Is it symmetric? No: sky → natgeo is a 1, natgeo → sky is a 0.
+- Only sky and otter have a 1 both ways: they follow each other.
+:::
+
+::: {.notes}
+- Add up a column to get followers (in-degree): natgeo has 3.
+- Board: sketch the arrows from the rows, then compare with the follow slide.
+:::
+
+## Both representations, one picture {style="font-size: 0.8em;"}
+
+![](images/graph_rep.jpeg){width="49%"} ![](images/graph_rep_dir.jpeg){width="49%"}
+
+::: {.notes}
+- Left undirected, right directed.
+- Directed list: an edge only appears in the list of the vertex it leaves.
+- Directed matrix: rows are where the edge starts, columns where it ends.
+:::
+
+::: footer
+Images from the DSCI 512 lecture notes
+:::
+
+## Which one to use? {style="font-size: 0.75em;"}
+
+| | adjacency list | adjacency matrix |
+|---|---|---|
+| space | $O(V + E)$ | $O(V^2)$ |
+| is there an edge from $u$ to $v$? | $O(\text{degree of } u)$, $O(V)$ worst case | $O(1)$: `A[u, v]` |
+| all neighbours of $u$ | $O(\text{degree of } u)$ | $O(V)$: scan the row |
+| good for | big graphs with few edges, walking the graph | small or dense graphs, linear algebra |
+
+::: {.fragment}
+A trick from lecture 2: store neighbours in a **set**, and the edge check is $O(1)$ on average. `networkx` does this: a graph is a dict of dicts.
+:::
+
+::: {.notes}
+- Walking the graph = BFS and DFS, next lecture.
+- `G.has_edge(u, v)` is fast because of the dict of dicts.
+:::
+
+## Question: few edges {style="font-size: 0.8em;"}
+
+$E$ is much smaller than $V^2$. Which representation uses less memory?
+
+- \(A) adjacency list
+- \(B) adjacency matrix
+
+::: {.fragment}
+- Answer: **A**. Most of the matrix would be zeros, each one taking memory to say "no edge here".
+- An Instagram user has a few hundred friends out of 3 billion users.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
+:::
+
+## Can we have both? {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- The matrix is handy: fast edge checks, and PageRank, spectral clustering and graph neural networks are all written as matrix maths.
+- The list is small.
+- A **sparse matrix** gets close to both. `networkx` already uses one:
+:::
+
+::: {.fragment}
+```{pyodide}
+am = nx.adjacency_matrix(G)
+type(am)
+```
+:::
+
+# Sparse matrices {background-image="images/ig_otter_sparse.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+
+Store only the friendships, not the 3 billion "no"s.
+
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
+:::
+
+## "Sparse matrix" means two things {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- In maths: a matrix that is mostly zeros.
+- In code: a **data structure** that stores only the non-zero entries.
+- Use the data structure when your matrix is mostly zeros.
+:::
+
+## Our friend graph, stored sparse {style="font-size: 0.8em;"}
+
+```{pyodide}
+am = nx.adjacency_matrix(G)   # a scipy.sparse csr_array
+print(am.nnz, "stored values out of", am.shape[0] * am.shape[1])   # nnz: number of non-zeros
+print(am)                     # only the non-zeros, as (row, column)  value
+```
+
+::: {.fragment}
+```{pyodide}
+am.toarray()                  # back to a regular NumPy array
+```
+:::
+
+::: {.notes}
+- 26 stored values, not 13: each friendship sits in two places, `[u, v]` and `[v, u]`.
+- ⚠️ `.toarray()` is fine for 11 users. On a big matrix it is how you crash your kernel.
+:::
+
+## How much memory does it save? {style="font-size: 0.75em;"}
+
+A random graph with 100,000 users, where each possible friendship exists with probability 0.0001:
+
+```{python}
+#| echo: true
+G_big = nx.fast_gnp_random_graph(100_000, 1e-4, seed=512)
+am_big = nx.adjacency_matrix(G_big)
+
+V = G_big.number_of_nodes()
+E = G_big.number_of_edges()
+print(f"V = {V:,} users, E = {E:,} friendships, nnz = {am_big.nnz:,}")
+
+dense_bytes = V**2 * 8                                                    # every entry, 8 bytes each
+sparse_bytes = am_big.data.nbytes + am_big.indices.nbytes + am_big.indptr.nbytes   # only what is stored
+print(f"dense:  {dense_bytes / 1e9:,.1f} GB")
+print(f"sparse: {sparse_bytes / 1e6:,.1f} MB")
+```
+
+::: {.notes}
+- nnz is twice E: every friendship is stored at `[u, v]` and `[v, u]`.
+- The three arrays (`data`, `indices`, `indptr`) are unpacked in a few slides.
+- 80 GB won't fit on a laptop. A few MB is nothing.
+:::
+
+## The formula {style="font-size: 0.8em;"}
+
+At 8 bytes per number, for an undirected graph:
+
+| | what is stored | bytes | space |
+|---|---|---|---|
+| dense matrix | all $V^2$ entries | $8V^2$ | $O(V^2)$ |
+| sparse matrix (CSR) | `data` + `indices` + `indptr` | $8 \times (\text{nnz} + \text{nnz} + V + 1)$ | $O(V + E)$ |
+
+with $\text{nnz} = 2E$.
+
+::: {.fragment}
+Same space complexity as an adjacency list, and that is no coincidence.
+:::
+
+::: {.notes}
+- Lecture 2 dtype tricks work here too: an unweighted graph only needs bool values (1 byte), and int32 indices (4 bytes) are enough below about 2 billion users.
+:::
+
+## iClicker: will it fit? {style="font-size: 0.8em;"}
+
+1 million users, 200 friends each on average. How much memory does the **dense** adjacency matrix need, at 8 bytes per number?
+
+- \(A) 1.6 GB
+- \(B) 80 GB
+- \(C) 8 TB
+- \(D) 1.6 TB
+
+::: {.fragment}
+- Answer: **C**. $8 \times (10^6)^2 = 8 \times 10^{12}$ bytes.
+- Sparse: $E = 10^6 \times 200 / 2 = 10^8$, so $\text{nnz} = 2 \times 10^8$ and $8 \times (4 \times 10^8 + 10^6 + 1) \approx 3.2$ GB.
+:::
+
+::: {.notes}
+- Watch for the divide by 2: every friendship is shared by two users.
+- About 2,500 times smaller, and it fits on a laptop. Check with the slider next.
+:::
+
+```{python}
+#| echo: false
+# Hidden: dense vs sparse memory for the slider on the next slide.
+# Every byte count, label and the laptop's RAM are computed here; OJS only draws.
+RAM_BYTES = float(psutil.virtual_memory().total)
+FRIENDS_EACH = 200
+
+
+def human_bytes(n_bytes):
+    """Readable size for chart labels: 400 KB, 3.2 GB, 72.0 EB."""
+    for unit, size in [("EB", 1e18), ("PB", 1e15), ("TB", 1e12), ("GB", 1e9), ("MB", 1e6), ("KB", 1e3)]:
+        if n_bytes >= size:
+            return f"{n_bytes / size:,.1f} {unit}"
+    return f"{n_bytes:,.0f} bytes"
+
+
+def memory_point(n_users):
+    """Bytes for the dense matrix and the CSR matrix of a friend graph with n_users users."""
+    nnz = n_users * min(FRIENDS_EACH, n_users - 1)   # 2E: every friendship sits in two rows
+    dense = 8 * n_users ** 2
+    sparse = 8 * (nnz + nnz + n_users + 1)           # data + indices + indptr
+    return dense, sparse
+
+
+def short_count(n):
+    for unit, size in [("B", 10 ** 9), ("M", 10 ** 6), ("k", 10 ** 3)]:
+        if n >= size:
+            return f"{n // size:,}{unit}"
+    return f"{n:,}"
+
+
+mem_choices = [10 ** 3, 10 ** 4, 10 ** 5, 10 ** 6, 10 ** 7, 10 ** 8, 10 ** 9, 3 * 10 ** 9]
+mem_curves = []
+for n in np.logspace(3, np.log10(3e9), 60):
+    dense, sparse = memory_point(int(n))
+    mem_curves += [{"n": int(n), "bytes": dense, "kind": "dense O(V²)"},
+                   {"n": int(n), "bytes": sparse, "kind": "sparse O(V + E)"}]
+
+mem_picks = {}
+for n in mem_choices:
+    dense, sparse = memory_point(n)
+    mem_picks[n] = {
+        "points": [{"n": n, "bytes": b, "kind": kind,
+                    "label": f"{human_bytes(b)} {'✅' if b <= RAM_BYTES else '❌'}"}
+                   for b, kind in [(dense, "dense O(V²)"), (sparse, "sparse O(V + E)")]],
+        "dense": human_bytes(dense), "sparse": human_bytes(sparse),
+        "ratio": f"{dense / sparse:,.0f}",
+        "users": f"{n:,}",
+    }
+
+mem_chart = {
+    "curves": mem_curves, "picks": mem_picks, "choices": mem_choices,
+    "choice_labels": {n: short_count(n) for n in mem_choices},
+    "order": ["dense O(V²)", "sparse O(V + E)"],
+    "ram": RAM_BYTES, "ram_label": f"{RAM_BYTES / 1e9:,.0f} GB (my laptop)",
+    "friends_each": FRIENDS_EACH,
+}
+ojs_define(mem_chart = mem_chart)
+```
+
+## Will Instagram's friend graph fit? {style="font-size: 0.8em;"}
+
+200 friends per user, 8 bytes per number.
+
+```{ojs}
+//| echo: false
+viewof mem_n = Inputs.radio(mem_chart.choices, {value: 1000000, label: "number of users",
+                                                format: n => mem_chart.choice_labels[n]})
+```
+
+```{ojs}
+//| echo: false
+// Draw only: every byte count and label was computed in Python (mem_chart).
+{
+  const picked = mem_chart.picks[mem_n].points;
+  return Plot.plot({
+    width: 880, height: 320, marginLeft: 80, marginRight: 150, marginBottom: 46,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {type: "log", label: "number of users →", labelAnchor: "center", grid: true,
+        ticks: mem_chart.choices, tickFormat: n => mem_chart.choice_labels[n]},
+    y: {type: "log", label: "↑ memory needed (bytes)", grid: true, tickFormat: "~s"},
+    color: {domain: mem_chart.order, range: ["#eb6834", "#2a78d6"], legend: true, swatchSize: 16},
+    marks: [
+      Plot.line(mem_chart.curves, {x: "n", y: "bytes", stroke: "kind", strokeWidth: 2.5}),
+      Plot.ruleY([mem_chart.ram], {stroke: "#52514e", strokeDasharray: "4 4"}),
+      Plot.text([{y: mem_chart.ram}], {x: 1000, y: "y", text: () => mem_chart.ram_label,
+                                       dy: -10, textAnchor: "start", fill: "#52514e"}),
+      Plot.ruleX([mem_n], {stroke: "#b8b6b0", strokeDasharray: "4 4"}),
+      Plot.dot(picked, {x: "n", y: "bytes", fill: "kind", r: 6, stroke: "white", strokeWidth: 2}),
+      Plot.text(picked, {x: "n", y: "bytes", text: "label", dx: 10, textAnchor: "start", fontWeight: "bold"})
     ]
   });
 }
@@ -1516,83 +1459,326 @@ ojs_define(deque_chart = deque_chart)
 ```{ojs}
 //| echo: false
 {
-  // Print only: every number below was computed in Python (deque_chart).
-  const d = deque_chart;
-  return html`<div class="ojs-readout">With ${d.n_label} photos waiting,
-    <span class="match">list.pop(0)</span> is about <b>${d.ratio_label}×</b> slower than
-    <span class="notify">deque.popleft()</span>.</div>`;
+  // Print only: every number below was computed in Python (mem_chart).
+  const p = mem_chart.picks[mem_n];
+  return html`<div class="ojs-readout">${p.users} users: <span class="match">dense ${p.dense}</span>,
+    <span class="notify">sparse ${p.sparse}</span>, <b>${p.ratio}×</b> smaller.</div>`;
+}
+```
+
+::: {.notes}
+- Both axes are log scale: the orange line is twice as steep, that is V² against V.
+- 1M users: 8 TB vs 3.2 GB, the iClicker answer.
+- 3B users: the dense matrix needs exabytes. The sparse one needs terabytes: a data centre, not impossible.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the CSR step-through on the next slide. The three arrays come from
+# scipy itself; every highlight and sentence is worked out here, OJS only draws.
+csr_dense = np.array([
+    [0, 5, 0, 0, 1],
+    [0, 0, 0, 2, 0],
+    [0, 0, 0, 0, 0],
+    [3, 0, 4, 0, 0],
+    [0, 0, 0, 0, 6],
+])
+csr_demo = scipy.sparse.csr_array(csr_dense)
+csr_data, csr_indices, csr_indptr = (csr_demo.data.tolist(), csr_demo.indices.tolist(),
+                                     csr_demo.indptr.tolist())
+
+csr_steps = {}
+for i in range(csr_dense.shape[0]):
+    start, end = csr_indptr[i], csr_indptr[i + 1]
+    in_row = range(start, end)
+    if end == start:
+        say = (f"Row {i}: indptr[{i}] = {start} and indptr[{i + 1}] = {end}. "
+               f"An empty slice, so row {i} has no non-zeros.")
+    else:
+        where = f"position {start}" if end - start == 1 else f"positions {start} to {end - 1}"
+        say = (f"Row {i}: indptr[{i}] = {start} and indptr[{i + 1}] = {end}, so look at {where}: "
+               f"columns {csr_indices[start:end]}, values {csr_data[start:end]}.")
+    csr_steps[i] = {
+        "rows": [{"cls": "on" if r == i else "faded",
+                  "cells": [{"v": int(v), "cls": "one" if v else ""} for v in row]}
+                 for r, row in enumerate(csr_dense)],
+        "data": [{"label": v, "tag": k, "cls": "found" if k in in_row else ""}
+                 for k, v in enumerate(csr_data)],
+        "indices": [{"label": c, "tag": k, "cls": "found" if k in in_row else ""}
+                    for k, c in enumerate(csr_indices)],
+        "indptr": [{"label": p, "tag": k, "cls": "end" if k in (i, i + 1) else ""}
+                   for k, p in enumerate(csr_indptr)],
+        "say": say,
+    }
+csr_view = {"steps": csr_steps, "rows": list(range(csr_dense.shape[0])),
+            "col_labels": [f"col {j}" for j in range(csr_dense.shape[1])]}
+ojs_define(csr_view = csr_view)
+```
+
+## How CSR stores a matrix {style="font-size: 0.8em;"}
+
+CSR = **Compressed Sparse Row**. Walk the matrix row by row and write down each non-zero.
+
+```{ojs}
+//| echo: false
+viewof csr_row = Inputs.radio(csr_view.rows, {value: 0, label: "row", format: i => `row ${i}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the arrays and the highlights were computed in Python (csr_view).
+  const s = csr_view.steps[csr_row];
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  return html`<div class="adj-wrap">
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix</div></div>
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
+    </div>
+    <div class="ojs-readout">${s.say}</div>`;
+}
+```
+
+::: {.notes}
+- data: the non-zero values, row by row. indices: the column of each one. indptr: where each row starts.
+- Row 2 is empty: indptr[2] and indptr[3] are both 3.
+- indptr has one more entry than rows, so the last row knows where it ends.
+- Each row's slice is that vertex's list of neighbours: CSR is an adjacency list packed into flat arrays.
+- Diagram in the lecture notes, section 4.3.
+:::
+
+## CSR in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+import numpy as np
+import scipy.sparse
+
+dense = np.array([[0, 5, 0, 0, 1],
+                  [0, 0, 0, 2, 0],
+                  [0, 0, 0, 0, 0],
+                  [3, 0, 4, 0, 0],
+                  [0, 0, 0, 0, 6]])
+x = scipy.sparse.csr_array(dense)
+print("data:   ", x.data)      # the non-zero values, row by row
+print("indices:", x.indices)   # the column of each value
+print("indptr: ", x.indptr)    # where each row starts
+```
+
+```{pyodide}
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
+    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
+```
+
+::: {.notes}
+- Rows are cheap: two lookups in indptr, then one slice.
+- Columns are expensive: to find everything in column 4, check every row's slice.
+:::
+
+## Question: how long is each array? {style="font-size: 0.8em;"}
+
+A $V \times V$ CSR matrix has nnz non-zeros. How long are `data`, `indices` and `indptr`?
+
+- \(A) nnz, nnz, nnz
+- \(B) nnz, nnz, $V + 1$
+- \(C) nnz, $V$, $V$
+- \(D) $V$, $V$, $V + 1$
+
+::: {.fragment}
+- Answer: **B**. That is where $8 \times (\text{nnz} + \text{nnz} + V + 1)$ comes from.
+:::
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
+:::
+
+## Working with sparse matrices {style="font-size: 0.8em;"}
+
+Many NumPy operations work. Row sums of an adjacency matrix give every degree, without building the dense matrix:
+
+```{pyodide}
+am = nx.adjacency_matrix(G)
+print(am.sum(axis=1))      # one number per user
+print(dict(G.degree()))    # same numbers
+```
+
+::: {.fragment}
+Use `x[i, j]`, not `x[i][j]`:
+
+```{pyodide}
+import scipy.sparse
+
+old = scipy.sparse.csr_matrix(am)   # the older type, still common (scikit-learn)
+print(old[3, 2])                    # works
+print(old[3][2])                    # IndexError: old[3] is a 1-row matrix, it has no row 2
+```
+:::
+
+::: {.notes}
+- With a NumPy array both forms work. With `csr_matrix`, `x[3]` stays 2D with one row.
+- `x[i, j]` works for NumPy, both sparse types and pandas `.iloc`. Plain Python lists are the exception.
+:::
+
+## Rows vs columns: CSR and CSC {style="font-size: 0.75em;"}
+
+CSR is stored row by row. CSC (Compressed Sparse **Column**) is the same idea, column by column.
+
+```{python}
+#| echo: true
+G_10k = nx.fast_gnp_random_graph(10_000, 0.0025, seed=512)   # 10,000 users
+csr = nx.adjacency_matrix(G_10k)
+csc = csr.tocsc()          # convert once, before any loop
+
+def get_rows(m, k=200):
+    for i in range(k):
+        m[[i], :]          # row i, all columns
+
+def get_cols(m, k=200):
+    for j in range(k):
+        m[:, [j]]          # all rows, column j
+
+times = {}
+for name, m in [("CSR", csr), ("CSC", csc)]:
+    times[name, "rows"] = timeit.timeit(lambda: get_rows(m), number=1)
+    times[name, "columns"] = timeit.timeit(lambda: get_cols(m), number=1)
+    print(f"{name}: 200 rows {times[name, 'rows'] * 1e3:6.1f} ms,  200 columns {times[name, 'columns'] * 1e3:6.1f} ms")
+```
+
+```{python}
+#| echo: false
+# Hidden: the bar chart on the next slide, from the same `times` printed above.
+timing_rows = [{"bar": f"{fmt}, 200 {what}", "what": f"200 {what}", "ms": round(sec * 1e3, 2),
+                "label": f"{sec * 1e3:,.1f} ms"}
+               for (fmt, what), sec in times.items()]
+timing_chart = {
+    "rows": timing_rows,
+    "bars": [row["bar"] for row in timing_rows],          # CSR first, then CSC
+    "order": ["200 rows", "200 columns"],
+    "csr_ratio": f"{times['CSR', 'columns'] / times['CSR', 'rows']:,.0f}",
+    "csc_ratio": f"{times['CSC', 'rows'] / times['CSC', 'columns']:,.0f}",
+}
+ojs_define(timing_chart = timing_chart)
+```
+
+## Each format is fast in its own direction {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: every time was measured in Python (timing_chart).
+Plot.plot({
+  width: 880, height: 220, marginLeft: 170, marginRight: 90, marginBottom: 46,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {label: "milliseconds →", labelAnchor: "center", grid: true},
+  y: {label: null, domain: timing_chart.bars},
+  color: {domain: timing_chart.order, range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
+  marks: [
+    Plot.barX(timing_chart.rows, {y: "bar", x: "ms", fill: "what", rx: 4}),
+    Plot.text(timing_chart.rows, {y: "bar", x: "ms", text: "label",
+                                  dx: 8, textAnchor: "start", fontWeight: "bold"}),
+    Plot.ruleX([0])
+  ]
+})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Print only: both ratios were computed in Python (timing_chart).
+  return html`<div class="ojs-readout">CSR: columns are about <b>${timing_chart.csr_ratio}×</b> slower than rows.
+    &nbsp;·&nbsp; CSC: rows are about <b>${timing_chart.csc_ratio}×</b> slower than columns.</div>`;
 }
 ```
 
 ::: {.fragment}
-In real code, use `collections.deque`:
-
-```{pyodide}
-from collections import deque
-
-upload_queue = deque()
-upload_queue.append("beach.jpg")    # join the back: O(1)
-upload_queue.append("otter.jpg")
-print(upload_queue.popleft())       # leave the front: O(1)
-```
+| | CSR | CSC |
+|---|---|---|
+| stores | values, column indices, row pointers | values, row indices, column pointers |
+| fast at | rows | columns |
+| typical use | most of scikit-learn, row-wise work | column-wise work |
 :::
 
 ::: {.notes}
-- A list is a row of slots: remove slot 0 and everything slides down one.
-- `deque` is pronounced "deck", short for double-ended queue.
-- Our `Queue` class is for learning FIFO. Don't ship it.
+- Mostly rows: `.tocsr()`. Mostly columns: `.tocsc()`.
+- Converting copies the whole matrix. Do it once, before the loop, never inside it.
+- NumPy also stores row by row, but a dense array can jump to any column, so the gap is much smaller.
 :::
 
-# (Bonus Slide) How your editor spots a missing bracket {style="font-size: 0.8em;"}
+## Sparse data is everywhere {style="font-size: 0.8em;"}
 
-## (Bonus Slide) The problem {style="font-size: 0.85em;"}
+::: {.incremental}
+- Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.
+- One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.
+- Ratings: one row per user, one column per product. Each user rates only a few.
+- Sensors: a 2019 MDS capstone team worked with particle physics images where most sensors picked up nothing.
+:::
 
-Which of these is balanced?
+::: {.notes}
+- Ask: anyone met a sparse matrix in another course already?
+:::
 
-```{.python}
-caption = "([{}])"     # ?
-caption = "([)]"       # ?
-```
+## iClicker: dense or sparse? {style="font-size: 0.8em;"}
+
+The value of trade between every pair of the 45 countries in Europe. Countries are vertices, trade value is the edge weight.
+
+- \(A) a dense adjacency matrix (NumPy array)
+- \(B) an adjacency list
+- \(C) a sparse matrix
 
 ::: {.fragment}
-Reading left to right, the bracket you close must be the most recent one you opened.
-
-Most recent first, that is a **stack**.
+- Answer: **A**. $45 \times 45 = 2{,}025$ numbers is about 16 KB, and almost every pair trades a bit, so it isn't mostly zeros.
+- Sparse pays off when the matrix is **big** and mostly zeros.
 :::
 
 ::: {.notes}
-- Let them answer by eye, then ask how they decided: they are already running the stack in their head.
-- `"([)]"`: every bracket has a partner, but the pairs cross.
+- Follow up: 100,000 companies instead? V² = 10¹⁰, 80 GB dense, and each company trades with only a few. Sparse matrix for maths, adjacency list for walking the graph or adding and removing edges.
 :::
 
-## (Bonus Slide) Ten lines with a `Stack` {style="font-size: 0.75em;"}
+## Today's cheat sheet {style="font-size: 0.65em;"}
 
-```{pyodide}
-pairs = {")": "(", "]": "[", "}": "{"}
+Storing a graph with $V$ vertices and $E$ edges:
 
-def is_balanced(text):
-    waiting = Stack()                     # brackets opened but not yet closed
-    for char in text:
-        if char in "([{":
-            waiting.push(char)            # opened one: remember it, O(1)
-        elif char in ")]}":
-            if waiting.isEmpty():         # closing with nothing open
-                return False
-            if waiting.pop() != pairs[char]:   # wrong partner on top
-                return False
-    return waiting.isEmpty()              # anything left open means unbalanced
+| representation | space | edge from $u$ to $v$? | neighbours of $u$ | use it when |
+|---|---|---|---|---|
+| adjacency list (dict of lists) | $O(V + E)$ | $O(\text{degree of } u)$ | $O(\text{degree of } u)$ | the graph is big, has few edges, or changes often |
+| adjacency matrix (NumPy) | $O(V^2)$ | $O(1)$ | $O(V)$ | the graph is small, or most pairs are connected |
+| sparse matrix (CSR) | $O(V + E)$ | $O(\text{degree of } u)$ | $O(\text{degree of } u)$ | the graph is big and you want matrix maths |
 
-print(is_balanced("([{}])"))
-print(is_balanced("([)]"))
-```
+## Today's takeaways {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- A graph is vertices plus edges. Directed or not, weighted or not.
+- `networkx`: `G.neighbors(v)`, `G.degree(v)`, `nx.shortest_path_length(G, u, v)`, `nx.connected_components(G)`.
+- `defaultdict` fills in missing keys, `Counter` counts a whole list in one step.
+- Adjacency list: $O(V + E)$. Adjacency matrix: $O(V^2)$. Real graphs have far fewer than $V^2$ edges.
+- A sparse matrix stores only the non-zeros. CSR is fast at rows, CSC at columns. Never `.toarray()` a big one.
+:::
+
+# Questions?
+
+## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
+
+# (Bonus Slide) Other graph problems {style="font-size: 0.8em;"}
+
+## (Bonus Slide) Classic problems we don't cover {style="font-size: 0.85em;"}
+
+- The largest [clique](https://en.wikipedia.org/wiki/Clique_(graph_theory)): a group where everyone is connected to everyone.
+- The largest [independent set](https://en.wikipedia.org/wiki/Independent_set_(graph_theory)): a group where nobody is connected.
+- The smallest [vertex cover](https://en.wikipedia.org/wiki/Vertex_cover) or [dominating set](https://en.wikipedia.org/wiki/Dominating_set).
+- [Graph colouring](https://en.wikipedia.org/wiki/Graph_coloring): as few colours as possible, no two neighbours share one.
 
 ::: {.fragment}
-One pass over the text, $O(1)$ per character → $O(n)$ time, $O(n)$ space.
+Many real problems turn into one of these, and many of them are [NP-complete](https://en.wikipedia.org/wiki/NP-completeness): nobody knows a fast algorithm that solves them exactly.
 :::
 
 ::: {.notes}
-- Needs the `Stack` cell from earlier in the deck, in the same session.
-- Walk `"([)]"` by hand: push `(`, push `[`, then `)` pops `[`, the wrong partner.
-- `"(("` is caught by the last line, `"))"` by the `isEmpty` check.
-- Worst case `"((((("`: O(n) memory.
+- Clique on Instagram: a friend group where everyone follows everyone.
+- Colouring: scheduling exams so no student has two at once.
 :::
