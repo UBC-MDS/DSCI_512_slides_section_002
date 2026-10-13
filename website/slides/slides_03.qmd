@@ -33,6 +33,39 @@ title-slide-attributes:
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Q: raise of hand: who has had Instagram suggest someone you actually know?"
 ---
 
+## Housekeeping: labs {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- "Single Attempt" on a lab question means one attempt per **variant**. You get unlimited attempts per question.
+
+  ![](images/attempts.png){width="80%" fig-alt="PrairieLearn question footer showing Save & Grade (Single attempt) and the message: Additional attempts available with new variants"}
+
+- New: the Jupyter scratchpad has starter code for every coding question. Play with the data and test your code there before you submit on PL.
+- Week 1 practice problems are on PL. Keep practising as you study.
+:::
+
+## Housekeeping: live coding quizzes {background-image="images/care.png" background-size="cover" background-position="right" style="font-size: 0.8em;"}
+
+::: {.incremental}
+- The goal is a safe space to make mistakes and practise before a real technical interview.
+- Go to your own lab session. Bring your UBC ID, or show your photo on Canvas or Workday.
+- Each quiz covers the **previous** week. This week: Week 1, binary and linear search.
+- Retakes: up to two extra tries, closed-book, new questions but on the same concepts. During any TA or instructor office hours, before November 6.
+:::
+
+::: {.notes}
+Last week's quizzes were stressful for many of you, and that was not our intention. Everyone walked a different path to MDS with different prior exposure to coding, so we want to give you more room to practise.
+
+Retake details:<br>
+Deadline: all retakes must be done before November 6.<br>
+Where: during any TA's or instructor's office hours.<br>
+Format: closed-book on PL (the lab quizzes are open-book). New questions that test the same concepts or algorithm as the quiz you are retaking.<br>
+Scheduling: if you cannot make office hours, contact the instructors and we will find another time.
+
+We hope this takes some pressure off.
+:::
+
+## Where we stopped last time {style="font-size: 0.9em;"}
 ```{python}
 #| echo: false
 # Hidden: imports for the whole deck, kept in one place so the visible cells
@@ -68,18 +101,9 @@ users = list(G.nodes)
 A = nx.to_numpy_array(G, nodelist=users, dtype=int)
 ```
 
-## Where we stopped last time {style="font-size: 0.85em;"}
 
-::: {.incremental}
-- We got to "Smaller is not always safe".
-- The rest of lecture 2 (slides 56 to 62) shrinks Instagram's user table about 10× by picking the right dtypes. Read it on your own: [lecture 2 slides](slides_02.html#/instagrams-user-table). Lab 2 practises it.
-- One idea to bring into today: a table with one number per **pair** of users needs $O(n^2)$ memory.
-:::
+The rest of lecture 2 shrinks Instagram's user table about 10× by picking the right dtypes. Read it on your own: [lecture 2 slides](slides_02.html#/instagrams-user-table). 
 
-::: {.notes}
-- Two minutes, no more. Do not reteach the dtype slides.
-- The pair table is the bridge: today Instagram's friend list is exactly that table.
-:::
 
 ## How does Instagram know who you might know? {style="font-size: 0.9em;"}
 
@@ -90,7 +114,7 @@ You open Instagram. A card says **Suggested for you: nori**.
 You have never met nori, but the card says *Followed by clam, kelp and mochi*.
 :::
 ::: {.column width="45%"}
-![](images/ig_otter_suggested.png){width="100%"}
+![](images/ig_suggested_phone.png){width="100%"}
 :::
 :::
 
@@ -99,7 +123,7 @@ Out of 3 billion users, how did Instagram pick nori? 🤔
 :::
 
 ::: {.notes}
-- Let them guess before moving on. Someone usually says "mutual friends".
+- "mutual friends"?
 - Follow up: what does Instagram need to store to answer that quickly?
 :::
 
@@ -255,10 +279,9 @@ Users and lines between them: this is called a **graph**.
 :::
 
 ::: {.notes}
-- Ask them to predict each step before you click.
 - Dark = you, blue = your friends, orange = friends of friends.
 - Step 4: nori has 3 mutual friends, bubbles 2, pixel 1. The most mutual friends wins the card.
-- waffle and river never light up. Remember them for "connected".
+- waffle and river never light up. 
 :::
 
 ## Graph, defined {style="font-size: 0.85em;"}
