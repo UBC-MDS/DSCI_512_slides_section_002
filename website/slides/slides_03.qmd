@@ -758,8 +758,8 @@ print("natgeo out-degree:", D.out_degree("natgeo"))   # following
 # and every label position is computed here.
 dm_pos = {"sky": (0.0, 0.0), "otter": (-1.6, 1.1), "clam": (1.6, 1.1), "kelp": (0.0, -1.3)}
 dm_graph = nx.Graph()
-dm_graph.add_weighted_edges_from([("sky", "otter", 120), ("sky", "clam", 15),
-                                  ("otter", "clam", 40), ("sky", "kelp", 3)])
+dm_graph.add_weighted_edges_from([("sky", "otter", 12), ("sky", "clam", 5),
+                                  ("otter", "clam", 8), ("sky", "kelp", 1)])
 like_pos = {"sky": (0.0, 0.0), "otter": (-1.6, 1.1), "clam": (1.6, 1.1)}
 like_graph = nx.DiGraph()
 like_graph.add_weighted_edges_from([("sky", "otter", 40), ("otter", "sky", 3),
@@ -812,7 +812,7 @@ ojs_define(weighted = weighted)
 }
 ```
 
-Undirected: messages sent between two friends.
+Undirected: one number per **pair**. Weight = number of mutual friends, 12 mutual friends between sky and otter.
 :::
 ::: {.column width="50%"}
 ```{ojs}
@@ -836,12 +836,12 @@ Undirected: messages sent between two friends.
 }
 ```
 
-Directed: likes one user gave the other.
+Directed: one number per **direction**. Weight = likes given: sky liked otter 40 times, otter liked sky only 3 times.
 :::
 ::::
 
 ::: {.notes}
-- Left: sky and otter talk the most. Instagram's "Close Friends" could start from this.
+- Left: sky and otter share the most mutual friends (12), so they are the strongest "people you may know" pair. Same idea as the opening question.
 - Right: sky liked otter's posts 40 times, otter liked sky's only 3 times. Same pair, two different numbers, so it has to be directed.
 - Flights are the classic example: price (undirected) and flight time (directed, because of the wind).
 :::
@@ -850,10 +850,10 @@ Directed: likes one user gave the other.
 
 ```{pyodide}
 W = nx.Graph()
-W.add_edge("sky", "otter", weight=120)   # weight=... stores a number on the edge
-W.add_edge("sky", "clam", weight=15)
-W.add_edge("otter", "clam", weight=40)
-W.add_edge("sky", "kelp", weight=3)
+W.add_edge("sky", "otter", weight=12)   # weight=... stores a number (mutual friends) on the edge stores a number on the edge
+W.add_edge("sky", "clam", weight=5)
+W.add_edge("otter", "clam", weight=8)
+W.add_edge("sky", "kelp", weight=1)
 
 print(nx.get_edge_attributes(W, "weight"))   # {edge: weight} for every edge
 ```
