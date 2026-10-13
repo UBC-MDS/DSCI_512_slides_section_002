@@ -108,12 +108,12 @@ The rest of lecture 2 shrinks Instagram's user table about 10× by picking the r
 ## How does Instagram know who you might know? {style="font-size: 0.9em;"}
 
 :::{.columns}
-::: {.column width="55%"}
+::: {.column width="45%"}
 You open Instagram. A card says **Suggested for you: nori**.
 
 You have never met nori, but the card says *Followed by clam, kelp and mochi*.
 :::
-::: {.column width="45%"}
+::: {.column width="55%"}
 ![](images/ig_suggested_phone.png){width="100%"}
 :::
 :::
