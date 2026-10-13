@@ -981,12 +981,14 @@ Why `defaultdict(list)` and not `defaultdict(list())`?
 - Plain dict: you control every key that gets created. defaultdict can hide a typo by quietly adding a key.
 :::
 
-## `Counter` is made for counting {style="font-size: 0.8em;"}
+## `Counter` is made for counting {style="font-size: 0.65em;"}
 
 ```{pyodide}
 from collections import Counter
 
-counts = Counter(likes)          # count the whole list in one step
+likes = ["otter", "clam", "otter", "kelp", "otter"]
+
+counts = Counter(likes)         # count the whole list in one step
 print(counts)
 print(counts["ada"])             # 0: no KeyError, and nothing is added
 print(counts.most_common(1))     # the top liker
@@ -1028,16 +1030,13 @@ for friend in G.neighbors("sky"):              # sky's friends
 print(mutual.most_common())
 ```
 
-::: {.fragment}
-That is the card from the start of class.
-:::
 
 ::: {.notes}
 - nori 3, bubbles 2, pixel 1, the same numbers as the step-through.
 - `G.has_edge("sky", fof)`: already friends, don't suggest.
 :::
 
-## Adjacency list {style="font-size: 0.8em;"}
+## Adjacency list {style="font-size: 0.7em;"}
 
 For every user, keep a list of their friends: a `dict` of lists.
 
@@ -1221,19 +1220,6 @@ print(follow_table)
 - Board: sketch the arrows from the rows, then compare with the follow slide.
 :::
 
-## Both representations, one picture {style="font-size: 0.8em;"}
-
-![](images/graph_rep.jpeg){width="49%"} ![](images/graph_rep_dir.jpeg){width="49%"}
-
-::: {.notes}
-- Left undirected, right directed.
-- Directed list: an edge only appears in the list of the vertex it leaves.
-- Directed matrix: rows are where the edge starts, columns where it ends.
-:::
-
-::: footer
-Images from the DSCI 512 lecture notes
-:::
 
 ## Which one to use? {style="font-size: 0.75em;"}
 
@@ -1242,7 +1228,7 @@ Images from the DSCI 512 lecture notes
 | space | $O(V + E)$ | $O(V^2)$ |
 | is there an edge from $u$ to $v$? | $O(\text{degree of } u)$, $O(V)$ worst case | $O(1)$: `A[u, v]` |
 | all neighbours of $u$ | $O(\text{degree of } u)$ | $O(V)$: scan the row |
-| good for | big graphs with few edges, walking the graph | small or dense graphs, linear algebra |
+| good for | big graphs with few edges| small or dense graphs |
 
 ::: {.fragment}
 A trick from lecture 2: store neighbours in a **set**, and the edge check is $O(1)$ on average. `networkx` does this: a graph is a dict of dicts.
