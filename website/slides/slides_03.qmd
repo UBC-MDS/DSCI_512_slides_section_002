@@ -897,7 +897,7 @@ Two standard ways: an adjacency list and an adjacency matrix. The list is a `dic
 
 Who liked your posts today? Count the likes per user.
 
-```{pyodide}
+```python
 likes = ["otter", "clam", "otter", "kelp", "otter"]
 
 counts = {}
@@ -905,10 +905,14 @@ for user in likes:
     counts[user] += 1     # "otter" is not a key yet
 ```
 
+![](images/dict_error.png){width="80%" fig-alt="Python traceback: KeyError: 'otter' raised on the line counts[user] += 1"}
+
 ::: {.fragment}
 You have to check every key yourself:
 
 ```{pyodide}
+likes = ["otter", "clam", "otter", "kelp", "otter"]
+
 counts = {}
 for user in likes:
     if user not in counts:    # first time we see this user: start at 0
@@ -919,11 +923,11 @@ print(counts)
 :::
 
 ::: {.notes}
-- The first cell raises `KeyError: 'otter'`.
+- The first block raises `KeyError: 'otter'` (screenshot shown, not run live).
 - `counts.get("ada", 0)` returns 0 for a missing key, but only reads: it adds nothing.
 :::
 
-## `defaultdict` does the check for you {style="font-size: 0.8em;"}
+## `defaultdict` does the check for you {style="font-size: 0.7em;"}
 
 `defaultdict(f)` calls `f()` to make the value for a key it has not seen yet.
 
