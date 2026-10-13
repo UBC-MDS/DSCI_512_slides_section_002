@@ -694,7 +694,7 @@ ojs_define(follow_view = follow_view)
 :::: {.columns}
 ::: {.column width="45%"}
 - **Undirected**: an edge goes both ways. Facebook friends: if Alice is friends with Bob, Bob is friends with Alice.
-- **Directed**: an edge has a direction, drawn as an arrow. You can follow natgeo without natgeo following you.
+- **Directed**: an edge has a direction, drawn as an arrow. Instagram followers: You can follow natgeo without natgeo following you.
 
 ::: {.fragment}
 Degree splits in two:
