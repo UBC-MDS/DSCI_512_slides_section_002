@@ -1200,11 +1200,7 @@ A trick from lecture 2: store neighbours in a **set**, and the edge check is $O(
 
 ## Can we have both? {style="font-size: 0.85em;"}
 
-::: {.incremental}
-- The matrix is handy: fast edge checks, and PageRank, spectral clustering and graph neural networks are all written as matrix maths.
-- The list is small.
 - A **sparse matrix** gets close to both. `networkx` already uses one:
-:::
 
 ::: {.fragment}
 ```{pyodide}
