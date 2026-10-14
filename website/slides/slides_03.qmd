@@ -1449,7 +1449,18 @@ print(dict(G.degree()))    # same numbers, user by user
 ```
 :::
 
+::: {.fragment}
+`axis` says which direction to add up:
+
+```{pyodide}
+print(am.sum(axis=1))      # axis=1: along each row, one number per row
+print(am.sum(axis=0))      # axis=0: down each column, one number per column
+```
+:::
+
 ::: {.notes}
+- axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
+- Same numbers here because the graph is undirected, so the matrix is symmetric. In a directed graph, axis=1 gives out-degree and axis=0 gives in-degree.
 - Walk the first row: sky has 4 ones in row 0, and sky has 4 friends.
 - `toarray()` builds the full dense matrix, so use it only on tiny graphs like this one.
 - `am.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
