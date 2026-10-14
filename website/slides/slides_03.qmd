@@ -869,7 +869,7 @@ for user in likes:
     counts[user] += 1     # "otter" is not a key yet
 ```
 
-![](images/dict_error.png){width="100%"}
+![](images/dict_error.png){.nostretch width="100%"}
 
 ::: {.fragment}
 You have to check every key yourself:
@@ -992,7 +992,6 @@ print(mutual.most_common())
 
 
 ::: {.notes}
-- nori 3, bubbles 2, pixel 1, the same numbers as the step-through.
 - `G.has_edge("sky", fof)`: already friends, don't suggest.
 :::
 
@@ -1197,22 +1196,6 @@ A trick from lecture 2: store neighbours in a **set**, and the edge check is $O(
 ::: {.notes}
 - Walking the graph = BFS and DFS, next lecture.
 - `G.has_edge(u, v)` is fast because of the dict of dicts.
-:::
-
-## Question: few edges {style="font-size: 0.8em;"}
-
-$E$ is much smaller than $V^2$. Which representation uses less memory?
-
-- \(A) adjacency list
-- \(B) adjacency matrix
-
-::: {.fragment}
-- Answer: **A**. Most of the matrix would be zeros, each one taking memory to say "no edge here".
-- An Instagram user has a few hundred friends out of 3 billion users.
-:::
-
-::: {.notes}
-- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
 :::
 
 ## Can we have both? {style="font-size: 0.85em;"}
