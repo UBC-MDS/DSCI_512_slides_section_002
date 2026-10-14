@@ -1,7 +1,7 @@
 ---
 title: "3. Graphs and Sparse Matrices"
-description: "Meet stacks and queues, represent relationships as graphs, and store mostly-empty matrices efficiently."
-description-short: "Meet the stack and queue data structures. Learn graph vocabulary (nodes, edges, paths, connectivity) and how to build graphs in Python. See why sparse matrices save memory for data that is mostly zeros."
+description: "Represent relationships as graphs, and store mostly-empty matrices efficiently."
+description-short: "Learn graph vocabulary (nodes, edges, paths, connectivity) and how to build graphs in Python. See why sparse matrices save memory for data that is mostly zeros."
 ---
 
 ## Slides for Section 002
