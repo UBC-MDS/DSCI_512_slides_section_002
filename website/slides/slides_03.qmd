@@ -1303,15 +1303,18 @@ csr_steps = {}
 for i in range(csr_dense.shape[0]):
     start, end = csr_indptr[i], csr_indptr[i + 1]
     in_row = range(start, end)
-    if end == start:
-        say = (f"Row {i}: indptr[{i}] = {start} and indptr[{i + 1}] = {end}. "
-               f"An empty slice, so row {i} has no non-zeros.")
+    count = end - start
+    build = (f"Build: row {i} has {count} non-zero{'s' if count != 1 else ''}, "
+             f"so indptr[{i + 1}] = indptr[{i}] + {count} = {start} + {count} = {end}.")
+    if count == 0:
+        read = (f"Read: data[{start}:{end}] is an empty slice, so row {i} has no non-zeros.")
     else:
-        where = f"position {start}" if end - start == 1 else f"positions {start} to {end - 1}"
-        say = (f"Row {i}: indptr[{i}] = {start} and indptr[{i + 1}] = {end}, so look at {where}: "
-               f"columns {csr_indices[start:end]}, values {csr_data[start:end]}.")
+        read = (f"Read: data[{start}:{end}] = {csr_data[start:end]} "
+                f"with columns indices[{start}:{end}] = {csr_indices[start:end]}.")
+    say = [build, read]
     csr_steps[i] = {
         "rows": [{"cls": "on" if r == i else "faded",
+                  "count": int((row != 0).sum()),
                   "cells": [{"v": int(v), "cls": "one" if v else ""} for v in row]}
                  for r, row in enumerate(csr_dense)],
         "data": [{"label": v, "tag": k, "cls": "found" if k in in_row else ""}
@@ -1322,14 +1325,35 @@ for i in range(csr_dense.shape[0]):
                    for k, p in enumerate(csr_indptr)],
         "say": say,
     }
-csr_view = {"steps": csr_steps, "rows": list(range(csr_dense.shape[0])),
+csr_sizes = {"nnz": len(csr_data), "rows": csr_dense.shape[0], "indptr": len(csr_indptr)}
+csr_view = {"steps": csr_steps, "rows": list(range(csr_dense.shape[0])), "sizes": csr_sizes,
             "col_labels": [f"col {j}" for j in range(csr_dense.shape[1])]}
 ojs_define(csr_view = csr_view)
 ```
 
+## The three arrays of CSR {style="font-size: 0.8em;"}
+
+CSR = **Compressed Sparse Row**. Walk the matrix row by row and keep only the non-zeros, in three arrays.
+
+::: {.incremental}
+- `data`: the non-zero values, row 0 first. `nnz` of them.
+- `indices`: the column of each value in `data`. `nnz` of them.
+- `indptr`: how many non-zeros come before each row, which is also where the row starts in `data`. $V + 1$ of them.
+:::
+
+::: {.fragment}
+`indptr` starts at 0, ends at `nnz`, and row $i$ is `data[indptr[i]:indptr[i+1]]`.
+:::
+
+::: {.notes}
+- Build indptr by counting the non-zeros in each row, then keep a running total that starts at 0.
+- Next slide: our 5 by 5 example has 6 non-zeros, so data and indices have 6 entries and indptr has 6.
+- Tiny check on the board first: rows with 1, 0, 2, 1 non-zeros give indptr = 0, 1, 1, 3, 4.
+:::
+
 ## How CSR stores a matrix {style="font-size: 0.8em;"}
 
-CSR = **Compressed Sparse Row**. Walk the matrix row by row and write down each non-zero.
+Pick a row. First see how `indptr` is built, then how the row is read back.
 
 ```{ojs}
 //| echo: false
@@ -1341,9 +1365,9 @@ viewof csr_row = Inputs.radio(csr_view.rows, {value: 0, label: "row", format: i 
 {
   // Draw only: the arrays and the highlights were computed in Python (csr_view).
   const s = csr_view.steps[csr_row];
-  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}<th>non-zeros</th></tr>`;
   const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
-      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}<td>${r.count}</td></tr>`);
   const boxes = items => items.map(b =>
     html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
   return html`<div class="adj-wrap">
@@ -1355,7 +1379,7 @@ viewof csr_row = Inputs.radio(csr_view.rows, {value: 0, label: "row", format: i 
         <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
         <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
     </div>
-    <div class="ojs-readout">${s.say}</div>`;
+    <div class="ojs-readout">${s.say[0]}<br>${s.say[1]}</div>`;
 }
 ```
 
@@ -1518,23 +1542,6 @@ Plot.plot({
 
 ::: {.notes}
 - Ask: anyone met a sparse matrix in another course already?
-:::
-
-## iClicker: dense or sparse? {style="font-size: 0.8em;"}
-
-The value of trade between every pair of the 45 countries in Europe. Countries are vertices, trade value is the edge weight.
-
-- \(A) a dense adjacency matrix (NumPy array)
-- \(B) an adjacency list
-- \(C) a sparse matrix
-
-::: {.fragment}
-- Answer: **A**. $45 \times 45 = 2{,}025$ numbers is about 16 KB, and almost every pair trades a bit, so it isn't mostly zeros.
-- Sparse pays off when the matrix is **big** and mostly zeros.
-:::
-
-::: {.notes}
-- Follow up: 100,000 companies instead? V² = 10¹⁰, 80 GB dense, and each company trades with only a few. Sparse matrix for maths, adjacency list for walking the graph or adding and removing edges.
 :::
 
 ## Today's cheat sheet {style="font-size: 0.65em;"}
