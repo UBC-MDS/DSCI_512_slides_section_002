@@ -1422,16 +1422,40 @@ for i in range(x.shape[0]):
 
 ## Working with sparse matrices {style="font-size: 0.8em;"}
 
-Many NumPy operations work. Row sums of an adjacency matrix give every degree, without building the dense matrix:
+Many NumPy operations work. Can we get every user's number of friends from the adjacency matrix?
 
 ```{pyodide}
-am = nx.adjacency_matrix(G)
-print(am.sum(axis=1))      # one number per user
-print(dict(G.degree()))    # same numbers
+am = nx.adjacency_matrix(G)   # sparse: only the 1s are stored
+print(list(G.nodes))          # row i and column i belong to this user
+print(am.toarray())           # dense copy, only to look at it
 ```
 
 ::: {.fragment}
-Use `x[i, j]`, not `x[i][j]`:
+Each row has a 1 for every friend of that user. So the row sum is the number of friends.
+:::
+
+## Row sums are degrees {style="font-size: 0.8em;"}
+
+```{pyodide}
+print(list(G.nodes))       # which user each row belongs to
+print(am.sum(axis=1))      # add up each row: one number per user, no dense matrix built
+```
+
+::: {.fragment}
+Check against the graph itself:
+
+```{pyodide}
+print(dict(G.degree()))    # same numbers, user by user
+```
+:::
+
+::: {.notes}
+- Walk the first row: sky has 4 ones in row 0, and sky has 4 friends.
+- `toarray()` builds the full dense matrix, so use it only on tiny graphs like this one.
+- `am.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
+:::
+
+## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
 
 ```{pyodide}
 import scipy.sparse
@@ -1440,7 +1464,6 @@ old = scipy.sparse.csr_matrix(am)   # the older type, still common (scikit-learn
 print(old[3, 2])                    # works
 print(old[3][2])                    # IndexError: old[3] is a 1-row matrix, it has no row 2
 ```
-:::
 
 ::: {.notes}
 - With a NumPy array both forms work. With `csr_matrix`, `x[3]` stays 2D with one row.
