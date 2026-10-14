@@ -138,3 +138,5 @@
 .reveal .ds-row.csr .ds-box { min-width: 0; width: 46px; padding: 0; }
 .reveal .ds-row.csr .sq-tag.below { top: calc(100% + 2px); font-size: 13px; color: #8a8880; }
 .reveal .ds-row.csr { margin-bottom: 14px; }
+.reveal .csr-wrap { gap: 48px; }
+.reveal .csr-wrap table.adj-table tr.on td { background: #dbe8f8; }

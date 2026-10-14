@@ -1299,34 +1299,46 @@ csr_demo = scipy.sparse.csr_array(csr_dense)
 csr_data, csr_indices, csr_indptr = (csr_demo.data.tolist(), csr_demo.indices.tolist(),
                                      csr_demo.indptr.tolist())
 
+n_rows = csr_dense.shape[0]
+nnz_total = len(csr_data)
+row_nnz = [int(c) for c in (csr_dense != 0).sum(axis=1)]
+
 csr_steps = {}
-for i in range(csr_dense.shape[0]):
-    start, end = csr_indptr[i], csr_indptr[i + 1]
-    in_row = range(start, end)
-    count = end - start
-    build = (f"Build: row {i} has {count} non-zero{'s' if count != 1 else ''}, "
-             f"so indptr[{i + 1}] = indptr[{i}] + {count} = {start} + {count} = {end}.")
-    if count == 0:
-        read = (f"Read: data[{start}:{end}] is an empty slice, so row {i} has no non-zeros.")
+for k in range(-1, n_rows):                    # k = last row filled in; -1 = nothing yet
+    filled_data = csr_indptr[k + 1] if k >= 0 else 0
+    last = (k == n_rows - 1)
+    n_ptr = (k + 1) + (1 if last else 0)       # indptr[0..k], plus the closing total after the last row
+    start, end = (csr_indptr[k], csr_indptr[k + 1]) if k >= 0 else (0, 0)
+    if k < 0:
+        say = ["Three empty arrays. Click a row to fill them in."]
     else:
-        read = (f"Read: data[{start}:{end}] = {csr_data[start:end]} "
-                f"with columns indices[{start}:{end}] = {csr_indices[start:end]}.")
-    say = [build, read]
-    csr_steps[i] = {
-        "rows": [{"cls": "on" if r == i else "faded",
-                  "count": int((row != 0).sum()),
+        count = end - start
+        if count:
+            fill = (f"Row {k} has {count} non-zero{'s' if count != 1 else ''}: "
+                    f"data gets {csr_data[start:end]}, indices gets {csr_indices[start:end]}.")
+        else:
+            fill = f"Row {k} has no non-zeros, so data and indices get nothing."
+        say = [fill, f"indptr[{k}] = {start}: that many non-zeros come before row {k}."]
+        if last:
+            say.append(f"One more: indptr[{k + 1}] = {end}, the total number of non-zeros.")
+    csr_steps[k] = {
+        "rows": [{"cls": "on" if r == k else "",
                   "cells": [{"v": int(v), "cls": "one" if v else ""} for v in row]}
                  for r, row in enumerate(csr_dense)],
-        "data": [{"label": v, "tag": k, "cls": "found" if k in in_row else ""}
-                 for k, v in enumerate(csr_data)],
-        "indices": [{"label": c, "tag": k, "cls": "found" if k in in_row else ""}
-                    for k, c in enumerate(csr_indices)],
-        "indptr": [{"label": p, "tag": k, "cls": "end" if k in (i, i + 1) else ""}
-                   for k, p in enumerate(csr_indptr)],
+        "nnz": [{"v": row_nnz[r] if r <= k else "", "cls": "on" if r == k else ""}
+                for r in range(n_rows)],
+        "data": [{"label": csr_data[j] if j < filled_data else "", "tag": j,
+                  "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                 for j in range(nnz_total)],
+        "indices": [{"label": csr_indices[j] if j < filled_data else "", "tag": j,
+                     "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                    for j in range(nnz_total)],
+        "indptr": [{"label": csr_indptr[j] if j < n_ptr else "", "tag": j,
+                    "cls": ("end" if j in (k, k + 1) and j < n_ptr and (j == k or last) else "") if j < n_ptr else "out"}
+                   for j in range(len(csr_indptr))],
         "say": say,
     }
-csr_sizes = {"nnz": len(csr_data), "rows": csr_dense.shape[0], "indptr": len(csr_indptr)}
-csr_view = {"steps": csr_steps, "rows": list(range(csr_dense.shape[0])), "sizes": csr_sizes,
+csr_view = {"steps": csr_steps, "rows": list(range(-1, n_rows)),
             "col_labels": [f"col {j}" for j in range(csr_dense.shape[1])]}
 ojs_define(csr_view = csr_view)
 ```
@@ -1338,7 +1350,7 @@ CSR = **Compressed Sparse Row**. Walk the matrix row by row and keep only the no
 ::: {.incremental}
 - `data`: the non-zero values, row 0 first. `nnz` of them.
 - `indices`: the column of each value in `data`. `nnz` of them.
-- `indptr`: how many non-zeros come before each row, which is also where the row starts in `data`. $V + 1$ of them.
+- `indptr`: how many non-zeros come **before** each row, which is also where the row starts in `data`. $V + 1$ of them.
 :::
 
 ::: {.fragment}
@@ -1353,11 +1365,11 @@ CSR = **Compressed Sparse Row**. Walk the matrix row by row and keep only the no
 
 ## How CSR stores a matrix {style="font-size: 0.8em;"}
 
-Pick a row. First see how `indptr` is built, then how the row is read back.
+Click through the rows and watch the three arrays fill in.
 
 ```{ojs}
 //| echo: false
-viewof csr_row = Inputs.radio(csr_view.rows, {value: 0, label: "row", format: i => `row ${i}`})
+viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", format: i => i < 0 ? "start" : `row ${i}`})
 ```
 
 ```{ojs}
@@ -1365,26 +1377,31 @@ viewof csr_row = Inputs.radio(csr_view.rows, {value: 0, label: "row", format: i 
 {
   // Draw only: the arrays and the highlights were computed in Python (csr_view).
   const s = csr_view.steps[csr_row];
-  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}<th>non-zeros</th></tr>`;
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
   const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
-      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}<td>${r.count}</td></tr>`);
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const nnzRows = s.nnz.map(r => html`<tr class="${r.cls}"><td>${r.v}</td></tr>`);
   const boxes = items => items.map(b =>
     html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
-  return html`<div class="adj-wrap">
+  return html`<div class="adj-wrap csr-wrap">
       <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
         <div class="ds-caption">the matrix</div></div>
+      <div class="adj-panel"><table class="adj-table">
+          <tr><th>non-zeros</th></tr>${nnzRows}</table>
+        <div class="ds-caption">count per row</div></div>
       <div class="adj-panel">
         <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
         <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
         <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
         <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
     </div>
-    <div class="ojs-readout">${s.say[0]}<br>${s.say[1]}</div>`;
+    <div class="ojs-readout">${s.say.join(" ")}</div>`;
 }
 ```
 
 ::: {.notes}
-- data: the non-zero values, row by row. indices: the column of each one. indptr: where each row starts.
+- data: the non-zero values, row by row. indices: the column of each one. indptr: how many non-zeros come before each row.
+- The non-zeros column is only a helper to count. CSR does not store it.
 - Row 2 is empty: indptr[2] and indptr[3] are both 3.
 - indptr has one more entry than rows, so the last row knows where it ends.
 - Each row's slice is that vertex's list of neighbours: CSR is an adjacency list packed into flat arrays.
@@ -1422,30 +1439,28 @@ for i in range(x.shape[0]):
 
 ## Working with sparse matrices {style="font-size: 0.8em;"}
 
-Many NumPy operations work. Can we get every user's number of friends from the adjacency matrix?
+Many NumPy operations work. Can we add up each row without building the dense matrix?
 
 ```{pyodide}
-am = nx.adjacency_matrix(G)   # sparse: only the 1s are stored
-print(list(G.nodes))          # row i and column i belong to this user
-print(am.toarray())           # dense copy, only to look at it
+print(dense)                  # the 5 by 5 matrix from before, as a regular array
+print(type(x))                # x = csr_array(dense): only the non-zeros are stored
 ```
 
 ::: {.fragment}
-Each row has a 1 for every friend of that user. So the row sum is the number of friends.
+Row 0 holds 5 and 1, so its total should be 6.
 :::
 
-## Row sums are degrees {style="font-size: 0.8em;"}
+## Row sums {style="font-size: 0.8em;"}
 
 ```{pyodide}
-print(list(G.nodes))       # which user each row belongs to
-print(am.sum(axis=1))      # add up each row: one number per user, no dense matrix built
+print(x.sum(axis=1))       # add up each row: one number per row, no dense matrix built
 ```
 
 ::: {.fragment}
-Check against the graph itself:
+Check against the dense array:
 
 ```{pyodide}
-print(dict(G.degree()))    # same numbers, user by user
+print(dense.sum(axis=1))   # same numbers
 ```
 :::
 
@@ -1453,17 +1468,16 @@ print(dict(G.degree()))    # same numbers, user by user
 `axis` says which direction to add up:
 
 ```{pyodide}
-print(am.sum(axis=1))      # axis=1: along each row, one number per row
-print(am.sum(axis=0))      # axis=0: down each column, one number per column
+print(x.sum(axis=1))       # axis=1: along each row, one number per row
+print(x.sum(axis=0))       # axis=0: down each column, one number per column
 ```
 :::
 
 ::: {.notes}
 - axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
-- Same numbers here because the graph is undirected, so the matrix is symmetric. In a directed graph, axis=1 gives out-degree and axis=0 gives in-degree.
-- Walk the first row: sky has 4 ones in row 0, and sky has 4 friends.
-- `toarray()` builds the full dense matrix, so use it only on tiny graphs like this one.
-- `am.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
+- Walk row 0: 5 + 1 = 6. Row 2 is empty, so its total is 0.
+- `x.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
+- Counting non-zeros instead of adding them up: `x.getnnz(axis=1)` gives 2, 1, 0, 2, 1. On a 0/1 adjacency matrix that is the number of friends.
 :::
 
 ## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
@@ -1471,7 +1485,7 @@ print(am.sum(axis=0))      # axis=0: down each column, one number per column
 ```{pyodide}
 import scipy.sparse
 
-old = scipy.sparse.csr_matrix(am)   # the older type, still common (scikit-learn)
+old = scipy.sparse.csr_matrix(dense)   # the older type, still common (scikit-learn)
 print(old[3, 2])                    # works
 print(old[3][2])                    # IndexError: old[3] is a 1-row matrix, it has no row 2
 ```
