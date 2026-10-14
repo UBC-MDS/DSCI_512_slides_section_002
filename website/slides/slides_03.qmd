@@ -80,7 +80,6 @@ import timeit
 
 import networkx as nx
 import numpy as np
-import psutil
 import scipy.sparse
 ```
 
@@ -1285,136 +1284,6 @@ Same space complexity as an adjacency list, and that is no coincidence.
 - Lecture 2 dtype tricks work here too: an unweighted graph only needs bool values (1 byte), and int32 indices (4 bytes) are enough below about 2 billion users.
 :::
 
-## iClicker: will it fit? {style="font-size: 0.8em;"}
-
-1 million users, 200 friends each on average. How much memory does the **dense** adjacency matrix need, at 8 bytes per number?
-
-- \(A) 1.6 GB
-- \(B) 80 GB
-- \(C) 8 TB
-- \(D) 1.6 TB
-
-::: {.fragment}
-- Answer: **C**. $8 \times (10^6)^2 = 8 \times 10^{12}$ bytes.
-- Sparse: $E = 10^6 \times 200 / 2 = 10^8$, so $\text{nnz} = 2 \times 10^8$ and $8 \times (4 \times 10^8 + 10^6 + 1) \approx 3.2$ GB.
-:::
-
-::: {.notes}
-- Watch for the divide by 2: every friendship is shared by two users.
-- About 2,500 times smaller, and it fits on a laptop. Check with the slider next.
-:::
-
-```{python}
-#| echo: false
-# Hidden: dense vs sparse memory for the slider on the next slide.
-# Every byte count, label and the laptop's RAM are computed here; OJS only draws.
-RAM_BYTES = float(psutil.virtual_memory().total)
-FRIENDS_EACH = 200
-
-
-def human_bytes(n_bytes):
-    """Readable size for chart labels: 400 KB, 3.2 GB, 72.0 EB."""
-    for unit, size in [("EB", 1e18), ("PB", 1e15), ("TB", 1e12), ("GB", 1e9), ("MB", 1e6), ("KB", 1e3)]:
-        if n_bytes >= size:
-            return f"{n_bytes / size:,.1f} {unit}"
-    return f"{n_bytes:,.0f} bytes"
-
-
-def memory_point(n_users):
-    """Bytes for the dense matrix and the CSR matrix of a friend graph with n_users users."""
-    nnz = n_users * min(FRIENDS_EACH, n_users - 1)   # 2E: every friendship sits in two rows
-    dense = 8 * n_users ** 2
-    sparse = 8 * (nnz + nnz + n_users + 1)           # data + indices + indptr
-    return dense, sparse
-
-
-def short_count(n):
-    for unit, size in [("B", 10 ** 9), ("M", 10 ** 6), ("k", 10 ** 3)]:
-        if n >= size:
-            return f"{n // size:,}{unit}"
-    return f"{n:,}"
-
-
-mem_choices = [10 ** 3, 10 ** 4, 10 ** 5, 10 ** 6, 10 ** 7, 10 ** 8, 10 ** 9, 3 * 10 ** 9]
-mem_curves = []
-for n in np.logspace(3, np.log10(3e9), 60):
-    dense, sparse = memory_point(int(n))
-    mem_curves += [{"n": int(n), "bytes": dense, "kind": "dense O(V²)"},
-                   {"n": int(n), "bytes": sparse, "kind": "sparse O(V + E)"}]
-
-mem_picks = {}
-for n in mem_choices:
-    dense, sparse = memory_point(n)
-    mem_picks[n] = {
-        "points": [{"n": n, "bytes": b, "kind": kind,
-                    "label": f"{human_bytes(b)} {'✅' if b <= RAM_BYTES else '❌'}"}
-                   for b, kind in [(dense, "dense O(V²)"), (sparse, "sparse O(V + E)")]],
-        "dense": human_bytes(dense), "sparse": human_bytes(sparse),
-        "ratio": f"{dense / sparse:,.0f}",
-        "users": f"{n:,}",
-    }
-
-mem_chart = {
-    "curves": mem_curves, "picks": mem_picks, "choices": mem_choices,
-    "choice_labels": {n: short_count(n) for n in mem_choices},
-    "order": ["dense O(V²)", "sparse O(V + E)"],
-    "ram": RAM_BYTES, "ram_label": f"{RAM_BYTES / 1e9:,.0f} GB (my laptop)",
-    "friends_each": FRIENDS_EACH,
-}
-ojs_define(mem_chart = mem_chart)
-```
-
-## Will Instagram's friend graph fit? {style="font-size: 0.8em;"}
-
-200 friends per user, 8 bytes per number.
-
-```{ojs}
-//| echo: false
-viewof mem_n = Inputs.radio(mem_chart.choices, {value: 1000000, label: "number of users",
-                                                format: n => mem_chart.choice_labels[n]})
-```
-
-```{ojs}
-//| echo: false
-// Draw only: every byte count and label was computed in Python (mem_chart).
-{
-  const picked = mem_chart.picks[mem_n].points;
-  return Plot.plot({
-    width: 880, height: 320, marginLeft: 80, marginRight: 150, marginBottom: 46,
-    style: {fontSize: "16px", background: "transparent"},
-    x: {type: "log", label: "number of users →", labelAnchor: "center", grid: true,
-        ticks: mem_chart.choices, tickFormat: n => mem_chart.choice_labels[n]},
-    y: {type: "log", label: "↑ memory needed (bytes)", grid: true, tickFormat: "~s"},
-    color: {domain: mem_chart.order, range: ["#eb6834", "#2a78d6"], legend: true, swatchSize: 16},
-    marks: [
-      Plot.line(mem_chart.curves, {x: "n", y: "bytes", stroke: "kind", strokeWidth: 2.5}),
-      Plot.ruleY([mem_chart.ram], {stroke: "#52514e", strokeDasharray: "4 4"}),
-      Plot.text([{y: mem_chart.ram}], {x: 1000, y: "y", text: () => mem_chart.ram_label,
-                                       dy: -10, textAnchor: "start", fill: "#52514e"}),
-      Plot.ruleX([mem_n], {stroke: "#b8b6b0", strokeDasharray: "4 4"}),
-      Plot.dot(picked, {x: "n", y: "bytes", fill: "kind", r: 6, stroke: "white", strokeWidth: 2}),
-      Plot.text(picked, {x: "n", y: "bytes", text: "label", dx: 10, textAnchor: "start", fontWeight: "bold"})
-    ]
-  });
-}
-```
-
-```{ojs}
-//| echo: false
-{
-  // Print only: every number below was computed in Python (mem_chart).
-  const p = mem_chart.picks[mem_n];
-  return html`<div class="ojs-readout">${p.users} users: <span class="match">dense ${p.dense}</span>,
-    <span class="notify">sparse ${p.sparse}</span>, <b>${p.ratio}×</b> smaller.</div>`;
-}
-```
-
-::: {.notes}
-- Both axes are log scale: the orange line is twice as steep, that is V² against V.
-- 1M users: 8 TB vs 3.2 GB, the iClicker answer.
-- 3B users: the dense matrix needs exabytes. The sparse one needs terabytes: a data centre, not impossible.
-:::
-
 ```{python}
 #| echo: false
 # Hidden: the CSR step-through on the next slide. The three arrays come from
@@ -1526,22 +1395,6 @@ for i in range(x.shape[0]):
 - Columns are expensive: to find everything in column 4, check every row's slice.
 :::
 
-## Question: how long is each array? {style="font-size: 0.8em;"}
-
-A $V \times V$ CSR matrix has nnz non-zeros. How long are `data`, `indices` and `indptr`?
-
-- \(A) nnz, nnz, nnz
-- \(B) nnz, nnz, $V + 1$
-- \(C) nnz, $V$, $V$
-- \(D) $V$, $V$, $V + 1$
-
-::: {.fragment}
-- Answer: **B**. That is where $8 \times (\text{nnz} + \text{nnz} + V + 1)$ comes from.
-:::
-
-::: {.notes}
-- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
-:::
 
 ## Working with sparse matrices {style="font-size: 0.8em;"}
 
