@@ -284,8 +284,6 @@ Users and lines between them: this is called a **graph**.
 :::
 
 ::: {.notes}
-- Dark = you, blue = your friends, orange = friends of friends.
-- Step 4: nori has 3 mutual friends, bubbles 2, pixel 1. The most mutual friends wins the card.
 - waffle and river never light up. 
 :::
 
@@ -334,9 +332,7 @@ One at a time: `G.add_node("ada")`, `G.add_edge("sky", "otter")`. Many at once: 
 :::
 
 ::: {.notes}
-- Same 11 users and 13 friendships as the picture.
 - `nx.draw(G)` draws it with matplotlib. Positions are random each run unless you pass `pos=nx.spring_layout(G, seed=0)`: only nodes and edges matter, not where they are drawn.
-- `list(G.nodes())` and `list(G.edges())` list them.
 :::
 
 ```{python}
@@ -419,10 +415,6 @@ viewof deg_who = Inputs.select(adj_view.users, {value: "sky", label: "user"})
 :::
 ::::
 
-::: {.notes}
-- Pick sky (4), then nori (3), then ada (1).
-- In a simple graph (no self-loops, no repeated edges), degree = number of neighbours.
-:::
 
 ```{python}
 #| echo: false
@@ -490,13 +482,6 @@ viewof path_to = Inputs.select(adj_view.users, {value: "ada", label: "to"})
 - A **cycle** is a path that starts and ends at the same vertex: sky → clam → kelp → sky.
 :::
 
-::: {.notes}
-- Start with nori to ada: 5 edges. Then nori to bubbles: 2.
-- nori → kelp → clam → sky → otter → pixel → ada is also a path, but longer.
-- Then try sky to waffle: no path at all. That is the next slide.
-- A cycle does not reuse an edge.
-:::
-
 ## Shortest path in code {style="font-size: 0.85em;"}
 
 ```{pyodide}
@@ -508,9 +493,6 @@ print(nx.shortest_path_length(G, "nori", "ada"))   # its length: the number of e
 How does `networkx` find it? Breadth-first search, next lecture.
 :::
 
-::: {.notes}
-- "Suggested for you" only looks at distance 2: friends of friends.
-:::
 
 ```{python}
 #| echo: false
@@ -741,8 +723,6 @@ viewof follow_who = Inputs.radio(follow_view.users, {value: "natgeo", label: "us
 ::::
 
 ::: {.notes}
-- natgeo: 3 followers, follows nobody.
-- sky and otter follow each other: a two-way relationship is two edges, one each way.
 - Directed graphs can also have self-loops, an edge from a node to itself. You'll meet them in Markov chains (DSCI 575).
 :::
 
@@ -845,11 +825,6 @@ Directed: one number per **direction**. Weight = likes given: sky liked otter 40
 :::
 ::::
 
-::: {.notes}
-- Left: sky and otter share the most mutual friends (12), so they are the strongest "people you may know" pair. Same idea as the opening question.
-- Right: sky liked otter's posts 40 times, otter liked sky's only 3 times. Same pair, two different numbers, so it has to be directed.
-- Flights are the classic example: price (undirected) and flight time (directed, because of the wind).
-:::
 
 ## Weighted graphs in code {style="font-size: 0.85em;"}
 
@@ -874,11 +849,6 @@ A soccer league: two teams are connected if they played each other, labelled wit
 
 ::: {.fragment}
 - Answer: **B**. A game involves both teams, so there is no direction, and the number of games is the weight.
-:::
-
-::: {.notes}
-- Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
-- If someone says D: ask "does a game go from one team to the other?" No, it is one shared event.
 :::
 
 
@@ -916,10 +886,6 @@ print(counts)
 ```
 :::
 
-::: {.notes}
-- The first block raises `KeyError: 'otter'` (screenshot shown, not run live).
-- `counts.get("ada", 0)` returns 0 for a missing key, but only reads: it adds nothing.
-:::
 
 ## `defaultdict` does the check for you {style="font-size: 0.7em;"}
 
