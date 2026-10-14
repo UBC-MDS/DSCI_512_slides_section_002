@@ -50,6 +50,7 @@ title-slide-attributes:
 - The goal is a safe space to make mistakes and practise before a real technical interview.
 - Go to your own lab session. Bring your UBC ID, or show your photo on Canvas or Workday.
 - Each quiz covers the **previous** week. This week: Week 1, binary and linear search.
+- Grade by attempts: the first 5 attempts get full marks, the next 5 get 4, the next 5 get 3, then 2, then 1.
 - Retakes: up to two extra tries, closed-book, new questions but on the same concepts. During any TA or instructor office hours, before November 6.
 :::
 
