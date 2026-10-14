@@ -865,7 +865,7 @@ print(nx.get_edge_attributes(W, "weight"))   # {edge: weight} for every edge
 
 ## Question: which kind of graph? {style="font-size: 0.8em;"}
 
-City roads, including one-way streets, with travel times.
+A soccer league: two teams are connected if they played each other, labelled with how many games they played.
 
 - \(A) undirected, unweighted
 - \(B) undirected, weighted
@@ -873,25 +873,14 @@ City roads, including one-way streets, with travel times.
 - \(D) directed, weighted
 
 ::: {.fragment}
-- Answer: **D**. One-way streets need a direction, and travel time is the weight.
+- Answer: **B**. A game involves both teams, so there is no direction, and the number of games is the weight.
 :::
 
 ::: {.notes}
 - Think, pair, share: not an iClicker question. Give them a minute with a neighbour first.
+- If someone says D: ask "does a game go from one team to the other?" No, it is one shared event.
 :::
 
-## Your turn {style="font-size: 0.8em;"}
-
-| | directed? | weighted? |
-|---|---|---|
-| which actors have been in a film together | [no]{.fragment} | [no]{.fragment} |
-| how many films each pair of actors made together | [no]{.fragment} | [yes, the count]{.fragment} |
-| which web pages link to which other pages | [yes]{.fragment} | [no]{.fragment} |
-
-::: {.notes}
-- Give them 30 seconds with a neighbour, then reveal row by row.
-- Web pages: A can link to B without B linking back.
-:::
 
 # How do we store a graph? {style="font-size: 0.8em;"}
 
@@ -910,7 +899,7 @@ for user in likes:
     counts[user] += 1     # "otter" is not a key yet
 ```
 
-![](images/dict_error.png){width="80%" fig-alt="Python traceback: KeyError: 'otter' raised on the line counts[user] += 1"}
+![](images/dict_error.png){width="100%"}
 
 ::: {.fragment}
 You have to check every key yourself:
