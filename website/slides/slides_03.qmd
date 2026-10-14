@@ -973,26 +973,6 @@ Counter("strawberry").most_common(1)
 - Strawberry: early chatbots famously got this wrong. A string is a sequence of letters, so Counter counts letters.
 :::
 
-## Back to "Suggested for you" {style="font-size: 0.8em;"}
-
-Count mutual friends with a `Counter`:
-
-```{pyodide}
-from collections import Counter
-
-mutual = Counter()
-for friend in G.neighbors("sky"):              # sky's friends
-    for fof in G.neighbors(friend):            # their friends
-        if fof != "sky" and not G.has_edge("sky", fof):
-            mutual[fof] += 1                    # one more mutual friend
-
-print(mutual.most_common())
-```
-
-
-::: {.notes}
-- `G.has_edge("sky", fof)`: already friends, don't suggest.
-:::
 
 ## Adjacency list {style="font-size: 0.7em;"}
 
