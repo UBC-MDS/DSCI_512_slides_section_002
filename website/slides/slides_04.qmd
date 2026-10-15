@@ -342,6 +342,31 @@ viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", forma
 ```
 
 
+## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+import numpy as np
+import scipy.sparse
+
+dense = np.array([[0, 5, 1],
+                  [0, 0, 0],
+                  [2, 0, 3],
+                  [4, 0, 0]])
+x = scipy.sparse.csr_array(dense)
+print("data:   ", x.data)      # the non-zero values, row by row
+print("indices:", x.indices)   # the column of each value
+print("indptr: ", x.indptr)    # where each row starts
+print("shape:  ", x.shape)     # 4 rows, 3 columns: it does not have to be square
+```
+
+```{pyodide}
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
+    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
+```
+
+
+
 ## From CSR back to the matrix {style="font-size: 0.8em;"}
 
 Given only `data`, `indices` and `indptr`, can we get the matrix back?
@@ -381,30 +406,6 @@ viewof rebuild_step = Inputs.button([
     <div class="adj-wrap"><table class="adj-table csr-work">
       <tr><th>formula</th><th>gives</th><th>${s.work_head}</th></tr>${work}</table></div>`;
 }
-```
-
-
-## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
-
-```{pyodide}
-import numpy as np
-import scipy.sparse
-
-dense = np.array([[0, 5, 1],
-                  [0, 0, 0],
-                  [2, 0, 3],
-                  [4, 0, 0]])
-x = scipy.sparse.csr_array(dense)
-print("data:   ", x.data)      # the non-zero values, row by row
-print("indices:", x.indices)   # the column of each value
-print("indptr: ", x.indptr)    # where each row starts
-print("shape:  ", x.shape)     # 4 rows, 3 columns: it does not have to be square
-```
-
-```{pyodide}
-for i in range(x.shape[0]):
-    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
-    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
 ```
 
 
