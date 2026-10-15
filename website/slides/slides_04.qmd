@@ -160,37 +160,13 @@ def dfs_connected(g, start, goal, verbose=False):
 ```
 
 
-- Practice Quiz 1 is out.
 - Cheatsheet 1 submission is open.
 - **Quiz 1**: Tuesday to Friday
   - Make sure you book a slot for all 4 quizzes.
-- The 512 quiz has both multiple choice and coding questions.
+- The 512 quiz has both multiple choice and coding question.
   - Syllabus: lectures 1 to 4 (please review all the material in the lecture notes)
-  - 7 to 9 multiple choice questions
-  - 2 coding questions (auto graded)
 
-# Sparse matrices, continued {style="font-size: 0.8em;"}
-
-We stopped at CSR last time. Let's finish it before we move on.
-
-## Where we stopped last time {style="font-size: 0.85em;"}
-
-CSR (**Compressed Sparse Row**) keeps only the non-zeros of a matrix, in three arrays:
-
-- `data`: the non-zero values, row by row.
-- `indices`: the column of each value.
-- `indptr`: where each row starts in `data`.
-
-::: {.fragment}
-Today: build one in code, read it back, then watch the arrays fill in again.
-:::
-
-::: {.notes}
-- Full recap in the [lecture 3 slides](slides_03.html#/how-csr-stores-a-matrix).
-- Ask: what does row 1 of a matrix look like in CSR if it is all zeros? (Nothing in data, two equal numbers in indptr.)
-:::
-
-## CSR in code {style="font-size: 0.8em;"}
+## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
 
 ```{pyodide}
 import numpy as np
