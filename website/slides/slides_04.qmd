@@ -161,36 +161,10 @@ def dfs_connected(g, start, goal, verbose=False):
 
 
 - Cheatsheet 1 submission is open.
-- **Quiz 1**: Tuesday to Friday
+- **Quiz 1**: Next Tuesday to Friday
   - Make sure you book a slot for all 4 quizzes.
 - The 512 quiz has both multiple choice and coding question.
   - Syllabus: lectures 1 to 4 (please review all the material in the lecture notes)
-
-## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
-
-```{pyodide}
-import numpy as np
-import scipy.sparse
-
-dense = np.array([[0, 5, 1],
-                  [0, 0, 0],
-                  [2, 0, 3]])
-x = scipy.sparse.csr_array(dense)
-print("data:   ", x.data)      # the non-zero values, row by row
-print("indices:", x.indices)   # the column of each value
-print("indptr: ", x.indptr)    # where each row starts
-```
-
-```{pyodide}
-for i in range(x.shape[0]):
-    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
-    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
-```
-
-::: {.notes}
-- Rows are cheap: two lookups in indptr, then one slice.
-- Columns are expensive: to find everything in column 2, check every row's slice.
-:::
 
 ```{python}
 #| echo: false
@@ -251,15 +225,21 @@ ojs_define(csr_view = csr_view)
 
 ```{python}
 #| echo: false
-# Hidden: the "rebuild the matrix" step-through on the next slide, from the same
-# csr_data, csr_indices and csr_indptr. Two clicks per row: find the row's slice,
-# then fill the row in. Every highlight and sentence is worked out here, OJS only draws.
+# Hidden: the "rebuild the matrix" step-through on the "From CSR back to the matrix" slide,
+# from the same csr_data, csr_indices and csr_indptr. Four clicks per row: find the slice in
+# indptr, read data, read indices, fill the row in. Every highlight, formula and sentence is
+# worked out here, OJS only draws.
 n_cols = csr_dense.shape[1]
 rebuilt = [None] * n_rows                      # None = this row is not rebuilt yet
+work_formulas = [("indptr[i] : indptr[i+1]", "where row i starts and stops"),
+                 ("data[indptr[i] : indptr[i+1]]", "the non-zeros in row i"),
+                 ("indices[indptr[i] : indptr[i+1]]", "the column of each non-zero")]
 
 
-def rebuild_snapshot(i, start, end, say):
-    """What the slide shows while working on row i (None = before any row)."""
+def rebuild_snapshot(i, phase, say):
+    """What the slide shows at one click. i = the row being rebuilt (None = before any row);
+    phase 0 = slice found, 1 = data read, 2 = indices read, 3 = row filled in."""
+    start, end = (csr_indptr[i], csr_indptr[i + 1]) if i is not None else (0, 0)
     rows = []
     for r in range(n_rows):
         cls = "on" if r == i else ""
@@ -267,35 +247,55 @@ def rebuild_snapshot(i, start, end, say):
             rows.append({"cls": cls or "faded", "cells": [{"v": "?", "cls": ""}] * n_cols})
         else:
             rows.append({"cls": cls, "cells": [{"v": v, "cls": "one" if v else ""} for v in rebuilt[r]]})
-    in_slice = ["found" if start <= j < end else "" for j in range(nnz_total)]
+    data_on = i is not None and phase >= 1
+    indices_on = i is not None and phase >= 2
+    values = ([] if i is None else
+              [f"indptr[{i}] : indptr[{i + 1}] = {start} : {end}",
+               f"data[{start}:{end}] = {csr_data[start:end]}",
+               f"indices[{start}:{end}] = {csr_indices[start:end]}"])
+    work = [{"formula": f, "gives": g,
+             "value": values[w] if i is not None and w <= phase else "",
+             "cls": "on" if i is not None and w == phase else ""}
+            for w, (f, g) in enumerate(work_formulas)]
     return {"rows": rows,
-            "data": [{"label": v, "tag": j, "cls": in_slice[j]} for j, v in enumerate(csr_data)],
-            "indices": [{"label": v, "tag": j, "cls": in_slice[j]} for j, v in enumerate(csr_indices)],
+            "data": [{"label": v, "tag": j, "cls": "found" if data_on and start <= j < end else ""}
+                     for j, v in enumerate(csr_data)],
+            "indices": [{"label": v, "tag": j, "cls": "found" if indices_on and start <= j < end else ""}
+                        for j, v in enumerate(csr_indices)],
             "indptr": [{"label": v, "tag": j, "cls": "end" if i is not None and j in (i, i + 1) else ""}
                        for j, v in enumerate(csr_indptr)],
+            "work": work,
+            "work_head": "this row" if i is None else f"row {i}",
             "say": say}                         # [text, colour class] pieces
 
 
-rebuild_steps = [rebuild_snapshot(None, 0, 0, [["We only have the three arrays. Rebuild the matrix one row at a time.", ""]])]
+rebuild_steps = [rebuild_snapshot(None, 0, [["We only have the three arrays. Rebuild the matrix one row at a time.", ""]])]
 for i in range(n_rows):
     start, end = csr_indptr[i], csr_indptr[i + 1]   # row i is data[start:end]
     slots = list(range(start, end))
-    where = f": positions {names(slots)}." if slots else ": an empty slice, so no non-zeros."
-    rebuild_steps.append(rebuild_snapshot(i, start, end, [
-        [f"Row {i} sits between ", ""], [f"indptr[{i}] = {start}", "match"], [" and ", ""],
-        [f"indptr[{i + 1}] = {end}", "match"], [", so it is ", ""], [f"data[{start}:{end}]", "notify"], [where, ""]]))
+    vals, cols = csr_data[start:end], csr_indices[start:end]
+    rebuild_steps.append(rebuild_snapshot(i, 0, [
+        [f"Row {i} starts at ", ""], [f"indptr[{i}] = {start}", "match"], [" and stops before ", ""],
+        [f"indptr[{i + 1}] = {end}", "match"],
+        ["." if slots else ": the same number, so the slice is empty.", ""]]))
+    rebuild_steps.append(rebuild_snapshot(i, 1, [
+        [f"data[{start}:{end}] = {vals}", "notify"],
+        [f": the non-zeros in row {i}." if slots else f": row {i} has no non-zeros.", ""]]))
+    rebuild_steps.append(rebuild_snapshot(i, 2, [
+        [f"indices[{start}:{end}] = {cols}", "notify"],
+        [": the column of each non-zero." if slots else ": no columns either.", ""]]))
     rebuilt[i] = [0] * n_cols
     for j in slots:
         rebuilt[i][csr_indices[j]] = csr_data[j]
     if slots:
-        fill = (f"Put {names([f'{csr_data[j]} in column {csr_indices[j]}' for j in slots])}"
-                " (the column comes from indices). Every other cell is 0.")
+        fill = (f"Put {names([f'{csr_data[j]} in column {csr_indices[j]}' for j in slots])}."
+                " Every other cell is 0.")
     else:
         fill = f"Nothing to put: row {i} is all zeros."
     if i == n_rows - 1:
         assert np.array_equal(rebuilt, csr_dense)
-        fill += " Done: the same matrix as dense."
-    rebuild_steps.append(rebuild_snapshot(i, start, end, [[fill, ""]]))
+        fill += " Done: the whole matrix is back."
+    rebuild_steps.append(rebuild_snapshot(i, 3, [[fill, ""]]))
 for k, step in enumerate(rebuild_steps):
     step["count"] = f"Step {k} of {len(rebuild_steps) - 1}"
 ojs_define(rebuild_steps = rebuild_steps)
@@ -325,6 +325,8 @@ viewof rebuild_step = Inputs.button([
   const boxes = items => items.map(b =>
     html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
   const say = s.say.map(([t, cls]) => html`<span class="${cls}">${t}</span>`);
+  const work = s.work.map(w => html`<tr class="${w.cls}"><td class="code">${w.formula}</td>
+      <td class="gives">${w.gives}</td><td class="code value">${w.value}</td></tr>`);
   return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${say}</div>
     <div class="adj-wrap csr-wrap">
       <div class="adj-panel">
@@ -334,42 +336,18 @@ viewof rebuild_step = Inputs.button([
         <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
       <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
         <div class="ds-caption">the matrix, rebuilt</div></div>
-    </div>`;
+    </div>
+    <div class="adj-wrap"><table class="adj-table csr-work">
+      <tr><th>formula</th><th>gives</th><th>${s.work_head}</th></tr>${work}</table></div>`;
 }
 ```
 
 ::: {.notes}
-- Ask them to predict each row before you click.
-- Orange: the two indptr entries that bracket the row. Blue: that row's slice of data and indices.
-- Two lookups in indptr give the slice. indices says which column, data says which value. Everything else is 0.
+- Ask them to predict each step before you click.
+- The two formulas in the table are the whole trick: `data[indptr[i]:indptr[i+1]]` is every non-zero in row i, `indices[indptr[i]:indptr[i+1]]` is the column of each one.
+- Four clicks per row: find the slice in indptr (orange), read data, read indices (blue), fill the row in. Everything else is 0.
 - Row 1: indptr[1] and indptr[2] are both 2, an empty slice, so the row is all zeros.
-- This is the loop from the previous slide, one iteration per row.
-:::
-
-## Rebuild it in code {style="font-size: 0.8em;"}
-
-The same three steps per row, as a loop:
-
-```{pyodide}
-rebuilt = np.zeros(x.shape, dtype=int)            # start with all zeros
-for i in range(x.shape[0]):
-    start, end = x.indptr[i], x.indptr[i + 1]     # 1. find row i's slice
-    cols = x.indices[start:end]                   # 2. which columns
-    rebuilt[i, cols] = x.data[start:end]          # 3. which values
-print(rebuilt)
-```
-
-::: {.fragment}
-scipy does this for you: `x.toarray()`.
-
-```{pyodide}
-print(x.toarray())
-```
-:::
-
-::: {.notes}
-- `rebuilt[i, cols] = ...` puts several values into row i at once, one per column in cols.
-- Only do this on small matrices: the dense version of Instagram's graph does not fit in memory (lecture 3).
+- Next: the other way, from a matrix to the three arrays.
 :::
 
 ## How CSR stores a matrix {style="font-size: 0.8em;"}
@@ -415,6 +393,58 @@ viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", forma
 - indptr has one more entry than rows, so the last row knows where it ends.
 - Each row's slice is that vertex's list of neighbours: CSR is an adjacency list packed into flat arrays.
 - Diagram in the lecture notes, section 4.3.
+:::
+
+## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+import numpy as np
+import scipy.sparse
+
+dense = np.array([[0, 5, 1],
+                  [0, 0, 0],
+                  [2, 0, 3]])
+x = scipy.sparse.csr_array(dense)
+print("data:   ", x.data)      # the non-zero values, row by row
+print("indices:", x.indices)   # the column of each value
+print("indptr: ", x.indptr)    # where each row starts
+```
+
+```{pyodide}
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
+    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
+```
+
+::: {.notes}
+- Rows are cheap: two lookups in indptr, then one slice.
+- Columns are expensive: to find everything in column 2, check every row's slice.
+:::
+
+## Rebuild it in code {style="font-size: 0.8em;"}
+
+The same three steps per row, as a loop:
+
+```{pyodide}
+rebuilt = np.zeros(x.shape, dtype=int)            # start with all zeros
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]     # 1. find row i's slice
+    cols = x.indices[start:end]                   # 2. which columns
+    rebuilt[i, cols] = x.data[start:end]          # 3. which values
+print(rebuilt)
+```
+
+::: {.fragment}
+scipy does this for you: `x.toarray()`.
+
+```{pyodide}
+print(x.toarray())
+```
+:::
+
+::: {.notes}
+- `rebuilt[i, cols] = ...` puts several values into row i at once, one per column in cols.
+- Only do this on small matrices: the dense version of Instagram's graph does not fit in memory (lecture 3).
 :::
 
 ## Working with sparse matrices {style="font-size: 0.8em;"}
@@ -569,12 +599,8 @@ Plot.plot({
 - Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.
 - One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.
 - Ratings: one row per user, one column per product. Each user rates only a few.
-- Sensors: a 2019 MDS capstone team worked with particle physics images where most sensors picked up nothing.
 :::
 
-::: {.notes}
-- Ask: anyone met a sparse matrix in another course already?
-:::
 
 ## From storing a graph to searching one {style="font-size: 0.85em;"}
 
