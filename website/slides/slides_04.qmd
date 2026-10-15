@@ -182,7 +182,7 @@ CSR (**Compressed Sparse Row**) keeps only the non-zeros of a matrix, in three a
 - `indptr`: where each row starts in `data`.
 
 ::: {.fragment}
-Today: build one in code, then watch the arrays fill in again.
+Today: build one in code, read it back, then watch the arrays fill in again.
 :::
 
 ::: {.notes}
@@ -213,12 +213,12 @@ for i in range(x.shape[0]):
 
 ::: {.notes}
 - Rows are cheap: two lookups in indptr, then one slice.
-- Columns are expensive: to find everything in column 4, check every row's slice.
+- Columns are expensive: to find everything in column 2, check every row's slice.
 :::
 
 ```{python}
 #| echo: false
-# Hidden: the CSR step-through on the next slide. The three arrays come from
+# Hidden: the CSR step-through on the "How CSR stores a matrix" slide. The three arrays come from
 # scipy itself; every highlight and sentence is worked out here, OJS only draws.
 csr_dense = np.array([
     [0, 5, 1],
@@ -273,9 +273,132 @@ csr_view = {"steps": csr_steps, "rows": list(range(-1, n_rows)),
 ojs_define(csr_view = csr_view)
 ```
 
+```{python}
+#| echo: false
+# Hidden: the "rebuild the matrix" step-through on the next slide, from the same
+# csr_data, csr_indices and csr_indptr. Two clicks per row: find the row's slice,
+# then fill the row in. Every highlight and sentence is worked out here, OJS only draws.
+n_cols = csr_dense.shape[1]
+rebuilt = [None] * n_rows                      # None = this row is not rebuilt yet
+
+
+def rebuild_snapshot(i, start, end, say):
+    """What the slide shows while working on row i (None = before any row)."""
+    rows = []
+    for r in range(n_rows):
+        cls = "on" if r == i else ""
+        if rebuilt[r] is None:
+            rows.append({"cls": cls or "faded", "cells": [{"v": "?", "cls": ""}] * n_cols})
+        else:
+            rows.append({"cls": cls, "cells": [{"v": v, "cls": "one" if v else ""} for v in rebuilt[r]]})
+    in_slice = ["found" if start <= j < end else "" for j in range(nnz_total)]
+    return {"rows": rows,
+            "data": [{"label": v, "tag": j, "cls": in_slice[j]} for j, v in enumerate(csr_data)],
+            "indices": [{"label": v, "tag": j, "cls": in_slice[j]} for j, v in enumerate(csr_indices)],
+            "indptr": [{"label": v, "tag": j, "cls": "end" if i is not None and j in (i, i + 1) else ""}
+                       for j, v in enumerate(csr_indptr)],
+            "say": say}                         # [text, colour class] pieces
+
+
+rebuild_steps = [rebuild_snapshot(None, 0, 0, [["We only have the three arrays. Rebuild the matrix one row at a time.", ""]])]
+for i in range(n_rows):
+    start, end = csr_indptr[i], csr_indptr[i + 1]   # row i is data[start:end]
+    slots = list(range(start, end))
+    where = f": positions {names(slots)}." if slots else ": an empty slice, so no non-zeros."
+    rebuild_steps.append(rebuild_snapshot(i, start, end, [
+        [f"Row {i} sits between ", ""], [f"indptr[{i}] = {start}", "match"], [" and ", ""],
+        [f"indptr[{i + 1}] = {end}", "match"], [", so it is ", ""], [f"data[{start}:{end}]", "notify"], [where, ""]]))
+    rebuilt[i] = [0] * n_cols
+    for j in slots:
+        rebuilt[i][csr_indices[j]] = csr_data[j]
+    if slots:
+        fill = (f"Put {names([f'{csr_data[j]} in column {csr_indices[j]}' for j in slots])}"
+                " (the column comes from indices). Every other cell is 0.")
+    else:
+        fill = f"Nothing to put: row {i} is all zeros."
+    if i == n_rows - 1:
+        assert np.array_equal(rebuilt, csr_dense)
+        fill += " Done: the same matrix as dense."
+    rebuild_steps.append(rebuild_snapshot(i, start, end, [[fill, ""]]))
+for k, step in enumerate(rebuild_steps):
+    step["count"] = f"Step {k} of {len(rebuild_steps) - 1}"
+ojs_define(rebuild_steps = rebuild_steps)
+```
+
+## From CSR back to the matrix {style="font-size: 0.8em;"}
+
+Given only `data`, `indices` and `indptr`, can we get the matrix back?
+
+```{ojs}
+//| echo: false
+viewof rebuild_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, rebuild_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every highlight, cell and sentence was computed in Python (rebuild_steps).
+  const s = rebuild_steps[rebuild_step];
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  const say = s.say.map(([t, cls]) => html`<span class="${cls}">${t}</span>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${say}</div>
+    <div class="adj-wrap csr-wrap">
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix, rebuilt</div></div>
+    </div>`;
+}
+```
+
+::: {.notes}
+- Ask them to predict each row before you click.
+- Orange: the two indptr entries that bracket the row. Blue: that row's slice of data and indices.
+- Two lookups in indptr give the slice. indices says which column, data says which value. Everything else is 0.
+- Row 1: indptr[1] and indptr[2] are both 2, an empty slice, so the row is all zeros.
+- This is the loop from the previous slide, one iteration per row.
+:::
+
+## Rebuild it in code {style="font-size: 0.8em;"}
+
+The same three steps per row, as a loop:
+
+```{pyodide}
+rebuilt = np.zeros(x.shape, dtype=int)            # start with all zeros
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]     # 1. find row i's slice
+    cols = x.indices[start:end]                   # 2. which columns
+    rebuilt[i, cols] = x.data[start:end]          # 3. which values
+print(rebuilt)
+```
+
+::: {.fragment}
+scipy does this for you: `x.toarray()`.
+
+```{pyodide}
+print(x.toarray())
+```
+:::
+
+::: {.notes}
+- `rebuilt[i, cols] = ...` puts several values into row i at once, one per column in cols.
+- Only do this on small matrices: the dense version of Instagram's graph does not fit in memory (lecture 3).
+:::
+
 ## How CSR stores a matrix {style="font-size: 0.8em;"}
 
-Click through the rows and watch the three arrays fill in.
+Now the other way: click through the rows and watch the three arrays fill in.
 
 ```{ojs}
 //| echo: false
@@ -371,9 +494,13 @@ print(old[2, 2])                    # works
 print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
 ```
 
+::: {.fragment}
+Use `x[i, j]`: one pair of brackets works for NumPy, both sparse types and pandas `.iloc`.
+:::
+
 ::: {.notes}
 - With a NumPy array both forms work. With `csr_matrix`, `x[2]` stays 2D with one row.
-- `x[i, j]` works for NumPy, both sparse types and pandas `.iloc`. Plain Python lists are the exception.
+- Plain Python lists are the exception: they only take `x[i][j]`.
 :::
 
 ## Rows vs columns: CSR and CSC {style="font-size: 0.75em;"}
@@ -499,7 +626,7 @@ You have never met ada. LinkedIn has about 1 billion members.
 :::
 
 ::: {.fragment}
-How does LinkedIn know she is 3rd, and not 2nd or 4th? 🤔
+How does LinkedIn know she is 3rd, and not 2nd or 4th?
 :::
 
 ::: {.notes}
@@ -707,7 +834,7 @@ root.print_tree()
 
 # Stacks and queues {background-image="images/ig_otter_undo.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-You are writing a LinkedIn post with a few photos. Undo, and the photos uploading in the background.
+You are writing a LinkedIn post with a few photos. Undo: which edit goes first? Upload: which photo goes first?
 
 ::: footer
 Image generated by OpenAI GPT-image-2.5-sunburst
@@ -1059,9 +1186,77 @@ A queue holds `[A, B, C, D]`, with `A` at the front. After these steps:
 - A can rejoin: queues allow duplicates.
 :::
 
-## ⚠️ `list.pop(0)` is slow {style="font-size: 0.75em;"}
+```{python}
+#| echo: false
+# Hidden: the list.pop(0) vs deque.popleft() step-through on the next slide. Five
+# photos leave from the front one at a time; every box, count and sentence is
+# worked out here, OJS only draws.
+shift_items = ["📷1", "📷2", "📷3", "📷4", "📷5"]
+n_shift = len(shift_items)
+shift_steps, shift_moves = [], []
+for k in range(n_shift + 1):                   # k = photos taken out so far
+    left = shift_items[k:]
+    moved = len(left) if k > 0 else 0          # after a pop(0), every item left moves one slot
+    if k > 0:
+        shift_moves.append(moved)
+    # list: the items always fill slots 0, 1, 2, ..., so they all shifted left
+    list_boxes = [{"label": left[s] if s < len(left) else "", "tag": s,
+                   "cls": ("end" if k > 0 else "") if s < len(left) else "out"} for s in range(n_shift)]
+    # deque: nothing moves, the front just starts one slot later
+    deque_boxes = [{"label": shift_items[s] if s >= k else "", "tag": s,
+                    "cls": "" if s >= k else "out"} for s in range(n_shift)]
+    if k == 0:
+        say = [["The same 5 photos in a list and in a deque. Take the front one out each click.", ""]]
+    else:
+        say = [[f"Take out {shift_items[k - 1]}: ", ""],
+               [f"the list moves {moved} item{'s' if moved != 1 else ''}", "match"],
+               [f" ({sum(shift_moves)} so far), ", ""], ["the deque moves 0", "notify"], [".", ""]]
+    if k == n_shift:
+        say.append([f" Total for the list: {' + '.join(map(str, shift_moves))} = {sum(shift_moves)} moves, "
+                    "about n²/2, so O(n²).", ""])
+    shift_steps.append({"count": f"Step {k} of {n_shift}", "say": say,
+                        "list": list_boxes, "deque": deque_boxes})
+ojs_define(shift_steps = shift_steps)
+```
 
-A list stores items side by side. Removing the first one shifts every other item one spot left: $O(n)$.
+## Why is `list.pop(0)` slow? {style="font-size: 0.8em;"}
+
+A list keeps its items in slots 0, 1, 2, ... with no gaps. What happens when the front one leaves?
+
+```{ojs}
+//| echo: false
+viewof shift_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, shift_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every box, count and sentence was computed in Python (shift_steps).
+  const s = shift_steps[shift_step];
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  const say = s.say.map(([t, cls]) => html`<span class="${cls}">${t}</span>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${say}</div>
+    <div class="adj-wrap"><div class="adj-panel">
+      <div class="ds-row csr shift"><span class="csr-name">list</span>${boxes(s.list)}</div>
+      <div class="ds-row csr shift"><span class="csr-name">deque</span>${boxes(s.deque)}</div>
+      <div class="ds-caption">orange: moved one slot left (small numbers: slot)</div>
+    </div></div>`;
+}
+```
+
+::: {.notes}
+- The list must keep item 0 in slot 0, so after pop(0) every remaining item slides one slot left. One pop is O(n).
+- The deque just remembers where its front is now. Nothing moves: O(1).
+- Last step: 4 + 3 + 2 + 1 + 0. Emptying n items this way costs about n²/2 moves.
+- `list.insert(0, item)` is slow for the same reason: everything shifts right.
+:::
+
+## ⚠️ `list.pop(0)` is slow {style="font-size: 0.75em;"}
 
 `collections.deque` ("deck", a double-ended queue) adds and removes at both ends in $O(1)$: `append` to join the back, `popleft` to leave the front.
 
@@ -1569,6 +1764,30 @@ You want the fewest number of flights from Vancouver to Taipei.
 - DFS might fly Vancouver → Toronto → London → Dubai → ... even when there is a direct flight.
 :::
 
+```{python}
+#| echo: false
+# Hidden: the components picture on the next slide. Same LinkedIn graph and positions
+# as the BFS step-through, searched with the same BFS (a goal of None visits everything).
+comp_of = {}
+comp_starts = []
+for u in li.nodes:
+    if u not in comp_of:                       # not visited yet: start a new search here
+        comp_starts.append(u)
+        for v in record_search(li, u, None, "bfs")["order"]:
+            comp_of[v] = len(comp_starts)
+comp_steps = [{"roles": ["other"] * li.number_of_nodes(),
+               "say": "Nothing visited yet."}]
+for c, u in enumerate(comp_starts, start=1):
+    reached = [v for v in li.nodes if comp_of[v] == c]
+    comp_steps.append({
+        "roles": [f"c{comp_of[v]}" if comp_of[v] <= c else "other" for v in li.nodes],
+        "say": (f"Search {c} starts at {u}, the first user not visited yet. It reaches "
+                f"{len(reached)} user{'s' if len(reached) != 1 else ''}: component {c}."
+                + (f" Everyone is visited: {c} components." if c == len(comp_starts) else ""))})
+comp_view = {"steps": comp_steps, "choices": list(range(len(comp_steps)))}
+ojs_define(comp_view = comp_view)
+```
+
 ## Question: connected components {style="font-size: 0.8em;"}
 
 How would you use BFS (or DFS) to find every connected component, like `nx.connected_components`?
@@ -1577,6 +1796,32 @@ How would you use BFS (or DFS) to find every connected component, like `nx.conne
 - Search from any node. Everything it reaches is one component.
 - Pick a node you have not visited yet, and search again. Repeat until every node is visited.
 - Each node and edge is still handled once: $O(V + E)$.
+
+```{ojs}
+//| echo: false
+viewof comp_step = Inputs.radio(comp_view.choices, {value: 0, label: "searches done",
+                                                    format: i => i === 0 ? "none" : `${i}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the components were found in Python with the same BFS (comp_view).
+  const s = comp_view.steps[comp_step];
+  const fill = {c1: "#2a78d6", c2: "#eb6834", other: "#b8b6b0"};
+  const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.roles[i]}));
+  return html`<div class="ojs-readout">${s.say}</div>${Plot.plot({
+    width: 760, height: 220, margin: 14,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: li_layout.x_domain}, y: {axis: null, domain: li_layout.y_domain},
+    marks: [
+      Plot.link(li_layout.edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#d9d8d4", strokeWidth: 2}),
+      Plot.dot(nodes, {x: "x", y: "y", r: 12, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "id", dy: -21, fontWeight: "bold"})
+    ]
+  })}`;
+}
+```
 :::
 
 ::: {.notes}

@@ -140,3 +140,5 @@
 .reveal .ds-row.csr { margin-bottom: 14px; }
 .reveal .csr-wrap { gap: 48px; }
 .reveal .csr-wrap table.adj-table tr.on td { background: #dbe8f8; }
+/* list.pop(0) vs deque: wider boxes so the 📷 labels fit */
+.reveal .ds-row.csr.shift .ds-box { width: 64px; }
