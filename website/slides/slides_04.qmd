@@ -504,6 +504,8 @@ print(numpy_matrix[1][2])
 
 CSR is stored row by row. CSC (Compressed Sparse **Column**) is the same idea, column by column.
 
+The code below has 2 functions, one pulls out 200 rows, and the other pulls out 200 columns. We time how long it takes when we use CSR VS CSC.
+
 ```{python}
 #| echo: true
 G_10k = nx.fast_gnp_random_graph(10_000, 0.0025, seed=512)   # 10,000 users
@@ -586,10 +588,26 @@ Plot.plot({
 
 ## Sparse data is everywhere {style="font-size: 0.8em;"}
 
-::: {.incremental}
-- Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.
-- One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.
-- Ratings: one row per user, one column per product. Each user rates only a few.
+:::: {.columns}
+::: {.column width="45%"}
+- [Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.]{.fragment fragment-index=1}
+- [One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.]{.fragment fragment-index=2}
+- [Ratings: one row per user, one column per product. Each user rates only a few.]{.fragment fragment-index=3}
+:::
+::: {.column width="55%"}
+::: {.fragment fragment-index=2}
+![](images/one_hot_encoder.png){width="100%"}
+:::
+:::
+::::
+
+::: {.notes}
+- The screenshot is from DSCI 571, Chapter 4. There they passed `sparse_output=False` to turn sparse off, so the output prints as a readable table.
+- Leave it out and you get a sparse matrix back: mostly zeros, exactly one 1 per row.
+:::
+
+::: footer
+Screenshot: DSCI 571 lecture notes, Chapter 4
 :::
 
 
