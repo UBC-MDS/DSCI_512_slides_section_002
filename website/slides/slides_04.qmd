@@ -436,7 +436,7 @@ print(x.toarray())
 :::
 
 
-## Working with sparse matrices {style="font-size: 0.8em;"}
+## Working with sparse matrices {style="font-size: 0.7em;"}
 
 Many NumPy operations work. Can we add up each row without building the dense matrix?
 
@@ -446,10 +446,10 @@ print(type(x))                # x = csr_array(dense): only the non-zeros are sto
 ```
 
 ::: {.fragment}
-- Row 0 holds 5 and 1, so its total should be 6.
-- Row 1 is empty, so its total is 0.
-- Row 2 holds 2 and 3, so its total should be 5.
-- Row 3 holds 4, so its total is 4.
+- Row 0 holds 5 and 1, so its total should be **6**.
+- Row 1 is empty, so its total is **0**.
+- Row 2 holds 2 and 3, so its total should be **5**.
+- Row 3 holds 4, so its total is **4**.
 :::
 
 ::: {.fragment}
