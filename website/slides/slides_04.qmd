@@ -84,7 +84,7 @@ def ordinal(d):
 
 ```{pyodide}
 #| include: false
-# Hidden setup for the runnable cells: the 3 by 3 sparse matrix, the classes,
+# Hidden setup for the runnable cells: the 4 by 3 sparse matrix, the classes,
 # the LinkedIn graph and the two searches, so a later cell still works when an earlier slide was skipped.
 from collections import deque
 
@@ -101,7 +101,8 @@ small_tree = nx.balanced_tree(2, 2)
 
 dense = np.array([[0, 5, 1],
                   [0, 0, 0],
-                  [2, 0, 3]])
+                  [2, 0, 3],
+                  [4, 0, 0]])
 x = scipy.sparse.csr_array(dense)
 
 
@@ -174,6 +175,7 @@ csr_dense = np.array([
     [0, 5, 1],
     [0, 0, 0],
     [2, 0, 3],
+    [4, 0, 0],
 ])
 csr_demo = scipy.sparse.csr_array(csr_dense)
 csr_data, csr_indices, csr_indptr = (csr_demo.data.tolist(), csr_demo.indices.tolist(),
@@ -304,7 +306,7 @@ ojs_define(rebuild_steps = rebuild_steps)
 
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
-CSR (**Compressed Sparse Row**):
+CSR (**Compressed Sparse Row**). The matrix does not need to be square: this one has 4 rows and 3 columns.
 
 ```{ojs}
 //| echo: false
@@ -389,11 +391,13 @@ import scipy.sparse
 
 dense = np.array([[0, 5, 1],
                   [0, 0, 0],
-                  [2, 0, 3]])
+                  [2, 0, 3],
+                  [4, 0, 0]])
 x = scipy.sparse.csr_array(dense)
 print("data:   ", x.data)      # the non-zero values, row by row
 print("indices:", x.indices)   # the column of each value
 print("indptr: ", x.indptr)    # where each row starts
+print("shape:  ", x.shape)     # 4 rows, 3 columns: it does not have to be square
 ```
 
 ```{pyodide}
@@ -431,7 +435,7 @@ print(x.toarray())
 Many NumPy operations work. Can we add up each row without building the dense matrix?
 
 ```{pyodide}
-print(dense)                  # the 3 by 3 matrix from before, as a regular array
+print(dense)                  # the 4 by 3 matrix from before, as a regular array
 print(type(x))                # x = csr_array(dense): only the non-zeros are stored
 ```
 
@@ -466,7 +470,7 @@ print(x.sum(axis=0))       # axis=0: down each column, one number per column
 - axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
 - Walk row 0: 5 + 1 = 6. Row 1 is empty, so its total is 0.
 - `x.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
-- Counting non-zeros instead of adding them up: `x.getnnz(axis=1)` gives 2, 0, 2. On a 0/1 adjacency matrix that is the number of friends.
+- Counting non-zeros instead of adding them up: `x.getnnz(axis=1)` gives 2, 0, 2, 1. On a 0/1 adjacency matrix that is the number of friends.
 :::
 
 ## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
