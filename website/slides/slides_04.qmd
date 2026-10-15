@@ -440,36 +440,32 @@ print(x.toarray())
 Many NumPy operations work. Can we add up each row without building the dense matrix?
 
 ```{pyodide}
-print(dense)                  # the 4 by 3 matrix from before, as a regular array
+print(x.toarray())            # the 4 by 3 matrix from before, as a regular array
 print(type(x))                # x = csr_array(dense): only the non-zeros are stored
 ```
 
 ::: {.fragment}
-Row 0 holds 5 and 1, so its total should be 6.
+- Row 0 holds 5 and 1, so its total should be 6.
+- Row 1 is empty, so its total is 0.
+- Row 2 holds 2 and 3, so its total should be 5.
+- Row 3 holds 4, so its total is 4.
 :::
 
-## Row sums {style="font-size: 0.8em;"}
-
+::: {.fragment}
 ```{pyodide}
 print(x.sum(axis=1))       # add up each row: one number per row, no dense matrix built
 ```
-
-::: {.fragment}
-Check against the dense array:
-
-```{pyodide}
-print(dense.sum(axis=1))   # same numbers
-```
 :::
 
-::: {.fragment}
+
+## Row sums {style="font-size: 0.8em;"}
+
 `axis` says which direction to add up:
 
 ```{pyodide}
 print(x.sum(axis=1))       # axis=1: along each row, one number per row
 print(x.sum(axis=0))       # axis=0: down each column, one number per column
 ```
-:::
 
 ::: {.notes}
 - axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
@@ -488,13 +484,19 @@ print(old[2, 2])                    # works
 print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
 ```
 
-::: {.fragment}
-Use `x[i, j]`: one pair of brackets works for NumPy, both sparse types and pandas `.iloc`.
-:::
 
 ::: {.notes}
-- With a NumPy array both forms work. With `csr_matrix`, `x[2]` stays 2D with one row.
-- Plain Python lists are the exception: they only take `x[i][j]`.
+```
+import numpy as np
+
+numpy_array = np.array([[1, 2, 3], [4, 5, 6]])
+print(numpy_array[1, 2])
+print(numpy_array[1][2])
+
+numpy_matrix = np.matrix([[1, 2, 3], [4, 5, 6]])
+print(numpy_matrix[1, 2])
+print(numpy_matrix[1][2])
+```
 :::
 
 ## Rows vs columns: CSR and CSC {style="font-size: 0.75em;"}
