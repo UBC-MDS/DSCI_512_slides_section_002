@@ -19,6 +19,8 @@ format:
 engine: jupyter
 pyodide:
   packages:
+    - numpy
+    - scipy
     - networkx
 resources:
   - assets/unregister-coi-sw.js
@@ -27,8 +29,11 @@ title-slide-attributes:
   data-background-image: images/lec04_title_bg.png
   data-background-size: cover
   data-background-position: right bottom
-  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Q: raise of hand: who has a LinkedIn account? Have you noticed the 1st, 2nd, 3rd next to people's names?"
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
 ---
+
+## Logistics
+
 
 ```{python}
 #| echo: false
@@ -38,6 +43,8 @@ import timeit
 from collections import deque
 
 import networkx as nx
+import numpy as np
+import scipy.sparse
 
 
 def edge_key(u, v):
@@ -77,11 +84,13 @@ def ordinal(d):
 
 ```{pyodide}
 #| include: false
-# Hidden setup for the runnable cells: the classes, the LinkedIn graph and the
-# two searches, so a later cell still works when an earlier slide was skipped.
+# Hidden setup for the runnable cells: the 3 by 3 sparse matrix, the classes,
+# the LinkedIn graph and the two searches, so a later cell still works when an earlier slide was skipped.
 from collections import deque
 
 import networkx as nx
+import numpy as np
+import scipy.sparse
 
 connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "clam"),
                ("otter", "nori"), ("clam", "bubbles"), ("kelp", "mochi"), ("nori", "ada"),
@@ -89,6 +98,11 @@ connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "cl
 G = nx.Graph(connections)
 G.add_node("waffle")
 small_tree = nx.balanced_tree(2, 2)
+
+dense = np.array([[0, 5, 1],
+                  [0, 0, 0],
+                  [2, 0, 3]])
+x = scipy.sparse.csr_array(dense)
 
 
 class Stack:
@@ -145,7 +159,6 @@ def dfs_connected(g, start, goal, verbose=False):
     return False
 ```
 
-## Logistics
 
 - Practice Quiz 1 is out.
 - Cheatsheet 1 submission is open.
@@ -155,6 +168,322 @@ def dfs_connected(g, start, goal, verbose=False):
   - Syllabus: lectures 1 to 4 (please review all the material in the lecture notes)
   - 7 to 9 multiple choice questions
   - 2 coding questions (auto graded)
+
+# Sparse matrices, continued {style="font-size: 0.8em;"}
+
+We stopped at CSR last time. Let's finish it before we move on.
+
+## Where we stopped last time {style="font-size: 0.85em;"}
+
+CSR (**Compressed Sparse Row**) keeps only the non-zeros of a matrix, in three arrays:
+
+- `data`: the non-zero values, row by row.
+- `indices`: the column of each value.
+- `indptr`: where each row starts in `data`.
+
+::: {.fragment}
+Today: build one in code, then watch the arrays fill in again.
+:::
+
+::: {.notes}
+- Full recap in the [lecture 3 slides](slides_03.html#/how-csr-stores-a-matrix).
+- Ask: what does row 1 of a matrix look like in CSR if it is all zeros? (Nothing in data, two equal numbers in indptr.)
+:::
+
+## CSR in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+import numpy as np
+import scipy.sparse
+
+dense = np.array([[0, 5, 1],
+                  [0, 0, 0],
+                  [2, 0, 3]])
+x = scipy.sparse.csr_array(dense)
+print("data:   ", x.data)      # the non-zero values, row by row
+print("indices:", x.indices)   # the column of each value
+print("indptr: ", x.indptr)    # where each row starts
+```
+
+```{pyodide}
+for i in range(x.shape[0]):
+    start, end = x.indptr[i], x.indptr[i + 1]   # row i is data[start:end]
+    print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
+```
+
+::: {.notes}
+- Rows are cheap: two lookups in indptr, then one slice.
+- Columns are expensive: to find everything in column 4, check every row's slice.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the CSR step-through on the next slide. The three arrays come from
+# scipy itself; every highlight and sentence is worked out here, OJS only draws.
+csr_dense = np.array([
+    [0, 5, 1],
+    [0, 0, 0],
+    [2, 0, 3],
+])
+csr_demo = scipy.sparse.csr_array(csr_dense)
+csr_data, csr_indices, csr_indptr = (csr_demo.data.tolist(), csr_demo.indices.tolist(),
+                                     csr_demo.indptr.tolist())
+
+n_rows = csr_dense.shape[0]
+nnz_total = len(csr_data)
+row_nnz = [int(c) for c in (csr_dense != 0).sum(axis=1)]
+
+csr_steps = {}
+for k in range(-1, n_rows):                    # k = last row filled in; -1 = nothing yet
+    filled_data = csr_indptr[k + 1] if k >= 0 else 0
+    last = (k == n_rows - 1)
+    n_ptr = (k + 1) + (1 if last else 0)       # indptr[0..k], plus the closing total after the last row
+    start, end = (csr_indptr[k], csr_indptr[k + 1]) if k >= 0 else (0, 0)
+    if k < 0:
+        say = ["Three empty arrays. Click a row to fill them in."]
+    else:
+        count = end - start
+        if count:
+            fill = (f"Row {k} has {count} non-zero{'s' if count != 1 else ''}: "
+                    f"data gets {csr_data[start:end]}, indices gets {csr_indices[start:end]}.")
+        else:
+            fill = f"Row {k} has no non-zeros, so data and indices get nothing."
+        say = [fill, f"indptr[{k}] = {start}: that many non-zeros come before row {k}."]
+        if last:
+            say.append(f"One more: indptr[{k + 1}] = {end}, the total number of non-zeros.")
+    csr_steps[k] = {
+        "rows": [{"cls": "on" if r == k else "",
+                  "cells": [{"v": int(v), "cls": "one" if v else ""} for v in row]}
+                 for r, row in enumerate(csr_dense)],
+        "nnz": [{"v": row_nnz[r] if r <= k else "", "cls": "on" if r == k else ""}
+                for r in range(n_rows)],
+        "data": [{"label": csr_data[j] if j < filled_data else "", "tag": j,
+                  "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                 for j in range(nnz_total)],
+        "indices": [{"label": csr_indices[j] if j < filled_data else "", "tag": j,
+                     "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                    for j in range(nnz_total)],
+        "indptr": [{"label": csr_indptr[j] if j < n_ptr else "", "tag": j,
+                    "cls": ("end" if j in (k, k + 1) and j < n_ptr and (j == k or last) else "") if j < n_ptr else "out"}
+                   for j in range(len(csr_indptr))],
+        "say": say,
+    }
+csr_view = {"steps": csr_steps, "rows": list(range(-1, n_rows)),
+            "col_labels": [f"col {j}" for j in range(csr_dense.shape[1])]}
+ojs_define(csr_view = csr_view)
+```
+
+## How CSR stores a matrix {style="font-size: 0.8em;"}
+
+Click through the rows and watch the three arrays fill in.
+
+```{ojs}
+//| echo: false
+viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", format: i => i < 0 ? "start" : `row ${i}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the arrays and the highlights were computed in Python (csr_view).
+  const s = csr_view.steps[csr_row];
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const nnzRows = s.nnz.map(r => html`<tr class="${r.cls}"><td>${r.v}</td></tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  return html`<div class="adj-wrap csr-wrap">
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix</div></div>
+      <div class="adj-panel"><table class="adj-table">
+          <tr><th>non-zeros</th></tr>${nnzRows}</table>
+        <div class="ds-caption">count per row</div></div>
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
+    </div>
+    <div class="ojs-readout">${s.say.join(" ")}</div>`;
+}
+```
+
+::: {.notes}
+- data: the non-zero values, row by row. indices: the column of each one. indptr: how many non-zeros come before each row.
+- The non-zeros column is only a helper to count. CSR does not store it.
+- Row 1 is empty: indptr[1] and indptr[2] are both 2.
+- indptr has one more entry than rows, so the last row knows where it ends.
+- Each row's slice is that vertex's list of neighbours: CSR is an adjacency list packed into flat arrays.
+- Diagram in the lecture notes, section 4.3.
+:::
+
+## Working with sparse matrices {style="font-size: 0.8em;"}
+
+Many NumPy operations work. Can we add up each row without building the dense matrix?
+
+```{pyodide}
+print(dense)                  # the 3 by 3 matrix from before, as a regular array
+print(type(x))                # x = csr_array(dense): only the non-zeros are stored
+```
+
+::: {.fragment}
+Row 0 holds 5 and 1, so its total should be 6.
+:::
+
+## Row sums {style="font-size: 0.8em;"}
+
+```{pyodide}
+print(x.sum(axis=1))       # add up each row: one number per row, no dense matrix built
+```
+
+::: {.fragment}
+Check against the dense array:
+
+```{pyodide}
+print(dense.sum(axis=1))   # same numbers
+```
+:::
+
+::: {.fragment}
+`axis` says which direction to add up:
+
+```{pyodide}
+print(x.sum(axis=1))       # axis=1: along each row, one number per row
+print(x.sum(axis=0))       # axis=0: down each column, one number per column
+```
+:::
+
+::: {.notes}
+- axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
+- Walk row 0: 5 + 1 = 6. Row 1 is empty, so its total is 0.
+- `x.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
+- Counting non-zeros instead of adding them up: `x.getnnz(axis=1)` gives 2, 0, 2. On a 0/1 adjacency matrix that is the number of friends.
+:::
+
+## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
+
+```{pyodide}
+import scipy.sparse
+
+old = scipy.sparse.csr_matrix(dense)   # the older type, still common (scikit-learn)
+print(old[2, 2])                    # works
+print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
+```
+
+::: {.notes}
+- With a NumPy array both forms work. With `csr_matrix`, `x[2]` stays 2D with one row.
+- `x[i, j]` works for NumPy, both sparse types and pandas `.iloc`. Plain Python lists are the exception.
+:::
+
+## Rows vs columns: CSR and CSC {style="font-size: 0.75em;"}
+
+CSR is stored row by row. CSC (Compressed Sparse **Column**) is the same idea, column by column.
+
+```{python}
+#| echo: true
+G_10k = nx.fast_gnp_random_graph(10_000, 0.0025, seed=512)   # 10,000 users
+csr = nx.adjacency_matrix(G_10k)
+csc = csr.tocsc()          # convert once, before any loop
+
+def get_rows(m, k=200):
+    for i in range(k):
+        m[[i], :]          # row i, all columns
+
+def get_cols(m, k=200):
+    for j in range(k):
+        m[:, [j]]          # all rows, column j
+
+times = {}
+for name, m in [("CSR", csr), ("CSC", csc)]:
+    times[name, "rows"] = timeit.timeit(lambda: get_rows(m), number=1)
+    times[name, "columns"] = timeit.timeit(lambda: get_cols(m), number=1)
+    print(f"{name}: 200 rows {times[name, 'rows'] * 1e3:6.1f} ms,  200 columns {times[name, 'columns'] * 1e3:6.1f} ms")
+```
+
+```{python}
+#| echo: false
+# Hidden: the bar chart on the next slide, from the same `times` printed above.
+timing_rows = [{"bar": f"{fmt}, 200 {what}", "what": f"200 {what}", "ms": round(sec * 1e3, 2),
+                "label": f"{sec * 1e3:,.1f} ms"}
+               for (fmt, what), sec in times.items()]
+timing_chart = {
+    "rows": timing_rows,
+    "bars": [row["bar"] for row in timing_rows],          # CSR first, then CSC
+    "order": ["200 rows", "200 columns"],
+    "csr_ratio": f"{times['CSR', 'columns'] / times['CSR', 'rows']:,.0f}",
+    "csc_ratio": f"{times['CSC', 'rows'] / times['CSC', 'columns']:,.0f}",
+}
+ojs_define(timing_chart = timing_chart)
+```
+
+## Each format is fast in its own direction {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: every time was measured in Python (timing_chart).
+Plot.plot({
+  width: 880, height: 220, marginLeft: 170, marginRight: 90, marginBottom: 46,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {label: "milliseconds →", labelAnchor: "center", grid: true},
+  y: {label: null, domain: timing_chart.bars},
+  color: {domain: timing_chart.order, range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
+  marks: [
+    Plot.barX(timing_chart.rows, {y: "bar", x: "ms", fill: "what", rx: 4}),
+    Plot.text(timing_chart.rows, {y: "bar", x: "ms", text: "label",
+                                  dx: 8, textAnchor: "start", fontWeight: "bold"}),
+    Plot.ruleX([0])
+  ]
+})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Print only: both ratios were computed in Python (timing_chart).
+  return html`<div class="ojs-readout">CSR: columns are about <b>${timing_chart.csr_ratio}×</b> slower than rows.
+    &nbsp;·&nbsp; CSC: rows are about <b>${timing_chart.csc_ratio}×</b> slower than columns.</div>`;
+}
+```
+
+::: {.fragment}
+| | CSR | CSC |
+|---|---|---|
+| stores | values, column indices, row pointers | values, row indices, column pointers |
+| fast at | rows | columns |
+| typical use | most of scikit-learn, row-wise work | column-wise work |
+:::
+
+::: {.notes}
+- Mostly rows: `.tocsr()`. Mostly columns: `.tocsc()`.
+- Converting copies the whole matrix. Do it once, before the loop, never inside it.
+- NumPy also stores row by row, but a dense array can jump to any column, so the gap is much smaller.
+:::
+
+## Sparse data is everywhere {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.
+- One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.
+- Ratings: one row per user, one column per product. Each user rates only a few.
+- Sensors: a 2019 MDS capstone team worked with particle physics images where most sensors picked up nothing.
+:::
+
+::: {.notes}
+- Ask: anyone met a sparse matrix in another course already?
+:::
+
+## From storing a graph to searching one {style="font-size: 0.85em;"}
+
+::: {.incremental}
+- Lecture 3 and so far today: how to **store** a graph. Adjacency list, adjacency matrix, sparse matrix.
+- A sparse matrix stores only the non-zeros. CSR is fast at rows, CSC at columns.
+- Now the graph fits in memory. Next question: how do we find our way **through** it?
+:::
+
+::: {.notes}
+- Bridge: storing Instagram's friend graph was lecture 3. Today's story switches to LinkedIn, a graph we want to search.
+:::
 
 ## How does LinkedIn know ada is "3rd"? {style="font-size: 0.9em;"}
 
@@ -174,6 +503,7 @@ How does LinkedIn know she is 3rd, and not 2nd or 4th? 🤔
 :::
 
 ::: {.notes}
+- Q: raise of hand: who has a LinkedIn account? Have you noticed the 1st, 2nd, 3rd next to people's names?
 - 1st: you are connected. 2nd: a friend of a friend. 3rd: one more step out.
 - Last lecture we called `nx.shortest_path_length` without asking how it works. Today we open the box.
 - Let them guess. Hold the answer until BFS.
