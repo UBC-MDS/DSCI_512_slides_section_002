@@ -623,10 +623,7 @@ How does LinkedIn know she is 3rd, and not 2nd or 4th?
 :::
 
 ::: {.notes}
-- Q: raise of hand: who has a LinkedIn account? Have you noticed the 1st, 2nd, 3rd next to people's names?
-- 1st: you are connected. 2nd: a friend of a friend. 3rd: one more step out.
-- Last lecture we called `nx.shortest_path_length` without asking how it works. Today we open the box.
-- Let them guess. Hold the answer until BFS.
+BFS.
 :::
 
 ::: footer
