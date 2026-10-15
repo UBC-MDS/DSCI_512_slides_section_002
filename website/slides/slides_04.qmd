@@ -303,7 +303,7 @@ for k, step in enumerate(rebuild_steps):
 ojs_define(rebuild_steps = rebuild_steps)
 ```
 
-# Last class recap: Sparse matrices! 
+# Last class recap: Sparse matrices
 
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
