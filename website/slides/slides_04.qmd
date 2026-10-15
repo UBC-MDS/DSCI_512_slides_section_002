@@ -307,6 +307,28 @@ ojs_define(rebuild_steps = rebuild_steps)
 
 # Last class recap: Sparse matrices 🦦
 
+## The simplest idea: COO {style="font-size: 0.8em;"}
+
+COO (**Coordinate** format): for every non-zero, write down its row, its column and its value.
+
+```{pyodide}
+coo = scipy.sparse.coo_array(dense)   # the same 4 by 3 matrix
+print("row: ", coo.row)               # the row of each value
+print("col: ", coo.col)               # the column of each value
+print("data:", coo.data)              # the non-zero values
+```
+
+::: {.fragment}
+The row list repeats itself: `0, 0, 2, 2, 3`. CSR squeezes it into one start position per row.
+:::
+
+::: {.notes}
+- Read the first triple out loud: row 0, column 1, value 5.
+- COO is easy to build: just append a triple for every new non-zero. Good for constructing a matrix.
+- But to find row 2 you have to scan the whole list. CSR fixes that with indptr, which is the next slide.
+- Convert with `coo.tocsr()` once you are done building.
+:::
+
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
 CSR (**Compressed Sparse Row**). The matrix does not need to be square: this one has 4 rows and 3 columns.
