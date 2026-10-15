@@ -427,6 +427,9 @@ print(rebuilt)
 scipy does this for you: `x.toarray()`.
 
 ```{pyodide}
+print("data:   ", x.data)      # the non-zero values, row by row
+print("indices:", x.indices)   # the column of each value
+print("indptr: ", x.indptr)    # where each row starts
 print(x.toarray())
 ```
 :::
