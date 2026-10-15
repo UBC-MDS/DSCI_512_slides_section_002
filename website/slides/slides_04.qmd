@@ -84,7 +84,7 @@ def ordinal(d):
 
 ```{pyodide}
 #| include: false
-# Hidden setup for the runnable cells: the 4 by 3 sparse matrix, the classes,
+# Hidden setup for the runnable cells: the 4 by 3 sparse matrix (CSR and CSC), the classes,
 # the LinkedIn graph and the two searches, so a later cell still works when an earlier slide was skipped.
 from collections import deque
 
@@ -104,6 +104,7 @@ dense = np.array([[0, 5, 1],
                   [2, 0, 3],
                   [4, 0, 0]])
 x = scipy.sparse.csr_array(dense)
+y = scipy.sparse.csc_array(dense)
 
 
 class Stack:
@@ -1896,4 +1897,262 @@ Compare the two lists: a page linked from a popular page can outrank one with mo
 ::: {.notes}
 - Second list: incoming links per page, most first.
 - Two kinds of randomness: the surfer's jumps are part of the model, the finite simulation is noise. `nx.pagerank(sfg)` gives the exact answer.
+:::
+
+# (Bonus Slide) CSC: the same idea, column by column {style="font-size: 0.8em;"}
+
+```{python}
+#| echo: false
+# Hidden: the two CSC step-throughs on the "(Bonus Slide) How CSC stores a matrix" and
+# "(Bonus Slide) From CSC back to the matrix" slides. Same matrix as the CSR slides (csr_dense),
+# stored column by column by scipy. Every highlight, formula and sentence is worked out here,
+# OJS only draws.
+csc_demo = scipy.sparse.csc_array(csr_dense)
+csc_data, csc_indices, csc_indptr = (csc_demo.data.tolist(), csc_demo.indices.tolist(),
+                                     csc_demo.indptr.tolist())
+col_nnz = [int(c) for c in (csr_dense != 0).sum(axis=0)]
+
+
+def csc_table(col, values):
+    """The matrix as table rows, column col highlighted; values[r][c] is None = not rebuilt yet."""
+    rows = []
+    for r in range(n_rows):
+        cells = []
+        for c in range(n_cols):
+            v = values[r][c]
+            cls = ["on" if c == col else "", "one" if v else "",
+                   "faded" if v is None and c != col else ""]
+            cells.append({"v": "?" if v is None else int(v), "cls": " ".join(x for x in cls if x)})
+        rows.append({"cls": "", "cells": cells})
+    return rows
+
+
+# How CSC stores a matrix: one radio choice per column filled in
+csc_steps = {}
+for k in range(-1, n_cols):                    # k = last column filled in; -1 = nothing yet
+    filled_data = csc_indptr[k + 1] if k >= 0 else 0
+    last = (k == n_cols - 1)
+    n_ptr = (k + 1) + (1 if last else 0)       # indptr[0..k], plus the closing total after the last column
+    start, end = (csc_indptr[k], csc_indptr[k + 1]) if k >= 0 else (0, 0)
+    if k < 0:
+        say = ["Three empty arrays. Click a column to fill them in."]
+    else:
+        count = end - start
+        if count:
+            fill = (f"Column {k} has {count} non-zero{'s' if count != 1 else ''}: "
+                    f"data gets {csc_data[start:end]}, indices gets their rows {csc_indices[start:end]}.")
+        else:
+            fill = f"Column {k} has no non-zeros, so data and indices get nothing."
+        say = [fill, f"indptr[{k}] = {start}: that many non-zeros come before column {k}."]
+        if last:
+            say.append(f"One more: indptr[{k + 1}] = {end}, the total number of non-zeros.")
+    csc_steps[k] = {
+        "rows": csc_table(k, csr_dense.tolist()),
+        "nnz": [{"v": col_nnz[c] if c <= k else "", "cls": "on" if c == k else ""} for c in range(n_cols)],
+        "data": [{"label": csc_data[j] if j < filled_data else "", "tag": j,
+                  "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                 for j in range(nnz_total)],
+        "indices": [{"label": csc_indices[j] if j < filled_data else "", "tag": j,
+                     "cls": ("found" if start <= j < end else "") if j < filled_data else "out"}
+                    for j in range(nnz_total)],
+        "indptr": [{"label": csc_indptr[j] if j < n_ptr else "", "tag": j,
+                    "cls": ("end" if j in (k, k + 1) and (j == k or last) else "") if j < n_ptr else "out"}
+                   for j in range(len(csc_indptr))],
+        "say": say,
+    }
+csc_view = {"steps": csc_steps, "cols": list(range(-1, n_cols)),
+            "col_labels": [f"col {j}" for j in range(n_cols)]}
+
+# From CSC back to the matrix: four clicks per column, like the CSR rebuild
+csc_work_formulas = [("indptr[j] : indptr[j+1]", "where column j starts and stops"),
+                     ("data[indptr[j] : indptr[j+1]]", "the non-zeros in column j"),
+                     ("indices[indptr[j] : indptr[j+1]]", "the row of each non-zero")]
+csc_rebuilt = [[None] * n_cols for _ in range(n_rows)]   # None = this cell is not rebuilt yet
+
+
+def csc_snapshot(j, phase, say):
+    """What the slide shows at one click. j = the column being rebuilt (None = before any column);
+    phase 0 = slice found, 1 = data read, 2 = indices read, 3 = column filled in."""
+    start, end = (csc_indptr[j], csc_indptr[j + 1]) if j is not None else (0, 0)
+    data_on = j is not None and phase >= 1
+    indices_on = j is not None and phase >= 2
+    values = ([] if j is None else
+              [f"indptr[{j}] : indptr[{j + 1}] = {start} : {end}",
+               f"data[{start}:{end}] = {csc_data[start:end]}",
+               f"indices[{start}:{end}] = {csc_indices[start:end]}"])
+    work = [{"formula": f, "gives": g,
+             "value": values[w] if j is not None and w <= phase else "",
+             "cls": "on" if j is not None and w == phase else ""}
+            for w, (f, g) in enumerate(csc_work_formulas)]
+    return {"rows": csc_table(j, csc_rebuilt),
+            "data": [{"label": v, "tag": p, "cls": "found" if data_on and start <= p < end else ""}
+                     for p, v in enumerate(csc_data)],
+            "indices": [{"label": v, "tag": p, "cls": "found" if indices_on and start <= p < end else ""}
+                        for p, v in enumerate(csc_indices)],
+            "indptr": [{"label": v, "tag": p, "cls": "end" if j is not None and p in (j, j + 1) else ""}
+                       for p, v in enumerate(csc_indptr)],
+            "work": work,
+            "work_head": "this column" if j is None else f"column {j}",
+            "say": say}                         # [text, colour class] pieces
+
+
+csc_rebuild_steps = [csc_snapshot(None, 0, [["We only have the three arrays. Rebuild the matrix one column at a time.", ""]])]
+for j in range(n_cols):
+    start, end = csc_indptr[j], csc_indptr[j + 1]   # column j is data[start:end]
+    slots = list(range(start, end))
+    vals, rows_j = csc_data[start:end], csc_indices[start:end]
+    csc_rebuild_steps.append(csc_snapshot(j, 0, [
+        [f"Column {j} starts at ", ""], [f"indptr[{j}] = {start}", "match"], [" and stops before ", ""],
+        [f"indptr[{j + 1}] = {end}", "match"],
+        ["." if slots else ": the same number, so the slice is empty.", ""]]))
+    csc_rebuild_steps.append(csc_snapshot(j, 1, [
+        [f"data[{start}:{end}] = {vals}", "notify"],
+        [f": the non-zeros in column {j}." if slots else f": column {j} has no non-zeros.", ""]]))
+    csc_rebuild_steps.append(csc_snapshot(j, 2, [
+        [f"indices[{start}:{end}] = {rows_j}", "notify"],
+        [": the row of each non-zero." if slots else ": no rows either.", ""]]))
+    for r in range(n_rows):
+        csc_rebuilt[r][j] = 0
+    for p in slots:
+        csc_rebuilt[csc_indices[p]][j] = csc_data[p]
+    fill = (f"Put {names([f'{csc_data[p]} in row {csc_indices[p]}' for p in slots])}. Every other cell is 0."
+            if slots else f"Nothing to put: column {j} is all zeros.")
+    if j == n_cols - 1:
+        assert np.array_equal(csc_rebuilt, csr_dense)
+        fill += " Done: the whole matrix is back."
+    csc_rebuild_steps.append(csc_snapshot(j, 3, [[fill, ""]]))
+for k, step in enumerate(csc_rebuild_steps):
+    step["count"] = f"Step {k} of {len(csc_rebuild_steps) - 1}"
+ojs_define(csc_view = csc_view, csc_rebuild_steps = csc_rebuild_steps)
+```
+
+## (Bonus Slide) How CSC stores a matrix {style="font-size: 0.8em;"}
+
+CSC (Compressed Sparse **Column**): the same matrix, stored column by column.
+
+```{ojs}
+//| echo: false
+viewof csc_col = Inputs.radio(csc_view.cols, {value: -1, label: "fill in", format: j => j < 0 ? "start" : `col ${j}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the arrays and the highlights were computed in Python (csc_view).
+  const s = csc_view.steps[csc_col];
+  const header = html`<tr><th></th>${csc_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const nnzRow = html`<tr class="nnz-row"><th>non-zeros</th>${s.nnz.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`;
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  return html`<div class="adj-wrap csr-wrap">
+      <div class="adj-panel"><table class="adj-table">${header}${rows}${nnzRow}</table>
+        <div class="ds-caption">the matrix, with the count per column</div></div>
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSC stores (small numbers: position in the array)</div></div>
+    </div>
+    <div class="ojs-readout">${s.say.join(" ")}</div>`;
+}
+```
+
+::: {.notes}
+- Same three arrays, but walk down the columns instead of across the rows.
+- indices now holds the row of each value, not the column.
+- indptr has one entry per column plus one: 3 columns, so 4 entries.
+- Compare with CSR on the same matrix: same values, different order.
+:::
+
+## (Bonus Slide) CSC in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+y = scipy.sparse.csc_array(dense)
+print("data:   ", y.data)      # the non-zero values, column by column
+print("indices:", y.indices)   # the row of each value
+print("indptr: ", y.indptr)    # where each column starts
+print("shape:  ", y.shape)     # still 4 rows, 3 columns
+```
+
+```{pyodide}
+for j in range(y.shape[1]):
+    start, end = y.indptr[j], y.indptr[j + 1]   # column j is data[start:end]
+    print(f"column {j}: rows {y.indices[start:end]}, values {y.data[start:end]}")
+```
+
+::: {.notes}
+- Columns are now cheap: two lookups in indptr, then one slice. Rows are the expensive direction.
+:::
+
+## (Bonus Slide) From CSC back to the matrix {style="font-size: 0.8em;"}
+
+Given only `data`, `indices` and `indptr` from CSC, can we get the matrix back?
+
+```{ojs}
+//| echo: false
+viewof csc_rebuild_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, csc_rebuild_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every highlight, cell and sentence was computed in Python (csc_rebuild_steps).
+  const s = csc_rebuild_steps[csc_rebuild_step];
+  const header = html`<tr><th></th>${csc_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  const say = s.say.map(([t, cls]) => html`<span class="${cls}">${t}</span>`);
+  const work = s.work.map(w => html`<tr class="${w.cls}"><td class="code">${w.formula}</td>
+      <td class="gives">${w.gives}</td><td class="code value">${w.value}</td></tr>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${say}</div>
+    <div class="adj-wrap csr-wrap">
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSC stores (small numbers: position in the array)</div></div>
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix, rebuilt</div></div>
+    </div>
+    <div class="adj-wrap"><table class="adj-table csr-work">
+      <tr><th>formula</th><th>gives</th><th>${s.work_head}</th></tr>${work}</table></div>`;
+}
+```
+
+::: {.notes}
+- The same formulas as CSR with i swapped for j: the slice is now a column, and indices gives rows.
+- Four clicks per column: find the slice in indptr (orange), read data, read indices (blue), fill the column in.
+:::
+
+## (Bonus Slide) Rebuild it in code: CSC {style="font-size: 0.8em;"}
+
+The same three steps per column, as a loop:
+
+```{pyodide}
+rebuilt = np.zeros(y.shape, dtype=int)            # start with all zeros
+for j in range(y.shape[1]):
+    start, end = y.indptr[j], y.indptr[j + 1]     # 1. find column j's slice
+    rows = y.indices[start:end]                   # 2. which rows
+    rebuilt[rows, j] = y.data[start:end]          # 3. which values
+print(rebuilt)
+```
+
+::: {.fragment}
+scipy does this for you too: `y.toarray()`.
+
+```{pyodide}
+print(y.toarray())
+```
+:::
+
+::: {.notes}
+- `rebuilt[rows, j] = ...` puts several values into column j at once, one per row in rows.
 :::
