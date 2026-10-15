@@ -22,6 +22,7 @@ pyodide:
     - numpy
     - scipy
     - networkx
+    - scikit-learn
 resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
@@ -590,9 +591,9 @@ Plot.plot({
 
 :::: {.columns}
 ::: {.column width="45%"}
-- [Word counts: one row per document, one column per word. Each document uses a tiny fraction of all words.]{.fragment fragment-index=1}
+- [Natural language processing: a document-term matrix, one row per document, one column per word. Each document uses only a tiny fraction of the vocabulary.]{.fragment fragment-index=1}
 - [One-hot encoding: scikit-learn's `OneHotEncoder` returns a sparse matrix by default.]{.fragment fragment-index=2}
-- [Ratings: one row per user, one column per product. Each user rates only a few.]{.fragment fragment-index=3}
+- [Recommendation systems: a user-item matrix, one row per user, one column per item. Each user interacts with only a few items.]{.fragment fragment-index=3}
 :::
 ::: {.column width="55%"}
 ::: {.fragment fragment-index=2}
@@ -603,11 +604,32 @@ Plot.plot({
 
 ::: {.notes}
 - The screenshot is from DSCI 571, Chapter 4. There they passed `sparse_output=False` to turn sparse off, so the output prints as a readable table.
-- Leave it out and you get a sparse matrix back: mostly zeros, exactly one 1 per row.
 :::
 
 ::: footer
-Screenshot: DSCI 571 lecture notes, Chapter 4
+Screenshot: DSCI 571 lecture notes, Chapter 4 · Examples: [AskPython, SciPy sparse](https://www.askpython.com/python-modules/scipy/scipy-sparse)
+:::
+
+## Word counts are sparse {style="font-size: 0.8em;"}
+
+```{pyodide}
+from sklearn.feature_extraction.text import CountVectorizer
+
+documents = [
+    "I love machine learning",
+    "Python is great for data science",
+    "Machine learning with Python"
+]
+
+vectorizer = CountVectorizer()
+doc_term_matrix = vectorizer.fit_transform(documents)   # one row per document, one column per word
+
+print(f"Matrix format: {type(doc_term_matrix)}")
+```
+
+
+::: footer
+Example adapted from [AskPython, SciPy sparse](https://www.askpython.com/python-modules/scipy/scipy-sparse)
 :::
 
 
