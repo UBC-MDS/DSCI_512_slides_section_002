@@ -301,6 +301,44 @@ for k, step in enumerate(rebuild_steps):
 ojs_define(rebuild_steps = rebuild_steps)
 ```
 
+
+## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
+
+CSR (**Compressed Sparse Row**):
+
+```{ojs}
+//| echo: false
+viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", format: i => i < 0 ? "start" : `row ${i}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the arrays and the highlights were computed in Python (csr_view).
+  const s = csr_view.steps[csr_row];
+  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const nnzRows = s.nnz.map(r => html`<tr class="${r.cls}"><td>${r.v}</td></tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  return html`<div class="adj-wrap csr-wrap">
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix</div></div>
+      <div class="adj-panel"><table class="adj-table">
+          <tr><th>non-zeros</th></tr>${nnzRows}</table>
+        <div class="ds-caption">count per row</div></div>
+      <div class="adj-panel">
+        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
+        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
+        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
+        <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
+    </div>
+    <div class="ojs-readout">${s.say.join(" ")}</div>`;
+}
+```
+
+
 ## From CSR back to the matrix {style="font-size: 0.8em;"}
 
 Given only `data`, `indices` and `indptr`, can we get the matrix back?
@@ -342,58 +380,6 @@ viewof rebuild_step = Inputs.button([
 }
 ```
 
-::: {.notes}
-- Ask them to predict each step before you click.
-- The two formulas in the table are the whole trick: `data[indptr[i]:indptr[i+1]]` is every non-zero in row i, `indices[indptr[i]:indptr[i+1]]` is the column of each one.
-- Four clicks per row: find the slice in indptr (orange), read data, read indices (blue), fill the row in. Everything else is 0.
-- Row 1: indptr[1] and indptr[2] are both 2, an empty slice, so the row is all zeros.
-- Next: the other way, from a matrix to the three arrays.
-:::
-
-## How CSR stores a matrix {style="font-size: 0.8em;"}
-
-Now the other way: click through the rows and watch the three arrays fill in.
-
-```{ojs}
-//| echo: false
-viewof csr_row = Inputs.radio(csr_view.rows, {value: -1, label: "fill in", format: i => i < 0 ? "start" : `row ${i}`})
-```
-
-```{ojs}
-//| echo: false
-{
-  // Draw only: the arrays and the highlights were computed in Python (csr_view).
-  const s = csr_view.steps[csr_row];
-  const header = html`<tr><th></th>${csr_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
-  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
-      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
-  const nnzRows = s.nnz.map(r => html`<tr class="${r.cls}"><td>${r.v}</td></tr>`);
-  const boxes = items => items.map(b =>
-    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
-  return html`<div class="adj-wrap csr-wrap">
-      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
-        <div class="ds-caption">the matrix</div></div>
-      <div class="adj-panel"><table class="adj-table">
-          <tr><th>non-zeros</th></tr>${nnzRows}</table>
-        <div class="ds-caption">count per row</div></div>
-      <div class="adj-panel">
-        <div class="ds-row csr"><span class="csr-name">data</span>${boxes(s.data)}</div>
-        <div class="ds-row csr"><span class="csr-name">indices</span>${boxes(s.indices)}</div>
-        <div class="ds-row csr"><span class="csr-name">indptr</span>${boxes(s.indptr)}</div>
-        <div class="ds-caption">what CSR stores (small numbers: position in the array)</div></div>
-    </div>
-    <div class="ojs-readout">${s.say.join(" ")}</div>`;
-}
-```
-
-::: {.notes}
-- data: the non-zero values, row by row. indices: the column of each one. indptr: how many non-zeros come before each row.
-- The non-zeros column is only a helper to count. CSR does not store it.
-- Row 1 is empty: indptr[1] and indptr[2] are both 2.
-- indptr has one more entry than rows, so the last row knows where it ends.
-- Each row's slice is that vertex's list of neighbours: CSR is an adjacency list packed into flat arrays.
-- Diagram in the lecture notes, section 4.3.
-:::
 
 ## Sparse matrices: CSR in code {style="font-size: 0.8em;"}
 
@@ -416,10 +402,7 @@ for i in range(x.shape[0]):
     print(f"row {i}: columns {x.indices[start:end]}, values {x.data[start:end]}")
 ```
 
-::: {.notes}
-- Rows are cheap: two lookups in indptr, then one slice.
-- Columns are expensive: to find everything in column 2, check every row's slice.
-:::
+
 
 ## Rebuild it in code {style="font-size: 0.8em;"}
 
@@ -442,10 +425,6 @@ print(x.toarray())
 ```
 :::
 
-::: {.notes}
-- `rebuilt[i, cols] = ...` puts several values into row i at once, one per column in cols.
-- Only do this on small matrices: the dense version of Instagram's graph does not fit in memory (lecture 3).
-:::
 
 ## Working with sparse matrices {style="font-size: 0.8em;"}
 
