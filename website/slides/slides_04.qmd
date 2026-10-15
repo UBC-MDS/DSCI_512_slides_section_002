@@ -481,7 +481,7 @@ import scipy.sparse
 
 old = scipy.sparse.csr_matrix(dense)   # the older type, still common (scikit-learn)
 print(old[2, 2])                    # works
-print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
+#print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
 ```
 
 
