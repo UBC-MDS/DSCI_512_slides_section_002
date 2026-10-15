@@ -304,7 +304,7 @@ for k, step in enumerate(rebuild_steps):
 ojs_define(rebuild_steps = rebuild_steps)
 ```
 
-# Last class recap: Sparse matrices
+# Last class recap: Sparse matrices 🦦
 
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
@@ -593,17 +593,7 @@ Plot.plot({
 :::
 
 
-## From storing a graph to searching one {style="font-size: 0.85em;"}
-
-::: {.incremental}
-- Lecture 3 and so far today: how to **store** a graph. Adjacency list, adjacency matrix, sparse matrix.
-- A sparse matrix stores only the non-zeros. CSR is fast at rows, CSC at columns.
-- Now the graph fits in memory. Next question: how do we find our way **through** it?
-:::
-
-::: {.notes}
-- Bridge: storing Instagram's friend graph was lecture 3. Today's story switches to LinkedIn, a graph we want to search.
-:::
+# Today's Topic: Searching in a graph 🔍 
 
 ## How does LinkedIn know ada is "3rd"? {style="font-size: 0.9em;"}
 
