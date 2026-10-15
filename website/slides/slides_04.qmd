@@ -808,7 +808,7 @@ root.print_tree()
 - `networkx` treats a tree as just another graph; our own `Node` class is the usual way to write one by hand.
 :::
 
-# Stacks and queues {background-image="images/ig_otter_undo.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Stacks and queues
 
 You are writing a LinkedIn post with a few photos. Undo: which edit goes first? Upload: which photo goes first?
 
