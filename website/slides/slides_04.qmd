@@ -642,7 +642,7 @@ Plot.plot({
 ```
 
 
-## Which one should I use? {style="font-size: 0.8em;"}
+## Which one should I use? {style="font-size: 0.7em;"}
 
 | Your situation | Use |
 |---|---|
