@@ -529,18 +529,21 @@ print(x.sum(axis=1))       # add up each row: one number per row, no dense matri
 :::
 
 
-## `axis = 1` VS `axis = 0` {style="font-size: 0.8em;"}
+## Tricks in Python {style="font-size: 0.8em;"}
 
-`axis` says which direction to add up:
+- `axis = 1` VS `axis = 0`
+    - `axis` says which direction to add up.
+    - `axis=1` collapses the columns, so you get one total per row.`
+    - `axis=0` collapses the rows, so you get one total per column.
 
 ```{pyodide}
-print(x.sum(axis=1))       # axis=1: along each row, one number per row
-print(x.sum(axis=0))       # axis=0: down each column, one number per column
+print(x.sum(axis=1))       
+print(x.sum(axis=0))     
 ```
 
+::: {.fragment}
 
-
-## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
+- Use `x[i, j]` to access the element in row `i` and column `j`, not `x[i][j]`.
 
 ```{pyodide}
 import scipy.sparse
@@ -549,6 +552,7 @@ old = scipy.sparse.csr_matrix(dense)   # the older type, still common (scikit-le
 print(old[2, 2])                    # works
 #print(old[2][2])                    # IndexError: old[2] is a 1-row matrix, it has no row 2
 ```
+:::
 
 
 ::: {.notes}
