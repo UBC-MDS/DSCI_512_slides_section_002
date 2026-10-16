@@ -1228,12 +1228,14 @@ li_layout = layout(li, li_pos, pad=0.6)
 
 def record_search(G, start, goal, kind):
     """Run BFS (kind="bfs", a queue) or DFS (kind="dfs", a stack) exactly like
-    bfs_connected / dfs_connected, and record one step per node taken out."""
+    bfs_connected / dfs_connected, and record one step per node taken out.
+    kind="dfs_push" is the wrong DFS that marks on push, for the "why mark" slide."""
     bfs = kind == "bfs"
+    mark_on_push = kind != "dfs"
     word, take_end, add_end = ("queue", "front", "back") if bfs else ("stack", "top", "top")
     to_visit = deque([start]) if bfs else [start]
     # BFS marks a node when it first sees it, DFS when it takes it out
-    visited, found_from, dist, order = {start} if bfs else set(), {start: None}, {start: 0}, []
+    visited, found_from, dist, order = {start} if mark_on_push else set(), {start: None}, {start: 0}, []
     path = []
     steps = []
 
@@ -1255,7 +1257,8 @@ def record_search(G, start, goal, kind):
                 "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):"}
 
     steps.append(snapshot(None, f"Start: put {start} in the {word}"
-                                + (" and mark it as seen" if bfs else "") + f". Goal: {goal}."))
+                                + {"bfs": " and mark it as seen", "dfs": "", "dfs_push": " and mark it"}[kind]
+                                + (f". Goal: {goal}." if goal is not None else ". Visit everyone.")))
     while to_visit:
         node = to_visit.popleft() if bfs else to_visit.pop()
         if node in order:    # DFS only: a second copy of a node already visited
@@ -1280,7 +1283,7 @@ def record_search(G, start, goal, kind):
         new = []
         for neighbour in G.neighbors(node):
             if neighbour not in visited:
-                if bfs:
+                if mark_on_push:
                     visited.add(neighbour)
                 found_from[neighbour] = node    # DFS: the latest push is the copy taken out first
                 dist[neighbour] = dist[node] + 1
@@ -1289,6 +1292,12 @@ def record_search(G, start, goal, kind):
         if bfs:
             say = (f"Take {node} from the {take_end}. "
                    + (f"Not seen yet: {names(new)}, added to the {add_end}." if new else "No new neighbours."))
+        elif mark_on_push:
+            blocked = [u for u in G.neighbors(node) if u in to_visit and u not in new]
+            say = (f"Take {node} from the {take_end}. "
+                   + (f"Not marked yet: {names(new)}, pushed and marked. " if new else "")
+                   + (f"{names(blocked)} {'is' if len(blocked) == 1 else 'are'} already marked, "
+                      "so not pushed again." if blocked else "" if new else "No unmarked neighbours.")).strip()
         else:
             say = (f"Take {node} from the {take_end} and mark it visited. "
                    + (f"Not visited yet: {names(new)}, pushed on the {add_end}." if new
@@ -1542,10 +1551,87 @@ print("The path DFS found to ada:", dfs_path_edges)
 ::: {.notes}
 - Highlight 1: the stack and `pop()`, as in the step-through.
 - Highlight 2: BFS marks a node when it first sees it. DFS marks it when it takes it out.
-- Why: if DFS marked on push, sky would mark clam, and otter could not push clam again later. Then after nori it jumps back to clam from sky's list, instead of going deeper: nori, otter, clam, bubbles.
+- Why: the next slide.
 - So a node can sit in the stack twice. The `continue` skips the second copy.
 - Highlight 3: no `visited.add` here any more.
 - A graph has many valid DFS orders, depending on which neighbour you try first. networkx tries the first neighbour first; ours pushes them all, so it tries the last one first.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the two step-throughs on the "why mark when we take it out" slide. The same
+# LinkedIn graph, visiting everyone from sky, once marking on push and once marking on pop.
+# Both share one Next button, so the shorter run repeats its last picture with "Done".
+mark_runs = {"push": record_search(li, "sky", None, "dfs_push"),
+             "pop": record_search(li, "sky", None, "dfs")}
+n_mark_steps = max(len(run["steps"]) for run in mark_runs.values())
+mark_view = {}
+for key, run in mark_runs.items():
+    steps = run["steps"]
+    done = {**steps[-1], "say": "The stack is empty: done.",
+            "node_roles": ["done" if r == "now" else r for r in steps[-1]["node_roles"]]}
+    steps = steps + [done] * (n_mark_steps - len(steps))
+    mark_view[key] = {"steps": steps, "order": " → ".join(run["order"])}
+mark_view["counts"] = [f"Step {k} of {n_mark_steps - 1}" for k in range(n_mark_steps)]
+ojs_define(mark_view = mark_view)
+```
+
+## Why mark a node when we take it out? {style="font-size: 0.7em;"}
+
+```{ojs}
+//| echo: false
+viewof mark_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, mark_view.counts.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: both searches were run in Python (mark_view); every colour, label and box comes from there.
+  const fill = {now: "#eb6834", path: "#eb6834", done: "#2a78d6", waiting: "#a9c8ef", other: "#b8b6b0"};
+  const stroke = {path: "#eb6834", found: "#2a78d6", base: "#d9d8d4"};
+  const panel = (key, title) => {
+    const s = mark_view[key].steps[mark_step];
+    const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
+    const edges = li_layout.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
+    const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+    return html`<div><h4 style="margin: 0; text-align: center;">${title}</h4>
+      <div class="ojs-readout" style="min-height: 3.2em;">${s.say}</div>
+      ${Plot.plot({
+        width: 460, height: 230, margin: 14,
+        style: {fontSize: "16px", background: "transparent"},
+        x: {axis: null, domain: li_layout.x_domain}, y: {axis: null, domain: li_layout.y_domain},
+        marks: [
+          Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
+                            strokeWidth: d => d.role === "base" ? 2 : 4}),
+          Plot.dot(nodes, {x: "x", y: "y", r: 11, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+          Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -20, fontWeight: "bold"})
+        ]
+      })}
+      <div class="ds-row center"><span class="ds-caption">${s.box_caption}</span>
+        ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div></div>`;
+  };
+  return html`<div class="ojs-readout"><span class="sq-count">${mark_view.counts[mark_step]}</span></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      ${panel("push", "❌ mark when pushed")}${panel("pop", "✅ mark when taken out")}</div>`;
+}
+```
+
+::: {.fragment}
+- ❌ After nori, otter is already marked, so DFS jumps back to clam.
+- ✅ nori pushes otter again, so DFS keeps going **deeper**: the blue lines form one long path.
+:::
+
+::: {.notes}
+- Both sides are the same until step 6. Click quickly to nori.
+- At step 6 ask: who comes out next on each side? Left: clam, pushed by sky long ago. Right: otter, just pushed by nori.
+- Left order: `{python} mark_view["push"]["order"]`. Right order: `{python} mark_view["pop"]["order"]`.
+- The blue lines are where each user was found from. Left: three branches from sky. Right: one chain, which is what "depth-first" means.
+- Last steps on the right: clam and otter come out a second time and are skipped. That is the `continue`, and why DFS space is O(V + E).
+- Both still answer "are these connected?". Only the right one is a real DFS.
 :::
 
 ## BFS vs DFS {style="font-size: 0.65em;"}
