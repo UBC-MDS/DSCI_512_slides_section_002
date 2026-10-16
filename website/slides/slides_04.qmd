@@ -647,6 +647,7 @@ Plot.plot({
 | Your situation | Use |
 |---|---|
 | Small matrix, or more than about 10% non-zeros | dense matrix |
+| Linear algebra calculation (e.g., full factorizations or eigendecompositions) | dense matrix |
 | Large matrix, with lots of zeros | sparse matrix |
 | Building it one entry at a time | COO, then convert |
 | Mostly reading rows (most of scikit-learn; matrix-vector multiplication) | CSR |
