@@ -1236,6 +1236,7 @@ def record_search(G, start, goal, kind):
     to_visit = deque([start]) if bfs else [start]
     # BFS marks a node when it first sees it, DFS when it takes it out
     visited, found_from, dist, order = {start} if mark_on_push else set(), {start: None}, {start: 0}, []
+    marked = list(visited)    # the visited set in the order nodes were added, for drawing it
     path = []
     steps = []
 
@@ -1254,7 +1255,8 @@ def record_search(G, start, goal, kind):
                 "edge_roles": ["path" if edge_key(u, v) in path_edges else
                                "found" if edge_key(u, v) in found_edges else "base" for u, v in G.edges],
                 "boxes": [{"label": u, "cls": "end" if i == next_out else ""} for i, u in enumerate(items)],
-                "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):"}
+                "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):",
+                "visited": list(marked)}
 
     first = {"bfs": f"Start: put {start} in the queue and mark it as seen.",
              "dfs": f"Start: put {start} in the stack.",
@@ -1266,6 +1268,8 @@ def record_search(G, start, goal, kind):
         if node in order:    # DFS only: a second copy of a node already visited
             steps.append(snapshot(node, f"Take {node}. It is already visited, so skip it."))
             continue
+        if node not in visited:
+            marked.append(node)
         visited.add(node)
         order.append(node)
         if node == goal:
@@ -1287,6 +1291,7 @@ def record_search(G, start, goal, kind):
             if neighbour not in visited:
                 if mark_on_push:
                     visited.add(neighbour)
+                    marked.append(neighbour)
                 found_from[neighbour] = node    # DFS: the latest push is the copy taken out first
                 dist[neighbour] = dist[node] + 1
                 to_visit.append(neighbour)
@@ -1587,6 +1592,9 @@ for key, kind in [("push", "dfs_push"), ("pop", "dfs")]:
     for k, step in enumerate(steps):
         step["count"] = f"Step {k} of {len(steps) - 1}"
         step["labels"] = list(why_graph.nodes)   # plain names, no "(you)"
+        before = steps[k - 1]["visited"] if k > 0 else []
+        step["visited_boxes"] = [{"label": u, "cls": "found" if u not in before else ""}
+                                 for u in step["visited"]]   # blue: added in this step
     mark_view[key] = {"steps": steps, "order": ", ".join(run["order"])}
 ojs_define(why_layout = why_layout, mark_view = mark_view)
 ```
@@ -1614,8 +1622,11 @@ draw_why = s => {
         Plot.text(nodes, {x: "x", y: "y", text: "label", fill: "white", fontWeight: "bold"})
       ]
     })}
-    <div class="ds-row center"><span class="ds-caption">stack (top on the right):</span>
-      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+    <div class="ds-row center why"><span class="ds-caption">stack (top on the right):</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>
+    <div class="ds-row center why"><span class="ds-caption">visited (blue = just added):</span>
+      ${s.visited_boxes.length ? s.visited_boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`)
+                               : html`<span class="ds-caption">empty</span>`}</div>`;
 }
 ```
 
@@ -1636,6 +1647,22 @@ viewof push_step = Inputs.button([
 //| echo: false
 draw_why(mark_view.push.steps[push_step])
 ```
+
+```{.python code-line-numbers="3,11"}
+def dfs_connected(g, start, goal):
+    to_visit = [start]
+    visited = {start}          # S is marked right away
+
+    while to_visit:
+        node = to_visit.pop()
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                visited.add(neighbour)       # mark when pushed
+                to_visit.append(neighbour)
+    return False
+```
 :::
 
 ::: {.column width="50%"}
@@ -1654,6 +1681,24 @@ viewof pop_step = Inputs.button([
 //| echo: false
 draw_why(mark_view.pop.steps[pop_step])
 ```
+
+```{.python code-line-numbers="3,7-9"}
+def dfs_connected(g, start, goal):
+    to_visit = [start]
+    visited = set()            # empty at the start
+
+    while to_visit:
+        node = to_visit.pop()
+        if node in visited:    # an old copy: skip it
+            continue
+        visited.add(node)      # mark when taken out
+        if node == goal:
+            return True
+        for neighbour in g.neighbors(node):
+            if neighbour not in visited:
+                to_visit.append(neighbour)
+    return False
+```
 :::
 ::::
 
@@ -1664,6 +1709,7 @@ draw_why(mark_view.pop.steps[pop_step])
 - Then the right. Step 3: C pushes A again, so A is in the stack twice and the top copy comes out next. Order: `{python} mark_view["pop"]["order"]`.
 - Blue lines are where each node was found from. Left: A hangs off S. Right: one path S, B, C, A.
 - Step 6 on the right: the old copy of A comes out and is skipped. That is the `continue`, and why DFS space is O(V + E).
+- Watch the visited row. Left: S is in it from the start, and A, X, B go in as soon as they are pushed. Right: it starts empty, and a node goes in only when it comes out of the stack.
 - Both versions still answer "are these connected?". Only the right one is a real DFS.
 :::
 

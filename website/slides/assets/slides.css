@@ -136,6 +136,8 @@
 .reveal .adj-list div.on { background: #2a78d6; color: #ffffff; font-weight: bold; }
 .reveal .csr-name { font-family: var(--r-code-font, monospace); font-size: 17px; width: 90px; text-align: right; color: #52514e; }
 .reveal .ds-row.csr .ds-box { min-width: 0; width: 46px; padding: 0; }
+/* Why-mark DFS slide: one-letter nodes, so narrow boxes fit two panels side by side */
+.reveal .ds-row.why .ds-box { min-width: 0; width: 40px; padding: 0; }
 .reveal .ds-row.csr .sq-tag.below { top: calc(100% + 2px); font-size: 13px; color: #8a8880; }
 .reveal .ds-row.csr { margin-bottom: 14px; }
 .reveal .csr-wrap { gap: 48px; }
