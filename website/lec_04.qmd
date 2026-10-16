@@ -1,7 +1,7 @@
 ---
-title: "4. Sparse Matrices, Trees, and Graph Searches"
-description: "Sparse matrix formats, trees, and breadth-first and depth-first search."
-description-short: "Compare adjacency lists and adjacency matrices. Traverse graphs with breadth-first and depth-first search, using queues and stacks, and meet trees."
+title: "4. Sparse Matrices, Stacks, Queues, and Graph Searches"
+description: "Sparse matrix formats, stacks and queues, and breadth-first and depth-first search."
+description-short: "Pick the right sparse format (COO, CSR or CSC) for the job. Build stacks and queues, then use them to search a graph with breadth-first and depth-first search."
 ---
 
 ## Slides for Section 002
