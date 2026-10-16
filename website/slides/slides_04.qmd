@@ -64,12 +64,12 @@ def layout(G, pos, pad=0.5):
             "y_domain": [min(ys) - pad, max(ys) + pad]}
 
 
-def tree_pos(T, root, width=8):
-    """Root at the top, each level on its own row (same idea as draw_tree in the notes)."""
+def ring_pos(G, start, width=8):
+    """Start at the top, each BFS ring (same number of hops from start) on its own row."""
     pos = {}
-    for depth, level in enumerate(nx.bfs_layers(T, root)):
-        for i, node in enumerate(level):
-            pos[node] = ((i + 0.5) / len(level) * width, -depth)
+    for hops, ring in enumerate(nx.bfs_layers(G, start)):
+        for i, node in enumerate(ring):
+            pos[node] = ((i + 0.5) / len(ring) * width, -hops)
     return pos
 
 
@@ -98,7 +98,7 @@ connections = [("sky", "otter"), ("sky", "clam"), ("sky", "kelp"), ("otter", "cl
                ("mochi", "pixel"), ("pixel", "ada")]
 G = nx.Graph(connections)
 G.add_node("waffle")
-small_tree = nx.balanced_tree(2, 2)
+small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
 
 dense = np.array([[0, 5, 1],
                   [0, 0, 0],
@@ -1243,7 +1243,7 @@ def record_search(G, start, goal, kind):
 
     def snapshot(now, say, path=()):
         path_edges = {edge_key(u, v) for u, v in zip(path, path[1:])}
-        tree_edges = {edge_key(u, p) for u, p in found_from.items() if p is not None}
+        found_edges = {edge_key(u, p) for u, p in found_from.items() if p is not None}
         roles = []
         for u in G.nodes:
             roles.append("path" if u in path else "now" if u == now else "done" if u in order
@@ -1254,7 +1254,7 @@ def record_search(G, start, goal, kind):
         next_out = 0 if bfs else len(items) - 1
         return {"node_roles": roles, "labels": labels, "say": say,
                 "edge_roles": ["path" if edge_key(u, v) in path_edges else
-                               "tree" if edge_key(u, v) in tree_edges else "base" for u, v in G.edges],
+                               "found" if edge_key(u, v) in found_edges else "base" for u, v in G.edges],
                 "boxes": [{"label": u, "cls": "end" if i == next_out else ""} for i, u in enumerate(items)],
                 "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):"}
 
@@ -1356,7 +1356,7 @@ viewof bfs_step = Inputs.button([
   // Draw only: the search was run in Python (bfs_run); every colour, label and box comes from there.
   const s = bfs_run.steps[bfs_step];
   const fill = {now: "#eb6834", path: "#eb6834", done: "#2a78d6", waiting: "#a9c8ef", other: "#b8b6b0"};
-  const stroke = {path: "#eb6834", tree: "#2a78d6", base: "#d9d8d4"};
+  const stroke = {path: "#eb6834", found: "#2a78d6", base: "#d9d8d4"};
   const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
   const edges = li_layout.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
   const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
@@ -1429,7 +1429,7 @@ print(bfs_connected(G, "sky", "waffle"))
 - Same visit order as the step-through: sky, otter, clam, kelp, nori, bubbles, mochi, ada.
 :::
 
-## The BFS tree, and shortest paths {style="font-size: 0.8em;"}
+## BFS finds shortest paths {style="font-size: 0.8em;"}
 
 ```{pyodide}
 print(list(nx.bfs_edges(G, "sky")))   # (found from, found), in the order BFS finds them
@@ -1438,14 +1438,13 @@ print(nx.shortest_path_length(G, "sky", "ada"))
 ```
 
 ::: {.incremental}
-- Every node is found once, from exactly one node: no cycles. These edges form a **tree** with the start at the root, one level per ring.
 - BFS visits every 1st before any 2nd, every 2nd before any 3rd. So the **first** time it reaches a node, it used a shortest path.
 - That is how LinkedIn's "3rd" works, and how `nx.shortest_path_length` works on an unweighted graph.
 :::
 
 ::: {.notes}
-- The blue lines in the step-through are the BFS tree. `nx.bfs_tree(G, "sky")` builds it as a graph.
-- waffle is not in the tree: BFS from sky never reaches it.
+- `bfs_edges` lists the blue lines in the step-through: where each user was first found from.
+- waffle is not in the list: BFS from sky never reaches it.
 - Weighted graph: fewest edges is not the same as cheapest. That needs Dijkstra's algorithm.
 - Lab 2: change BFS to keep each node's distance.
 :::
@@ -1498,7 +1497,7 @@ viewof dfs_step = Inputs.button([
   // Draw only: the search was run in Python (dfs_run); every colour, label and box comes from there.
   const s = dfs_run.steps[dfs_step];
   const fill = {now: "#eb6834", path: "#eb6834", done: "#2a78d6", waiting: "#a9c8ef", other: "#b8b6b0"};
-  const stroke = {path: "#eb6834", tree: "#2a78d6", base: "#d9d8d4"};
+  const stroke = {path: "#eb6834", found: "#2a78d6", base: "#d9d8d4"};
   const nodes = li_layout.nodes.map((d, i) => ({...d, role: s.node_roles[i], label: s.labels[i]}));
   const edges = li_layout.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
   const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
@@ -1559,12 +1558,12 @@ print(list(nx.dfs_edges(G, "sky")))   # networkx's DFS: a slightly different ord
 
 ```{python}
 #| echo: false
-# Hidden: the small tree for the trace question, and both visit orders, worked out
+# Hidden: the small graph for the trace question, and both visit orders, worked out
 # with the same search as the step-throughs (a goal of -1 visits everything).
-small_tree = nx.balanced_tree(2, 2)
-small_layout = layout(small_tree, tree_pos(small_tree, 0, width=6), pad=0.4)
-bfs_trace = ", ".join(str(u) for u in record_search(small_tree, 0, -1, "bfs")["order"])
-dfs_trace = ", ".join(str(u) for u in record_search(small_tree, 0, -1, "dfs")["order"])
+small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
+small_layout = layout(small_graph, ring_pos(small_graph, 0, width=6), pad=0.4)
+bfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "bfs")["order"])
+dfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "dfs")["order"])
 ojs_define(small_layout = small_layout)
 ```
 
@@ -1574,7 +1573,7 @@ ojs_define(small_layout = small_layout)
 //| echo: false
 // Draw only: positions computed in Python (small_layout).
 Plot.plot({
-  width: 520, height: 200, margin: 14,
+  width: 520, height: 240, margin: 14,
   style: {fontSize: "16px", background: "transparent"},
   x: {axis: null, domain: small_layout.x_domain}, y: {axis: null, domain: small_layout.y_domain},
   marks: [
@@ -1588,13 +1587,13 @@ Plot.plot({
 Start at 0. Neighbours come out smallest first: node 0's are `[1, 2]`. In what order do BFS and DFS visit the nodes?
 
 ::: {.fragment}
-- BFS: `{python} bfs_trace`. One level at a time.
-- DFS: `{python} dfs_trace`. It pushes 1 then 2, so 2 is on top. It finishes the right subtree before going back for 1.
+- BFS: `{python} bfs_trace`. One ring at a time.
+- DFS: `{python} dfs_trace`. It pushes 1 then 2, so 2 is on top. It dives 2 → 4 → 5 → 3 and only comes back for 1 at the end.
 :::
 
 ```{pyodide}
-small_tree = nx.balanced_tree(2, 2)
-bfs_connected(small_tree, 0, -1, verbose=True)   # -1 is not a node: visit all
+small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
+bfs_connected(small_graph, 0, -1, verbose=True)   # -1 is not a node: visit all
 ```
 
 ::: {.notes}
@@ -1706,12 +1705,11 @@ Searching a graph with $V$ nodes and $E$ edges:
 | time | $O(V + E)$ | $O(V + E)$ |
 | space | $O(V)$ | $O(V)$ |
 | shortest path (fewest edges)? | yes | no |
-| `networkx` | `nx.bfs_edges`, `nx.bfs_tree`, `nx.shortest_path` | `nx.dfs_edges` |
+| `networkx` | `nx.bfs_edges`, `nx.shortest_path` | `nx.dfs_edges` |
 
 ## Today's takeaways {style="font-size: 0.85em;"}
 
 ::: {.incremental}
-- A tree is a connected graph with no cycles: one path between any two nodes, and $V - 1$ edges.
 - A stack takes from the top (LIFO), a queue from the front (FIFO). Use `deque` for queues.
 - A graph search keeps a "to visit" list and a `visited` set, so it never loops round a cycle.
 - BFS uses a queue and searches in rings: the first time it reaches a node, it used a shortest path.
