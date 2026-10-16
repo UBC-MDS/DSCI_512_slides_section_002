@@ -305,11 +305,83 @@ for k, step in enumerate(rebuild_steps):
 ojs_define(rebuild_steps = rebuild_steps)
 ```
 
+```{python}
+#| echo: false
+# Hidden: the COO step-through on the "Build a matrix from triples: COO" slide. The three
+# arrays come from scipy itself; every highlight and sentence is worked out here, OJS only draws.
+coo_demo = scipy.sparse.coo_array(csr_dense)
+coo_row, coo_col, coo_data = coo_demo.row.tolist(), coo_demo.col.tolist(), coo_demo.data.tolist()
+
+coo_steps = {}
+for k in range(-1, len(coo_data)):              # k = last triple placed; -1 = nothing yet
+    placed = {(coo_row[t], coo_col[t]): coo_data[t] for t in range(k + 1)}
+    if k < 0:
+        say = [f"Start with a {n_rows} by {n_cols} grid of zeros. Click a triple to place it."]
+    else:
+        r, c, v = coo_row[k], coo_col[k], coo_data[k]
+        say = [f"Triple {k}: row {r}, column {c}, value {v}. Put {v} at row {r}, column {c}."]
+        if k == len(coo_data) - 1:
+            built = [[placed.get((i, j), 0) for j in range(n_cols)] for i in range(n_rows)]
+            assert np.array_equal(built, csr_dense)
+            say.append("Done: every other cell stays 0.")
+    current = (coo_row[k], coo_col[k]) if k >= 0 else None
+    coo_steps[k] = {
+        "rows": [{"cls": "",
+                  "cells": [{"v": placed.get((i, j), 0),
+                             "cls": ("on one" if (i, j) == current else
+                                     "one" if (i, j) in placed else "faded")}
+                            for j in range(n_cols)]}
+                 for i in range(n_rows)],
+        "arrays": [{"name": name,
+                    "boxes": [{"label": vals[t], "tag": t, "cls": "found" if t == k else ""}
+                              for t in range(len(vals))]}
+                   for name, vals in [("row", coo_row), ("col", coo_col), ("data", coo_data)]],
+        "say": say,
+    }
+coo_view = {"steps": coo_steps, "triples": list(range(-1, len(coo_data))),
+            "col_labels": [f"col {j}" for j in range(n_cols)]}
+ojs_define(coo_view = coo_view)
+```
+
 # Last class recap: Sparse matrices 🦦
 
-## The simplest idea: COO {style="font-size: 0.8em;"}
+## Build a matrix from triples: COO {style="font-size: 0.8em;"}
 
-COO (**Coordinate** format): for every non-zero, write down its row, its column and its value.
+COO (**COO**rdinate format, also called triplet format): for every non-zero, store its row, its column and its value.
+
+```{ojs}
+//| echo: false
+viewof coo_k = Inputs.radio(coo_view.triples, {value: -1, label: "place", format: k => k < 0 ? "start" : `triple ${k}`})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the triples and the highlights were computed in Python (coo_view).
+  const s = coo_view.steps[coo_k];
+  const header = html`<tr><th></th>${coo_view.col_labels.map(h => html`<th>${h}</th>`)}</tr>`;
+  const rows = s.rows.map((r, i) => html`<tr class="${r.cls}"><th>row ${i}</th>
+      ${r.cells.map(c => html`<td class="${c.cls}">${c.v}</td>`)}</tr>`);
+  const boxes = items => items.map(b =>
+    html`<div class="ds-box ${b.cls}">${b.label}<span class="sq-tag below">${b.tag}</span></div>`);
+  return html`<div class="adj-wrap csr-wrap">
+      <div class="adj-panel">
+        ${s.arrays.map(a => html`<div class="ds-row csr"><span class="csr-name">${a.name}</span>${boxes(a.boxes)}</div>`)}
+        <div class="ds-caption">what COO stores (small numbers: triple number)</div></div>
+      <div class="adj-panel"><table class="adj-table">${header}${rows}</table>
+        <div class="ds-caption">the matrix we build</div></div>
+    </div>
+    <div class="ojs-readout">${s.say.join(" ")}</div>`;
+}
+```
+
+::: {.notes}
+- Each column of the three arrays is one triple: row 0, column 1, value 5.
+- COO is easy to build: append a triple for every new non-zero. Order does not matter.
+- Click through all five triples; the grid starts as zeros and only the non-zeros get written.
+:::
+
+## COO in code {style="font-size: 0.8em;"}
 
 ```{pyodide}
 coo = scipy.sparse.coo_array(dense)   # the same 4 by 3 matrix
@@ -323,8 +395,7 @@ The row list repeats itself: `0, 0, 2, 2, 3`. CSR squeezes it into one start pos
 :::
 
 ::: {.notes}
-- Read the first triple out loud: row 0, column 1, value 5.
-- COO is easy to build: just append a triple for every new non-zero. Good for constructing a matrix.
+- The same five triples as the click-through, straight from scipy.
 - But to find row 2 you have to scan the whole list. CSR fixes that with indptr, which is the next slide.
 - Convert with `coo.tocsr()` once you are done building.
 :::
