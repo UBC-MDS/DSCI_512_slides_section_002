@@ -529,11 +529,11 @@ print(x.sum(axis=1))       # add up each row: one number per row, no dense matri
 :::
 
 
-## Tricks in Python {style="font-size: 0.8em;"}
+## Tricks in Python {style="font-size: 0.7em;"}
 
 - `axis = 1` VS `axis = 0`
     - `axis` says which direction to add up.
-    - `axis=1` collapses the columns, so you get one total per row.`
+    - `axis=1` collapses the columns, so you get one total per row.
     - `axis=0` collapses the rows, so you get one total per column.
 
 ```{pyodide}
@@ -641,13 +641,6 @@ Plot.plot({
 }
 ```
 
-::: {.fragment}
-| | CSR | CSC |
-|---|---|---|
-| stores | values, column indices, row pointers | values, row indices, column pointers |
-| fast at | rows | columns |
-| typical use | most of scikit-learn, row-wise work | column-wise work |
-:::
 
 ## Which one should I use? {style="font-size: 0.8em;"}
 
@@ -765,10 +758,6 @@ A **tree** is a graph that is connected and has no cycles: exactly **one** path 
 We draw it upside down: the root at the top, the leaves at the bottom.
 :::
 
-::: {.notes}
-- Org chart: the CEO is the root, every employee has exactly one manager above them.
-- Lecture 3's friend graph is not a tree: sky, clam and kelp form a cycle.
-:::
 
 ```{python}
 #| echo: false
@@ -840,16 +829,15 @@ viewof tree_pick = Inputs.select(tree_view.choices, {value: 4, label: "node"})
 ```
 
 ::: {.incremental}
-- Root: the top node. Parent: the node directly above (dark). Children: the nodes directly below.
-- Leaf: no children. Subtree: a node plus everything below it (orange and blue). Every subtree is a **tree**.
-- Height: edges on the longest path from the root to a leaf. This tree: `{python} T_height`. Balanced: left and right subtrees have about the same height.
+- Root: the top node, no parent.
+- Parent: the node directly above (dark). 
+- Children: the nodes directly below.
+- Leaf: node with no children. 
+- Subtree: a node plus everything below it. Every subtree is a **tree**.
+- Height: edges on the longest path from the root to a leaf. This tree: `{python} T_height`. 
+- Balanced: left and right subtrees have about the same height.
 :::
 
-::: {.notes}
-- Every node has exactly one parent, except the root, which has none. Any number of children.
-- Try node 9 (parent 4), node 2 (subtree 2, 5, 6, 11 to 14), node 0 (the whole tree).
-- This is `nx.balanced_tree(2, 3)` from the notes: every node has 2 children, 3 levels below the root.
-:::
 
 ## iClicker: how many edges? {style="font-size: 0.8em;"}
 
