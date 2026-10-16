@@ -166,6 +166,7 @@ def dfs_connected(g, start, goal, verbose=False):
 
 
 - Cheatsheet 1 submission is open.
+- Section 004 lab today is at **LIFE 2402**
 - **Quiz 1**: Next Tuesday to Friday
   - Make sure you book a slot for all 4 quizzes.
 - The 512 quiz has both multiple choice and coding question.
