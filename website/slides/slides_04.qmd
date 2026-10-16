@@ -1528,7 +1528,7 @@ print("The path DFS found to ada:", dfs_path_edges)
 - networkx marks a node visited when it visits it, not when it first sees it: the textbook DFS. Ours is simpler and still correct for "are these connected?".
 :::
 
-## BFS vs DFS {style="font-size: 0.7em;"}
+## BFS vs DFS {style="font-size: 0.65em;"}
 
 | | BFS | DFS |
 |---|---|---|
@@ -1543,7 +1543,7 @@ print("The path DFS found to ada:", dfs_path_edges)
 ::: {.incremental}
 - BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
 - DFS holds roughly the path it is on. A **deep** graph, like a long chain, makes that path long.
-- "Are these connected?" Either works.
+- Both can be used to check if two nodes are connected.
 :::
 
 ```{python}
