@@ -1231,6 +1231,7 @@ def record_search(G, start, goal, kind):
     word, take_end, add_end = ("queue", "front", "back") if bfs else ("stack", "top", "top")
     to_visit = deque([start]) if bfs else [start]
     visited, found_from, dist, order = {start}, {start: None}, {start: 0}, []
+    path = []
     steps = []
 
     def snapshot(now, say, path=()):
@@ -1281,7 +1282,7 @@ def record_search(G, start, goal, kind):
         steps.append(snapshot(node, say))
     for k, step in enumerate(steps):
         step["count"] = f"Step {k} of {len(steps) - 1}"
-    return {"steps": steps, "order": order}
+    return {"steps": steps, "order": order, "path": path}
 
 
 bfs_run = record_search(li, "sky", "ada", "bfs")
@@ -1339,7 +1340,7 @@ viewof bfs_step = Inputs.button([
 
 ## BFS in code {style="font-size: 0.75em;"}
 
-```{.python code-line-numbers="2,3|6|11-14"}
+```{.python code-line-numbers="2,3|6|7-8|9-10|11-14"}
 def bfs_connected(g, start, goal, verbose=False):
     to_visit = deque([start])   # a queue holding just the start node
     visited = {start}           # nodes we have already put in the queue
@@ -1512,7 +1513,14 @@ def dfs_connected(g, start, goal, verbose=False):
 
 ```{pyodide}
 print(dfs_connected(G, "sky", "ada", verbose=True))
-print(list(nx.dfs_edges(G, "sky")))   # networkx's DFS: a slightly different order
+```
+
+```{python}
+#| echo: false
+# Hidden: the output line under the DFS code. The path DFS found from sky to ada, taken from
+# the same run as the DFS step-through (dfs_run), written as (from, to) edges.
+dfs_path_edges = list(zip(dfs_run["path"], dfs_run["path"][1:]))
+print("The path DFS found to ada:", dfs_path_edges)
 ```
 
 ::: {.notes}
