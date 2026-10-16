@@ -1537,7 +1537,8 @@ print("The path DFS found to ada:", dfs_path_edges)
 | time | $O(V + E)$ | $O(V + E)$ |
 | space (worst case) | $O(V)$ | $O(V)$ |
 | shortest path (fewest edges)? | yes | no |
-| good for | shortest paths, degrees of separation | mazes, puzzles, every path, finding cycles |
+| good for | shortest paths, degrees of separation | random maze generation, file systems, finding cycles |
+| `networkx` | `nx.bfs_edges`, `nx.shortest_path` | `nx.dfs_edges` |
 
 ::: {.incremental}
 - BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
@@ -1605,23 +1606,13 @@ viewof comp_step = Inputs.radio(comp_view.choices, {value: 0, label: "searches d
 ```
 :::
 
-## Today's cheat sheet {style="font-size: 0.7em;"}
-
-Searching a graph with $V$ nodes and $E$ edges:
-
-| | BFS | DFS |
-|---|---|---|
-| "to visit" list | queue: `deque`, `append` + `popleft` | stack: `list`, `append` + `pop` |
-| time | $O(V + E)$ | $O(V + E)$ |
-| space | $O(V)$ | $O(V)$ |
-| shortest path (fewest edges)? | yes | no |
-| `networkx` | `nx.bfs_edges`, `nx.shortest_path` | `nx.dfs_edges` |
-
-## Today's takeaways {style="font-size: 0.85em;"}
+## Today's takeaways {style="font-size: 0.8em;"}
 
 ::: {.incremental}
+- A sparse matrix stores only its non-zeros. Build it in COO, then convert once.
+- CSR keeps rows together (`data`, `indices`, `indptr`), so reading rows is fast. CSC does the same for columns.
 - A stack takes from the top (LIFO), a queue from the front (FIFO). Use `deque` for queues.
-- A graph search keeps a "to visit" list and a `visited` set, so it never loops round a cycle.
+- A graph search keeps a "to visit" list and a `visited` set, so it never loops around in a cycle.
 - BFS uses a queue and searches in rings: the first time it reaches a node, it used a shortest path.
 - DFS uses a stack and goes as deep as it can first. Both are $O(V + E)$ time and $O(V)$ space.
 :::
