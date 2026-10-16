@@ -375,12 +375,6 @@ viewof coo_k = Inputs.radio(coo_view.triples, {value: -1, label: "place", format
 }
 ```
 
-::: {.notes}
-- Each column of the three arrays is one triple: row 0, column 1, value 5.
-- COO is easy to build: append a triple for every new non-zero. Order does not matter.
-- Click through all five triples; the grid starts as zeros and only the non-zeros get written.
-:::
-
 
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
@@ -535,7 +529,7 @@ print(x.sum(axis=1))       # add up each row: one number per row, no dense matri
 :::
 
 
-## Row sums {style="font-size: 0.8em;"}
+## `axis = 1` VS `axis = 0` {style="font-size: 0.8em;"}
 
 `axis` says which direction to add up:
 
@@ -544,12 +538,7 @@ print(x.sum(axis=1))       # axis=1: along each row, one number per row
 print(x.sum(axis=0))       # axis=0: down each column, one number per column
 ```
 
-::: {.notes}
-- axis=1 collapses the columns, so you get one total per row. axis=0 collapses the rows, one total per column.
-- Walk row 0: 5 + 1 = 6. Row 1 is empty, so its total is 0.
-- `x.sum(axis=1)` works directly on the sparse matrix, so it also works on Instagram's graph.
-- Counting non-zeros instead of adding them up: `x.getnnz(axis=1)` gives 2, 0, 2, 1. On a 0/1 adjacency matrix that is the number of friends.
-:::
+
 
 ## `x[i, j]`, not `x[i][j]` {style="font-size: 0.8em;"}
 
