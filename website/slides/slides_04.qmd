@@ -1713,59 +1713,6 @@ A queue holds `[A, B, C, D]`, with `A` at the front. After these steps:
 :::
 
 
-# (Bonus Slide) PageRank {style="font-size: 0.8em;"}
-
-## (Bonus Slide) Which page is most important? {style="font-size: 0.85em;"}
-
-BFS and DFS tell us what is connected. [PageRank](https://en.wikipedia.org/wiki/PageRank), the algorithm that made Google, asks which node matters most.
-
-Web pages are nodes in a **directed** graph: an edge from A to B if A links to B. Simulate a random surfer:
-
-::: {.incremental}
-1. Start on a random page.
-2. With probability $\alpha$, get bored and jump to a random page. Otherwise click a random link.
-3. Repeat many times. A page's rank is how often the surfer landed on it.
-:::
-
-::: {.notes}
-- This is one kind of [centrality](https://en.wikipedia.org/wiki/Centrality).
-- The real PageRank is computed with linear algebra, no simulation needed.
-:::
-
-## (Bonus Slide) The random surfer in code {style="font-size: 0.75em;"}
-
-```{pyodide}
-import random
-from collections import Counter
-
-def page_rank(G, alpha=0.1, iters=100_000):
-    visits = Counter()                      # counts start at 0 (lecture 3)
-    nodes = list(G.nodes())
-    current = random.choice(nodes)
-    for _ in range(iters):
-        links = list(G.neighbors(current))  # the pages this page links to
-        if random.random() < alpha or not links:
-            current = random.choice(nodes)  # bored, or no links: jump anywhere
-        else:
-            current = random.choice(links)  # click a random link
-        visits[current] += 1
-    return visits
-
-sfg = nx.scale_free_graph(10, seed=20)      # a few pages get most of the links, like the web
-random.seed(512)
-print(page_rank(sfg).most_common())
-print(sorted(((n, len(list(sfg.predecessors(n)))) for n in sfg.nodes()), key=lambda p: -p[1]))
-```
-
-::: {.fragment}
-Compare the two lists: a page linked from a popular page can outrank one with more links. **Who** links to you matters more than how many.
-:::
-
-::: {.notes}
-- Second list: incoming links per page, most first.
-- Two kinds of randomness: the surfer's jumps are part of the model, the finite simulation is noise. `nx.pagerank(sfg)` gives the exact answer.
-:::
-
 # (Bonus Slide) CSC: the same idea, column by column {style="font-size: 0.8em;"}
 
 ```{python}
@@ -2022,4 +1969,58 @@ print(y.toarray())
 
 ::: {.notes}
 - `rebuilt[rows, j] = ...` puts several values into column j at once, one per row in rows.
+:::
+
+
+# (Bonus Slide) PageRank {style="font-size: 0.8em;"}
+
+## (Bonus Slide) Which page is most important? {style="font-size: 0.85em;"}
+
+BFS and DFS tell us what is connected. [PageRank](https://en.wikipedia.org/wiki/PageRank), the algorithm that made Google, asks which node matters most.
+
+Web pages are nodes in a **directed** graph: an edge from A to B if A links to B. Simulate a random surfer:
+
+::: {.incremental}
+1. Start on a random page.
+2. With probability $\alpha$, get bored and jump to a random page. Otherwise click a random link.
+3. Repeat many times. A page's rank is how often the surfer landed on it.
+:::
+
+::: {.notes}
+- This is one kind of [centrality](https://en.wikipedia.org/wiki/Centrality).
+- The real PageRank is computed with linear algebra, no simulation needed.
+:::
+
+## (Bonus Slide) The random surfer in code {style="font-size: 0.75em;"}
+
+```{pyodide}
+import random
+from collections import Counter
+
+def page_rank(G, alpha=0.1, iters=100_000):
+    visits = Counter()                      # counts start at 0 (lecture 3)
+    nodes = list(G.nodes())
+    current = random.choice(nodes)
+    for _ in range(iters):
+        links = list(G.neighbors(current))  # the pages this page links to
+        if random.random() < alpha or not links:
+            current = random.choice(nodes)  # bored, or no links: jump anywhere
+        else:
+            current = random.choice(links)  # click a random link
+        visits[current] += 1
+    return visits
+
+sfg = nx.scale_free_graph(10, seed=20)      # a few pages get most of the links, like the web
+random.seed(512)
+print(page_rank(sfg).most_common())
+print(sorted(((n, len(list(sfg.predecessors(n)))) for n in sfg.nodes()), key=lambda p: -p[1]))
+```
+
+::: {.fragment}
+Compare the two lists: a page linked from a popular page can outrank one with more links. **Who** links to you matters more than how many.
+:::
+
+::: {.notes}
+- Second list: incoming links per page, most first.
+- Two kinds of randomness: the surfer's jumps are part of the model, the finite simulation is noise. `nx.pagerank(sfg)` gives the exact answer.
 :::
