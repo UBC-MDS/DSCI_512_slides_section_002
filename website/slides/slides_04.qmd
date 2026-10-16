@@ -1519,51 +1519,6 @@ print(list(nx.dfs_edges(G, "sky")))   # networkx's DFS: a slightly different ord
 - networkx marks a node visited when it visits it, not when it first sees it: the textbook DFS. Ours is simpler and still correct for "are these connected?".
 :::
 
-```{python}
-#| echo: false
-# Hidden: the small graph for the trace question, and both visit orders, worked out
-# with the same search as the step-throughs (a goal of -1 visits everything).
-small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
-small_layout = layout(small_graph, ring_pos(small_graph, 0, width=6), pad=0.4)
-bfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "bfs")["order"])
-dfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "dfs")["order"])
-ojs_define(small_layout = small_layout)
-```
-
-## Question: trace it {style="font-size: 0.8em;"}
-
-```{ojs}
-//| echo: false
-// Draw only: positions computed in Python (small_layout).
-Plot.plot({
-  width: 520, height: 240, margin: 14,
-  style: {fontSize: "16px", background: "transparent"},
-  x: {axis: null, domain: small_layout.x_domain}, y: {axis: null, domain: small_layout.y_domain},
-  marks: [
-    Plot.link(small_layout.edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#b8b6b0", strokeWidth: 2}),
-    Plot.dot(small_layout.nodes, {x: "x", y: "y", r: 15, fill: "#2a78d6", stroke: "white", strokeWidth: 2}),
-    Plot.text(small_layout.nodes, {x: "x", y: "y", text: "id", fill: "white", fontWeight: "bold"})
-  ]
-})
-```
-
-Start at 0. Neighbours come out smallest first: node 0's are `[1, 2]`. In what order do BFS and DFS visit the nodes?
-
-::: {.fragment}
-- BFS: `{python} bfs_trace`. One ring at a time.
-- DFS: `{python} dfs_trace`. It pushes 1 then 2, so 2 is on top. It dives 2 → 4 → 5 → 3 and only comes back for 1 at the end.
-:::
-
-```{pyodide}
-small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
-bfs_connected(small_graph, 0, -1, verbose=True)   # -1 is not a node: visit all
-```
-
-::: {.notes}
-- Think, pair, share: not an iClicker question. Give them two minutes on paper.
-- Then ask: time and space of DFS? Same as BFS, O(V + E) and O(V). Only the order changed, not how many go in.
-:::
-
 ## BFS vs DFS {style="font-size: 0.7em;"}
 
 | | BFS | DFS |
@@ -1579,18 +1534,6 @@ bfs_connected(small_graph, 0, -1, verbose=True)   # -1 is not a node: visit all
 - BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
 - DFS holds roughly the path it is on. A **deep** graph, like a long chain, makes that path long.
 - "Are these connected?" Either works.
-:::
-
-## iClicker: BFS or DFS? {style="font-size: 0.8em;"}
-
-You want the fewest number of flights from Vancouver to Taipei.
-
-- \(A) BFS
-- \(B) DFS
-
-::: {.fragment}
-- Answer: **A**. BFS checks every airport one flight away, then two flights away, and so on. The first time it reaches Taipei, it used the fewest flights.
-- DFS might fly Vancouver → Toronto → London → Dubai → ... even when there is a direct flight.
 :::
 
 ```{python}
@@ -1653,11 +1596,6 @@ viewof comp_step = Inputs.radio(comp_view.choices, {value: 0, label: "searches d
 ```
 :::
 
-::: {.notes}
-- Think, pair, share: not an iClicker question.
-- On our graph: one search from sky finds 9 users, then waffle is a component on its own.
-:::
-
 ## Today's cheat sheet {style="font-size: 0.7em;"}
 
 Searching a graph with $V$ nodes and $E$ edges:
@@ -1680,6 +1618,63 @@ Searching a graph with $V$ nodes and $E$ edges:
 :::
 
 # Questions?
+
+```{python}
+#| echo: false
+# Hidden: the small graph for the trace question, and both visit orders, worked out
+# with the same search as the step-throughs (a goal of -1 visits everything).
+small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
+small_layout = layout(small_graph, ring_pos(small_graph, 0, width=6), pad=0.4)
+bfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "bfs")["order"])
+dfs_trace = ", ".join(str(u) for u in record_search(small_graph, 0, -1, "dfs")["order"])
+ojs_define(small_layout = small_layout)
+```
+
+## (Bonus Slide) Question: trace it {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: positions computed in Python (small_layout).
+Plot.plot({
+  width: 520, height: 240, margin: 14,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {axis: null, domain: small_layout.x_domain}, y: {axis: null, domain: small_layout.y_domain},
+  marks: [
+    Plot.link(small_layout.edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#b8b6b0", strokeWidth: 2}),
+    Plot.dot(small_layout.nodes, {x: "x", y: "y", r: 15, fill: "#2a78d6", stroke: "white", strokeWidth: 2}),
+    Plot.text(small_layout.nodes, {x: "x", y: "y", text: "id", fill: "white", fontWeight: "bold"})
+  ]
+})
+```
+
+Start at 0. Neighbours come out smallest first: node 0's are `[1, 2]`. In what order do BFS and DFS visit the nodes?
+
+::: {.fragment}
+- BFS: `{python} bfs_trace`. One ring at a time.
+- DFS: `{python} dfs_trace`. It pushes 1 then 2, so 2 is on top. It dives 2 → 4 → 5 → 3 and only comes back for 1 at the end.
+:::
+
+```{pyodide}
+small_graph = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 3), (2, 4), (3, 5), (4, 5)])
+bfs_connected(small_graph, 0, -1, verbose=True)   # -1 is not a node: visit all
+```
+
+::: {.notes}
+- Think, pair, share: not an iClicker question. Give them two minutes on paper.
+- Then ask: time and space of DFS? Same as BFS, O(V + E) and O(V). Only the order changed, not how many go in.
+:::
+
+## (Bonus Slide) iClicker: BFS or DFS? {style="font-size: 0.8em;"}
+
+You want the fewest number of flights from Vancouver to Taipei.
+
+- \(A) BFS
+- \(B) DFS
+
+::: {.fragment}
+- Answer: **A**. BFS checks every airport one flight away, then two flights away, and so on. The first time it reaches Taipei, it used the fewest flights.
+- DFS might fly Vancouver → Toronto → London → Dubai → ... even when there is a direct flight.
+:::
 
 ## (Bonus Slide) Question: the bottom of a stack {style="font-size: 0.8em;"}
 
