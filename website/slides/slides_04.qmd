@@ -148,16 +148,18 @@ def bfs_connected(g, start, goal, verbose=False):
 
 def dfs_connected(g, start, goal, verbose=False):
     to_visit = [start]
-    visited = {start}
+    visited = set()
     while to_visit:
         node = to_visit.pop()
+        if node in visited:
+            continue
+        visited.add(node)
         if verbose:
             print("At node", node)
         if node == goal:
             return True
         for neighbour in g.neighbors(node):
             if neighbour not in visited:
-                visited.add(neighbour)
                 to_visit.append(neighbour)
     return False
 ```
@@ -1230,7 +1232,8 @@ def record_search(G, start, goal, kind):
     bfs = kind == "bfs"
     word, take_end, add_end = ("queue", "front", "back") if bfs else ("stack", "top", "top")
     to_visit = deque([start]) if bfs else [start]
-    visited, found_from, dist, order = {start}, {start: None}, {start: 0}, []
+    # BFS marks a node when it first sees it, DFS when it takes it out
+    visited, found_from, dist, order = {start} if bfs else set(), {start: None}, {start: 0}, []
     path = []
     steps = []
 
@@ -1240,7 +1243,7 @@ def record_search(G, start, goal, kind):
         roles = []
         for u in G.nodes:
             roles.append("path" if u in path else "now" if u == now else "done" if u in order
-                         else "waiting" if u in visited else "other")
+                         else "waiting" if u in to_visit else "other")
         labels = [f"{u} (you)" if u == start else
                   f"{u} ({ordinal(dist[u])})" if bfs and u in visited else u for u in G.nodes]
         items = list(to_visit)
@@ -1251,9 +1254,14 @@ def record_search(G, start, goal, kind):
                 "boxes": [{"label": u, "cls": "end" if i == next_out else ""} for i, u in enumerate(items)],
                 "box_caption": f"{word} ({'front on the left' if bfs else 'top on the right'}):"}
 
-    steps.append(snapshot(None, f"Start: put {start} in the {word} and mark it as seen. Goal: {goal}."))
+    steps.append(snapshot(None, f"Start: put {start} in the {word}"
+                                + (" and mark it as seen" if bfs else "") + f". Goal: {goal}."))
     while to_visit:
         node = to_visit.popleft() if bfs else to_visit.pop()
+        if node in order:    # DFS only: a second copy of a node already visited
+            steps.append(snapshot(node, f"Take {node} from the {take_end}: already visited, skip it."))
+            continue
+        visited.add(node)
         order.append(node)
         if node == goal:
             path = [node]
@@ -1272,13 +1280,19 @@ def record_search(G, start, goal, kind):
         new = []
         for neighbour in G.neighbors(node):
             if neighbour not in visited:
-                visited.add(neighbour)
-                found_from[neighbour] = node
+                if bfs:
+                    visited.add(neighbour)
+                found_from[neighbour] = node    # DFS: the latest push is the copy taken out first
                 dist[neighbour] = dist[node] + 1
                 to_visit.append(neighbour)
                 new.append(neighbour)
-        say = (f"Take {node} from the {take_end}. "
-               + (f"Not seen yet: {names(new)}, added to the {add_end}." if new else "No new neighbours."))
+        if bfs:
+            say = (f"Take {node} from the {take_end}. "
+                   + (f"Not seen yet: {names(new)}, added to the {add_end}." if new else "No new neighbours."))
+        else:
+            say = (f"Take {node} from the {take_end} and mark it visited. "
+                   + (f"Not visited yet: {names(new)}, pushed on the {add_end}." if new
+                      else "No unvisited neighbours."))
         steps.append(snapshot(node, say))
     for k, step in enumerate(steps):
         step["count"] = f"Step {k} of {len(steps) - 1}"
@@ -1490,22 +1504,24 @@ viewof dfs_step = Inputs.button([
 ```
 
 
-## DFS in code: one line changes {style="font-size: 0.75em;"}
+## DFS in code {style="font-size: 0.7em;"}
 
-```{.python code-line-numbers="2,6"}
+```{.python code-line-numbers="2,6|3,7-9|15-16"}
 def dfs_connected(g, start, goal, verbose=False):
     to_visit = [start]          # a list used as a stack
-    visited = {start}
+    visited = set()             # nodes we have already visited
 
     while to_visit:
         node = to_visit.pop()   # take the NEWEST node, from the top
+        if node in visited:     # pushed twice and already visited: skip it
+            continue
+        visited.add(node)       # mark it visited when we take it out
         if verbose:
             print("At node", node)
         if node == goal:
             return True
         for neighbour in g.neighbors(node):
             if neighbour not in visited:
-                visited.add(neighbour)
                 to_visit.append(neighbour)   # push onto the top of the stack
 
     return False
@@ -1524,8 +1540,12 @@ print("The path DFS found to ada:", dfs_path_edges)
 ```
 
 ::: {.notes}
-- A graph has many valid DFS orders, depending on which neighbour you try first.
-- networkx marks a node visited when it visits it, not when it first sees it: the textbook DFS. Ours is simpler and still correct for "are these connected?".
+- Highlight 1: the stack and `pop()`, as in the step-through.
+- Highlight 2: BFS marks a node when it first sees it. DFS marks it when it takes it out.
+- Why: if DFS marked on push, sky would mark clam, and otter could not push clam again later. Then after nori it jumps back to clam from sky's list, instead of going deeper: nori, otter, clam, bubbles.
+- So a node can sit in the stack twice. The `continue` skips the second copy.
+- Highlight 3: no `visited.add` here any more.
+- A graph has many valid DFS orders, depending on which neighbour you try first. networkx tries the first neighbour first; ours pushes them all, so it tries the last one first.
 :::
 
 ## BFS vs DFS {style="font-size: 0.65em;"}
@@ -1535,7 +1555,7 @@ print("The path DFS found to ada:", dfs_path_edges)
 | "to visit" list | queue (`deque`) | stack (`list`) |
 | order | rings: closest nodes first | one path as deep as it can, then back up |
 | time | $O(V + E)$ | $O(V + E)$ |
-| space (worst case) | $O(V)$ | $O(V)$ |
+| space (worst case) | $O(V)$ | $O(V + E)$ |
 | shortest path (fewest edges)? | yes | no |
 | good for | shortest paths, degrees of separation | random maze generation, file systems, finding cycles |
 | `networkx` | `nx.bfs_edges`, `nx.shortest_path` | `nx.dfs_edges` |
@@ -1544,6 +1564,10 @@ print("The path DFS found to ada:", dfs_path_edges)
 - BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
 - DFS holds roughly the path it is on. A **deep** graph, like a long chain, makes that path long.
 - Both can be used to check if two nodes are connected.
+:::
+
+::: {.notes}
+- DFS space is $O(V + E)$ here: a node can be in the stack once for every edge that reaches it before it is visited.
 :::
 
 ```{python}
@@ -1614,7 +1638,7 @@ viewof comp_step = Inputs.radio(comp_view.choices, {value: 0, label: "searches d
 - A stack takes from the top (LIFO), a queue from the front (FIFO). Use `deque` for queues.
 - A graph search keeps a "to visit" list and a `visited` set, so it never loops around in a cycle.
 - BFS uses a queue and searches in rings: the first time it reaches a node, it used a shortest path.
-- DFS uses a stack and goes as deep as it can first. Both are $O(V + E)$ time and $O(V)$ space.
+- DFS uses a stack and goes as deep as it can first. Both take $O(V + E)$ time.
 :::
 
 # Questions?
@@ -1661,7 +1685,7 @@ bfs_connected(small_graph, 0, -1, verbose=True)   # -1 is not a node: visit all
 
 ::: {.notes}
 - Think, pair, share: not an iClicker question. Give them two minutes on paper.
-- Then ask: time and space of DFS? Same as BFS, O(V + E) and O(V). Only the order changed, not how many go in.
+- Then ask: time and space of DFS? Time O(V + E), like BFS. Space O(V + E): 3 and 1 each go in the stack twice, and the second copy is skipped.
 :::
 
 ## (Bonus Slide) iClicker: BFS or DFS? {style="font-size: 0.8em;"}
