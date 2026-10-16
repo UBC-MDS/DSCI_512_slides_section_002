@@ -383,6 +383,12 @@ viewof coo_k = Inputs.radio(coo_view.triples, {value: -1, label: "place", format
 
 ## COO in code {style="font-size: 0.8em;"}
 
+
+```{pyodide}
+print(dense) # print the original dense matrix
+```
+
+
 ```{pyodide}
 coo = scipy.sparse.coo_array(dense)   # the same 4 by 3 matrix
 print("row: ", coo.row)               # the row of each value
