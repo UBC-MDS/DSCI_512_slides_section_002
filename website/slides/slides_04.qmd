@@ -1727,7 +1727,7 @@ def dfs_connected(g, start, goal):
 
 ::: {.incremental}
 - BFS holds a whole ring. A **wide** graph, like a social network, makes rings huge fast.
-- DFS holds roughly the path it is on. A **deep** graph, like a long chain, makes that path long.
+- DFS holds the path it is on, plus the neighbours waiting along it. A **dense** graph, with many edges, pushes many copies.
 - Both can be used to check if two nodes are connected.
 :::
 
