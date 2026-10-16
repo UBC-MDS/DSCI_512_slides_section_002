@@ -649,6 +649,31 @@ Plot.plot({
 | typical use | most of scikit-learn, row-wise work | column-wise work |
 :::
 
+## Which one should I use? {style="font-size: 0.8em;"}
+
+| Your situation | Use |
+|---|---|
+| Small matrix, or more than about 10% non-zeros | dense matrix |
+| Large matrix, with lots of zeros | sparse matrix |
+| Building it one entry at a time | COO, then convert |
+| Mostly reading rows (most of scikit-learn; matrix-vector multiplication) | CSR |
+| Mostly reading columns (extracting all values in certain features for a machine learning model) | CSC |
+| Look up edges or if two vertices are connected | adjacency matrix |
+| Graph search: visit each node's neighbours | adjacency list, or CSR |
+
+
+::: {.notes}
+- Sparse is not free: every value also stores its index, and jumping around in memory is slower. It only pays off when most entries are zero.
+- The threshold: under 1% sparse almost always wins on large matrices, above 10% dense usually wins., between 1% and 10% it depends on the situation.
+- Inserting into CSR or CSC shifts the arrays, so build in COO and call `.tocsr()` or `.tocsc()` once.
+- CSR is an adjacency list packed into arrays: row i's neighbours sit together in `indices[indptr[i]:indptr[i+1]]`.
+- Adjacency matrix: only for small or dense graphs, or when you mostly ask "is there an edge from u to v?"
+:::
+
+::: footer
+Density thresholds: [MLX sparse, Performance guide](https://mlx-sparse.readthedocs.io/en/latest/performance.html)
+:::
+
 ## Sparse data is everywhere {style="font-size: 0.8em;"}
 
 :::: {.columns}
