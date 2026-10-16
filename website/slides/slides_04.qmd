@@ -381,30 +381,6 @@ viewof coo_k = Inputs.radio(coo_view.triples, {value: -1, label: "place", format
 - Click through all five triples; the grid starts as zeros and only the non-zeros get written.
 :::
 
-## COO in code {style="font-size: 0.8em;"}
-
-
-```{pyodide}
-print(dense) # print the original dense matrix
-```
-
-
-```{pyodide}
-coo = scipy.sparse.coo_array(dense)   # the same 4 by 3 matrix
-print("row: ", coo.row)               # the row of each value
-print("col: ", coo.col)               # the column of each value
-print("data:", coo.data)              # the non-zero values
-```
-
-::: {.fragment}
-The row list repeats itself: `0, 0, 2, 2, 3`. CSR squeezes it into one start position per row.
-:::
-
-::: {.notes}
-- The same five triples as the click-through, straight from scipy.
-- But to find row 2 you have to scan the whole list. CSR fixes that with indptr, which is the next slide.
-- Convert with `coo.tocsr()` once you are done building.
-:::
 
 ## How CSR stores a matrix in a compressed way {style="font-size: 0.8em;"}
 
