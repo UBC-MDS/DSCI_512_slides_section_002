@@ -649,12 +649,6 @@ Plot.plot({
 | typical use | most of scikit-learn, row-wise work | column-wise work |
 :::
 
-::: {.notes}
-- Mostly rows: `.tocsr()`. Mostly columns: `.tocsc()`.
-- Converting copies the whole matrix. Do it once, before the loop, never inside it.
-- NumPy also stores row by row, but a dense array can jump to any column, so the gap is much smaller.
-:::
-
 ## Sparse data is everywhere {style="font-size: 0.8em;"}
 
 :::: {.columns}
