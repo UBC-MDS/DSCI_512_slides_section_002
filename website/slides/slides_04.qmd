@@ -1180,7 +1180,7 @@ Plot.plot({
 | queue (FIFO) | $O(1)$ push | $O(1)$ with `deque` | $O(n)$ | oldest first: upload queues |
 :::
 
-# Today's Topic: Searching in a graph 🔍 {background-image="images/li_otter_search.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Searching in a graph 🔍 {background-image="images/li_otter_search.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
 ## How does LinkedIn know ada is your "3rd" level connection? {style="font-size: 0.9em;"}
 
