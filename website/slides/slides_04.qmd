@@ -344,7 +344,7 @@ coo_view = {"steps": coo_steps, "triples": list(range(-1, len(coo_data))),
 ojs_define(coo_view = coo_view)
 ```
 
-# Last class recap: Sparse matrices 🦦
+# Sparse matrices, continued 🦦
 
 ## Build a matrix from triples: COO {style="font-size: 0.8em;"}
 
