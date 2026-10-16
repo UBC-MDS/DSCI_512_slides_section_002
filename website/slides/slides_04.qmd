@@ -716,7 +716,7 @@ Example adapted from [AskPython, SciPy sparse](https://www.askpython.com/python-
 
 # Today's Topic: Searching in a graph 🔍 
 
-## How does LinkedIn know ada is "3rd"? {style="font-size: 0.9em;"}
+## How does LinkedIn know ada is your "3rd" level connection? {style="font-size: 0.9em;"}
 
 :::{.columns}
 ::: {.column width="55%"}
