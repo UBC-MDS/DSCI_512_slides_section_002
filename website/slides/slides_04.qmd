@@ -1420,10 +1420,6 @@ print(bfs_connected(G, "sky", "ada", verbose=True))
 print(bfs_connected(G, "sky", "waffle"))
 ```
 
-::: {.notes}
-- `bfs_connected` is defined in a hidden cell, exactly as on the previous slide.
-- Same visit order as the step-through: sky, otter, clam, kelp, nori, bubbles, mochi, ada.
-:::
 
 ## BFS finds shortest paths {style="font-size: 0.8em;"}
 
@@ -1438,12 +1434,6 @@ print(nx.shortest_path_length(G, "sky", "ada"))
 - That is how LinkedIn's "3rd" works, and how `nx.shortest_path_length` works on an unweighted graph.
 :::
 
-::: {.notes}
-- `bfs_edges` lists the blue lines in the step-through: where each user was first found from.
-- waffle is not in the list: BFS from sky never reaches it.
-- Weighted graph: fewest edges is not the same as cheapest. That needs Dijkstra's algorithm.
-- Lab 2: change BFS to keep each node's distance.
-:::
 
 ## The algorithm {style="font-size: 0.8em;"}
 
@@ -1463,11 +1453,6 @@ The only real choice is which node to take out next:
 | stack (`list`, `pop`) | the newest node | depth-first search (DFS) |
 :::
 
-::: {.notes}
-- Step 3 needs a `visited` set. Without it a cycle like sky → otter → clam → sky sends us round forever.
-- A set because "have I seen this?" is O(1) (lecture 2).
-- Visualize both on [VisuAlgo](https://visualgo.net/en/dfsbfs?slide=1).
-:::
 
 ## iClicker: how fast is BFS? {style="font-size: 0.8em;"}
 
@@ -1569,21 +1554,14 @@ dfs_path_edges = list(zip(dfs_run["path"], dfs_run["path"][1:]))
 print("The path DFS found to ada:", dfs_path_edges)
 ```
 
-::: {.notes}
-- Highlight 1: the stack and `pop()`, as in the step-through.
-- Highlight 2: BFS marks a node when it first sees it. DFS marks it when it takes it out.
-- Why: the next slide.
-- So a node can sit in the stack twice. The `continue` skips the second copy.
-- Highlight 3: no `visited.add` here any more.
-- A graph has many valid DFS orders, depending on which neighbour you try first. networkx tries the first neighbour first; ours pushes them all, so it tries the last one first.
-:::
 
 ```{python}
 #| echo: false
 # Hidden: the two "why mark" step-throughs. The small graph from the lecture notes, visiting
 # everyone from S: left, the wrong DFS that marks on push; right, the real one that marks on pop.
-why_graph = nx.Graph([("S", "A"), ("S", "X"), ("S", "B"), ("B", "C"), ("C", "A")])   # S's neighbours: A, X, B
-why_pos = {"S": (0, 1), "B": (1, 1), "C": (1, 0), "A": (0, 0), "X": (-1, 1)}
+# Edges are listed so every node's neighbours come out in alphabetical order (S's: A, B, C).
+why_graph = nx.Graph([("S", "A"), ("S", "B"), ("S", "C"), ("A", "D"), ("C", "D")])
+why_pos = {"S": (0, 1), "C": (1, 1), "D": (1, 0), "A": (0, 0), "B": (-1, 1)}
 why_layout = layout(why_graph, why_pos, pad=0.4)
 mark_view = {}
 for key, kind in [("push", "dfs_push"), ("pop", "dfs")]:
@@ -1703,16 +1681,6 @@ def dfs_connected(g, start, goal):
 :::
 ::::
 
-::: {.notes}
-- S's neighbours come out of `neighbors` as A, X, B, so B is pushed last and is on top.
-- Left first. Step 3 (C): A is next to C and not visited, but it is already marked, so C can't push it.
-- Ask: who comes out next? X. DFS jumped back to S's list instead of going deeper to A. Order: `{python} mark_view["push"]["order"]`.
-- Then the right. Step 3: C pushes A again, so A is in the stack twice and the top copy comes out next. Order: `{python} mark_view["pop"]["order"]`.
-- Blue lines are where each node was found from. Left: A hangs off S. Right: one path S, B, C, A.
-- Step 6 on the right: the old copy of A comes out and is skipped. That is the `continue`, and why DFS space is O(V + E).
-- Watch the visited row. Left: S is in it from the start, and A, X, B go in as soon as they are pushed. Right: it starts empty, and a node goes in only when it comes out of the stack.
-- Both versions still answer "are these connected?". Only the right one is a real DFS.
-:::
 
 ## BFS vs DFS {style="font-size: 0.65em;"}
 
