@@ -1610,7 +1610,7 @@ draw_why = s => {
 ```
 
 ::: {.fragment}
-DFS should go as **deep** as it can. Algorithm on the right: S → C → D → A, 3 edges deep. Left: A is reached straight from S, only 1 edge deep, and then it jumps back to B, which is not really a DFS.
+DFS should go as **deep** as it can. Algorithm on the right: S → C → D → A, 3 edges deep. Left: S → C → D, only 3 edge deep, and then it jumps back to B, which is not really a DFS.
 :::
 
 :::: {.columns}
