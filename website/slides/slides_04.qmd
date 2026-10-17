@@ -1631,7 +1631,7 @@ viewof push_step = Inputs.button([
 draw_why(mark_view.push.steps[push_step])
 ```
 
-```{.python code-line-numbers="3,11"}
+```{.python}
 def dfs_connected(g, start, goal):
     to_visit = [start]
     visited = {start}          # S is marked right away
@@ -1665,7 +1665,7 @@ viewof pop_step = Inputs.button([
 draw_why(mark_view.pop.steps[pop_step])
 ```
 
-```{.python code-line-numbers="3,7-9"}
+```{.python}
 def dfs_connected(g, start, goal):
     to_visit = [start]
     visited = set()            # empty at the start
