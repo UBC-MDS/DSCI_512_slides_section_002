@@ -1578,7 +1578,7 @@ for key, kind in [("push", "dfs_push"), ("pop", "dfs")]:
 ojs_define(why_layout = why_layout, mark_view = mark_view)
 ```
 
-## Why mark a node when we take it out? {style="font-size: 0.7em;"}
+## Why mark a node when we take it out? {style="font-size: 0.6em;"}
 
 ```{ojs}
 //| echo: false
