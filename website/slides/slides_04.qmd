@@ -924,7 +924,7 @@ viewof queue_step = Inputs.button([
 
 The top of the stack is the **end** of the list.
 
-```{.python code-line-numbers="5,6,8,9"}
+```{.python code-line-numbers="5,6,8,9|"}
 class Stack:
     def __init__(self):
         self.data = list()
@@ -982,7 +982,7 @@ while not s.isEmpty():
 
 The only change from `Stack`: take from the **front** of the list.
 
-```{.python code-line-numbers="8,9"}
+```{.python code-line-numbers="8,9|"}
 class Queue:
     def __init__(self):
         self.data = list()
@@ -1384,7 +1384,7 @@ viewof bfs_step = Inputs.button([
 
 ## BFS in code {style="font-size: 0.75em;"}
 
-```{.python code-line-numbers="2,3|6|7-8|9-10|11-14"}
+```{.python code-line-numbers="2,3|6|7-8|9-10|11-14|"}
 def bfs_connected(g, start, goal, verbose=False):
     to_visit = deque([start])   # a queue holding just the start node
     visited = {start}           # nodes we have already put in the queue
@@ -1521,7 +1521,7 @@ viewof dfs_step = Inputs.button([
 
 ## DFS in code {style="font-size: 0.7em;"}
 
-```{.python code-line-numbers="2,6|3,7-9|15-16"}
+```{.python code-line-numbers="2,6|3,7-9|15-16|"}
 def dfs_connected(g, start, goal, verbose=False):
     to_visit = [start]          # a list used as a stack
     visited = set()             # nodes we have already visited
