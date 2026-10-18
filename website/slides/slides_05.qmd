@@ -19,87 +19,273 @@ format:
 engine: jupyter
 pyodide:
   packages:
-    - numpy
     - matplotlib
     - networkx
 resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
+  data-background-image: images/li_otter_orgchart.png
+  data-background-size: cover
+  data-background-position: right bottom
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (85 min): trees 15, recursion 25, recursion on trees 10, binary search 10, group activity 10, Fibonacci 15. Bonus slides are for students to read."
 ---
 
-## Outline
-
-- Trees
-- Recursion intro: random tree graphics
-- Recursion intro: the details
-- Binary search, revisited
-- Group activity
-- Multiple recursive calls
-
-## Learning Objectives
-
-* Explain what recursion is, and why both the base case(s) and recursive step(s) are essential.
-* Recognize problems for which a recursive solution is appropriate.
-* Write a recursive solution for a simple problem.
-* Compare and contrast recursion and iteration.
+## Learning objectives {style="font-size: 0.85em;"}
 
 ```{python}
 #| echo: false
-# Hidden: imports and drawing helpers for the tree slides, kept in one place so
-# the visible cells below contain only the code students should read.
+# Hidden: imports, the org chart and the drawing helpers for the whole deck, kept in
+# one place so the visible cells below contain only the code students should read.
 import networkx as nx
 
 
-def edge_key(u, v):
-    """One name per undirected edge, the same whichever end you start from."""
-    return "|".join(sorted((str(u), str(v))))
+def names(items):
+    """["ada", "kelp", "nori"] -> "ada, kelp and nori"."""
+    items = [str(x) for x in items]
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
-def layout(G, pos, pad=0.5):
-    """Where to draw every node and edge of G, plus the axis ranges. Drawn by OJS."""
+def tree_layout(children, root, pad=0.5):
+    """Where to draw every node and edge of a tree given as {node: [children]}. Leaves sit
+    one unit apart, left to right, and each parent is centred over its children.
+    Every edge is named by its child, since each child has exactly one parent."""
+    pos, order, next_leaf = {}, [], [0]
+
+    def place(node, depth):
+        order.append(node)
+        kids = children.get(node, [])
+        for kid in kids:
+            place(kid, depth + 1)
+        if kids:
+            x = sum(pos[k][0] for k in kids) / len(kids)
+        else:
+            x = next_leaf[0]
+            next_leaf[0] += 1
+        pos[node] = (x, -depth)
+
+    place(root, 0)
     xs = [x for x, _ in pos.values()]
     ys = [y for _, y in pos.values()]
-    return {"nodes": [{"id": str(u), "x": pos[u][0], "y": pos[u][1]} for u in G.nodes],
-            "edges": [{"x1": pos[u][0], "y1": pos[u][1], "x2": pos[v][0], "y2": pos[v][1]}
-                      for u, v in G.edges],
+    return {"pos": pos,
+            "nodes": [{"id": u, "x": pos[u][0], "y": pos[u][1]} for u in order],
+            "edges": [{"child": c, "x1": pos[p][0], "y1": pos[p][1], "x2": pos[c][0], "y2": pos[c][1]}
+                      for p in order for c in children.get(p, [])],
             "x_domain": [min(xs) - pad, max(xs) + pad],
             "y_domain": [min(ys) - pad, max(ys) + pad]}
 
 
-def tree_pos(T, root, width=8):
-    """Root at the top, each level on its own row (same idea as draw_tree in the notes)."""
-    pos = {}
-    for depth, level in enumerate(nx.bfs_layers(T, root)):
-        for i, node in enumerate(level):
-            pos[node] = ((i + 0.5) / len(level) * width, -depth)
-    return pos
+def stack_boxes(stack, label=lambda u: u):
+    """The call stack as a row of boxes, bottom on the left: the running call is orange (end),
+    the calls waiting under it are light blue (wait)."""
+    return [{"label": label(u), "cls": "end" if i == len(stack) - 1 else "wait"}
+            for i, u in enumerate(stack)]
 
 
-def names(items):
-    """[1, 2, 3] -> "1, 2 and 3"."""
-    items = [str(x) for x in items]
-    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+# The org chart: who reports to whom. The same dict as the visible pyodide cells.
+reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
+           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
+ceo = "sky"
+boss_of = {p: boss for boss, team in reports.items() for p in team}
+org_tree = nx.Graph([(boss, p) for boss, team in reports.items() for p in team])
+org_depth = nx.shortest_path_length(org_tree, ceo)
+org_height = max(org_depth.values())
+n_people = org_tree.number_of_nodes()
+n_lines = org_tree.number_of_edges()
+org_layout = tree_layout(reports, ceo)
+org_pos = org_layout.pop("pos")
+ojs_define(org_layout = org_layout)
 ```
 
 ```{pyodide}
 #| include: false
-# Hidden setup for the runnable tree cells: networkx for the iClicker check.
+# Hidden setup for the runnable cells: the drawing helpers for vee, the Node class and the
+# org chart, so a later cell still works when an earlier slide was skipped.
+import math
+import random
+import sys
+
+import matplotlib.pyplot as plt
 import networkx as nx
+
+
+def move_pen(x, y, angle, length):
+    """The point you reach from (x, y) by moving length units in direction angle (0 is up)."""
+    radians = math.radians(angle)
+    return x + length * math.sin(radians), y + length * math.cos(radians)
+
+
+SHAPES = {"square": "s", "hexagon": "h", "star": "*"}   # shape name -> matplotlib marker
+
+
+def draw_shape(x, y, shape):
+    """Draw an empty black shape at (x, y)."""
+    plt.plot(x, y, marker=SHAPES[shape], markersize=15,
+             markerfacecolor="none", markeredgecolor="k")
+
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.children = []
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+    def print_tree(self, level=0):
+        print("  " * level + str(self.data))
+        for child in self.children:
+            child.print_tree(level + 1)
+
+
+reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
+           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
+people = {"sky": Node("sky")}
+for boss, team in reports.items():
+    for name in team:
+        people[name] = Node(name)
+        people[boss].add_child(people[name])
+ceo = people["sky"]
+
+
+def count_nodes(node):
+    total = 1
+    for child in node.children:
+        total += count_nodes(child)
+    return total
 ```
 
-# Trees {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-Every company has a hierarchy of employees, each employee has at least one manager.
+::: {.incremental}
+- Use the tree words: root, parent, child, leaf, subtree, height.
+- Explain recursion: a base case and a recursive step.
+- Explain the call stack, and why deep recursion raises a `RecursionError`.
+- Trace a recursive function by hand, including one that calls itself twice.
+- Write a recursive function, including one that walks a tree.
+- Compare recursion and loops, and estimate their time and space.
+:::
+
+# How many people work here? {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+
+Your CEO wants the exact headcount by Friday.
+
+There is no HR database. Each person only knows their own **direct reports**.
+
+::: {.fragment}
+How would you get the number? 🤔
+:::
+
+::: {.notes}
+- Let them suggest. Walk around with a clipboard? Who do you ask first?
+- Steer towards: the CEO asks each VP "how many people are in your team?", and each VP does the same.
+- Don't name recursion yet. We come back to this question after the break.
+:::
 
 ::: footer
 Image generated by OpenAI GPT-image-2.5-sunburst
 :::
 
+```{python}
+#| echo: false
+# Hidden: the "draw the org chart" step-through on the next slide. The path and the cycle
+# come from networkx; every colour role and sentence is worked out here, OJS only draws.
+def org_roles(nodes=None, edges=None, labels=None, show_edges=True, extra=()):
+    """Colour roles keyed by person (nodes) and by the child end of each line (edges)."""
+    return {"node_roles": nodes or {}, "edge_roles": edges or {}, "labels": labels or {},
+            "show_edges": show_edges, "extra": list(extra)}
+
+
+def line_children(path):
+    """The lines on a path, each named by its child end."""
+    return [v if boss_of.get(v) == u else u for u, v in zip(path, path[1:])]
+
+
+one_path = nx.shortest_path(org_tree, "ada", "bubbles")
+second_boss = ("clam", "kelp")                      # what if kelp also reported to clam?
+loop = nx.shortest_path(org_tree, "kelp", "clam")   # kelp, otter, sky, clam
+extra_line = {"x1": org_pos["clam"][0], "y1": org_pos["clam"][1],
+              "x2": org_pos["kelp"][0], "y2": org_pos["kelp"][1]}
+
+draw_steps = [
+    {**org_roles(show_edges=False),
+     "say": f"{n_people} people work at the company. Who reports to whom?"},
+    {**org_roles({ceo: "root"}),
+     "say": f"Draw a line from each boss down to each direct report. The CEO, {ceo}, goes on top."},
+    {**org_roles({u: "path" for u in one_path}, {c: "path" for c in line_children(one_path)}),
+     "say": f"From ada to bubbles there is exactly one path: {' → '.join(one_path)}."},
+    {**org_roles({u: "path" for u in loop}, {c: "path" for c in line_children(loop)}, extra=[extra_line]),
+     "say": f"What if kelp also reported to clam? {' → '.join(loop + ['kelp'])} goes around in a loop: "
+            "a cycle. Now kelp has two paths up to the CEO."},
+]
+for k, step in enumerate(draw_steps):
+    step["count"] = f"Step {k} of {len(draw_steps) - 1}"
+ojs_define(draw_steps = draw_steps)
+```
+
+## Draw the org chart {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: a tree laid out in Python, with colour roles and labels from Python.
+// Orange: running now or on a path. Light blue: waiting. Blue: done or in the subtree. Dark: root or parent.
+draw_tree = (lay, s, {width = 860, height = 290, r = 14} = {}) => {
+  const fill = {now: "#eb6834", path: "#eb6834", pick: "#eb6834", waiting: "#a9c8ef",
+                done: "#2a78d6", friend: "#2a78d6", root: "#52514e", you: "#52514e", other: "#b8b6b0"};
+  const stroke = {path: "#eb6834", found: "#2a78d6", friend: "#2a78d6", base: "#d9d8d4"};
+  const labels = s.labels ?? {};
+  const nodes = lay.nodes.map(d => ({...d, role: s.node_roles[d.id] ?? "other", label: labels[d.id] ?? d.id}))
+                         .filter(d => d.role !== "hidden");
+  const edges = s.show_edges === false ? [] :
+    lay.edges.map(d => ({...d, role: s.edge_roles[d.child] ?? "base"})).filter(d => d.role !== "hidden");
+  return Plot.plot({
+    width, height, margin: 14, marginTop: 30,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: lay.x_domain}, y: {axis: null, domain: lay.y_domain},
+    marks: [
+      Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
+                        strokeWidth: d => d.role === "base" ? 2 : 4}),
+      Plot.link(s.extra ?? [], {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#eb6834",
+                                strokeWidth: 4, strokeDasharray: "8,6"}),
+      Plot.dot(nodes, {x: "x", y: "y", r, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -(r + 10), fontWeight: "bold",
+                        fill: "#0b0b0b", stroke: "white", strokeWidth: 5, paintOrder: "stroke"})
+    ]
+  });
+}
+```
+
+```{ojs}
+//| echo: false
+viewof draw_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, draw_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Print and draw only: the sentence and colours were worked out in Python (draw_steps).
+  const s = draw_steps[draw_step];
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${draw_tree(org_layout, s)}`;
+}
+```
+
+::: {.fragment}
+Connected, with no cycles: exactly one path between any two people. That is a **tree**.
+:::
+
+::: {.notes}
+- Step 2: ask them to find another path from ada to bubbles. There is none.
+- Step 3: two bosses breaks it. In a tree, everyone has exactly one boss.
+- Lecture 4: the lines BFS walked along also formed a tree.
+:::
+
 ## What is a tree? {style="font-size: 0.85em;"}
 
-A **tree** is a graph that is connected and has no cycles: exactly **one** path between any two nodes.
+A **tree** is a graph that is connected and has no cycles.
 
 ![](images/tree.jpg){fig-align="center" width="85%"}
 
@@ -107,86 +293,63 @@ A **tree** is a graph that is connected and has no cycles: exactly **one** path 
 We draw it upside down: the root at the top, the leaves at the bottom.
 :::
 
-
 ```{python}
 #| echo: false
-# Hidden: the tree T = nx.balanced_tree(2, 3) from the notes, with its parent,
-# children, subtree and depth worked out for every node; OJS only draws.
-T = nx.balanced_tree(2, 3)
-T_root = 0
-T_parent = {child: parent for parent, child in nx.bfs_edges(T, T_root)}
-T_children = {n: [c for c in T.neighbors(n) if T_parent.get(c) == n] for n in T.nodes}
-T_depth = nx.shortest_path_length(T, T_root)
+# Hidden: parent, children, subtree and depth of every person, for the "Tree words" slide.
+def team_of(p):
+    """p plus everyone below p: the subtree that starts at p."""
+    return [p] + [d for kid in reports.get(p, []) for d in team_of(kid)]
 
 
-def below(n):
-    """n plus every node under it: the subtree that starts at n."""
-    return [n] + [d for c in T_children[n] for d in below(c)]
-
-
-tree_views = {}
-for n in T.nodes:
-    subtree = below(n)
-    node_role = {u: "friend" for u in subtree}
-    if n in T_parent:
-        node_role[T_parent[n]] = "you"
-    node_role[n] = "pick"
-    edge_role = {edge_key(u, c): "friend" for u in subtree for c in T_children[u]}
-    kids = T_children[n]
-    facts = ["the root, no parent" if n == T_root else f"parent {T_parent[n]}",
-             f"children {names(kids)}" if kids else "no children, so it is a leaf",
-             f"subtree {{{', '.join(str(u) for u in sorted(subtree))}}}",
-             f"depth {T_depth[n]}"]
-    tree_views[n] = {"node_roles": [node_role.get(u, "other") for u in T.nodes],
-                     "edge_roles": [edge_role.get(edge_key(u, v), "base") for u, v in T.edges],
-                     "say": f"Node {n}: " + ", ".join(facts) + "."}
-
-T_height = max(T_depth.values())
-tree_view = {**layout(T, tree_pos(T, T_root), pad=0.4), "views": tree_views,
-             "choices": list(T.nodes),
-             "summary": f"{T.number_of_nodes()} nodes, {T.number_of_edges()} edges, height {T_height}."}
-ojs_define(tree_view = tree_view)
+word_views = {}
+for p in org_layout["nodes"]:
+    p = p["id"]
+    team = team_of(p)
+    kids = reports.get(p, [])
+    nodes = {u: "friend" for u in team}
+    if p in boss_of:
+        nodes[boss_of[p]] = "you"
+    nodes[p] = "pick"
+    facts = ["the root, no parent" if p == ceo else f"parent {boss_of[p]}",
+             f"children {names(kids)}" if kids else "no children, so a leaf",
+             "subtree: the whole company" if p == ceo else f"subtree {names(team)}",
+             f"depth {org_depth[p]}"]
+    word_views[p] = {"node_roles": nodes, "edge_roles": {c: "friend" for c in team if c != p},
+                     "say": f"{p}: " + ", ".join(facts) + "."}
+ojs_define(word_views = word_views, word_choices = [d["id"] for d in org_layout["nodes"]])
 ```
 
 ## Tree words {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
-viewof tree_pick = Inputs.select(tree_view.choices, {value: 4, label: "node"})
+viewof word_pick = Inputs.select(word_choices, {value: "nori", label: "person"})
 ```
 
 ```{ojs}
 //| echo: false
 {
-  // Draw only: parent, children and subtree were worked out in Python (tree_view).
-  const s = tree_view.views[tree_pick];
-  const fill = {pick: "#eb6834", you: "#52514e", friend: "#2a78d6", other: "#b8b6b0"};
-  const nodes = tree_view.nodes.map((d, i) => ({...d, role: s.node_roles[i]}));
-  const edges = tree_view.edges.map((d, i) => ({...d, role: s.edge_roles[i]}));
-  return html`<div class="ojs-readout">${s.say}</div>${Plot.plot({
-    width: 820, height: 250, margin: 14,
-    style: {fontSize: "15px", background: "transparent"},
-    x: {axis: null, domain: tree_view.x_domain}, y: {axis: null, domain: tree_view.y_domain},
-    marks: [
-      Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2",
-                        stroke: d => d.role === "friend" ? "#2a78d6" : "#d9d8d4", strokeWidth: 3}),
-      Plot.dot(nodes, {x: "x", y: "y", r: 14, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
-      Plot.text(nodes, {x: "x", y: "y", text: "id", fill: "white", fontWeight: "bold"})
-    ]
-  })}`;
+  // Print and draw only: every fact and colour was worked out in Python (word_views).
+  const s = word_views[word_pick];
+  return html`<div class="ojs-readout">${s.say}</div>${draw_tree(org_layout, s, {height: 240})}`;
 }
 ```
 
 ::: {.incremental}
-- Root: the top node, no parent.
-- Parent: the node directly above (dark). 
-- Children: the nodes directly below.
-- Leaf: node with no children. 
-- Subtree: a node plus everything below it. Every subtree is a **tree**.
-- Height: edges on the longest path from the root to a leaf. This tree: `{python} T_height`. 
-- Balanced: left and right subtrees have about the same height.
+- Root: the top node, with no parent. The CEO.
+- Parent: the node directly above (dark). Your boss.
+- Children: the nodes directly below. Your direct reports.
+- Leaf: a node with no children.
+- Subtree: a node plus everything below it (blue). Every subtree is a **tree**.
+- Height: edges on the longest path from the root down to a leaf. Here: `{python} org_height`.
+- Balanced: at every node, the subtrees have about the same height.
 :::
 
+::: {.notes}
+- Pick a leaf (kelp) and the root (sky) to contrast.
+- A subtree is a team: clam's subtree is clam's whole department.
+- Depth counts edges down from the root. Height is the largest depth.
+:::
 
 ## iClicker: how many edges? {style="font-size: 0.8em;"}
 
@@ -198,14 +361,17 @@ A tree has $V$ nodes. How many edges does it have?
 - \(D) $\frac{V(V-1)}{2}$
 
 ::: {.fragment}
-- Answer: **A**. Every node except the root has exactly one edge up to its parent.
+- Answer: **A**. Everyone except the CEO has exactly one line up to their boss.
 - Add one edge: a cycle. Remove one: two pieces. A tree is the cheapest way to connect $V$ nodes.
 :::
 
 ```{pyodide}
-T = nx.balanced_tree(2, 3)
-print("is it a tree?", nx.is_tree(T))   # connected and no cycles
-print(T.number_of_nodes(), "nodes,", T.number_of_edges(), "edges")
+reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
+           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
+
+G = nx.Graph([(boss, name) for boss, team in reports.items() for name in team])
+print("is it a tree?", nx.is_tree(G))   # connected and no cycles
+print(G.number_of_nodes(), "people,", G.number_of_edges(), "reporting lines")
 ```
 
 ::: {.notes}
@@ -218,7 +384,7 @@ print(T.number_of_nodes(), "nodes,", T.number_of_edges(), "edges")
 ::: {.column width="55%"}
 ::: {.incremental}
 - File systems: folders inside folders.
-- Org charts: each employee has one manager.
+- Org charts: each employee has one boss.
 - Web pages: HTML tags nested inside tags.
 - Machine learning: decision trees, random forests (DSCI 571, 573).
 - Fast search: binary search trees (lecture 6), heaps, the B-trees inside databases.
@@ -242,9 +408,9 @@ Root Folder
 - A balanced binary search tree finds an item in O(log n), like binary search in lecture 2.
 :::
 
-## A tree in Python {style="font-size: 0.8em;"}
+## A tree in Python {style="font-size: 0.75em;"}
 
-Each node stores its data and a list of its children:
+Each node stores its data and a list of its children.
 
 ```{pyodide}
 class Node:
@@ -262,415 +428,554 @@ class Node:
 ```
 
 ```{pyodide}
-root = Node("Root Folder")
-documents, pictures = Node("Documents"), Node("Pictures")
-root.add_child(documents)
-root.add_child(pictures)
-documents.add_child(Node("Resume.pdf"))
-pictures.add_child(Node("profile.png"))
-root.print_tree()
+people = {"sky": Node("sky")}            # name -> Node, starting with the CEO
+for boss, team in reports.items():
+    for name in team:
+        people[name] = Node(name)
+        people[boss].add_child(people[name])
+
+ceo = people["sky"]
+ceo.print_tree()
 ```
 
-::: {.notes}
-- `print_tree` calls itself on each child: recursion, lecture 5. It works because every subtree is a tree.
-- `networkx` treats a tree as just another graph; our own `Node` class is the usual way to write one by hand.
+::: {.fragment}
+Look at `print_tree`: it calls **itself**. Hold that thought.
 :::
 
-## Recursion intro: random tree graphics
+::: {.notes}
+- `networkx` treats a tree as just another graph. A `Node` class is the usual way to write one by hand.
+- It works because every subtree is a tree: printing a team is printing the boss, then printing each smaller team.
+:::
+
+# A function that calls itself {style="font-size: 0.8em;"}
+
+::: {.notes}
+About 25 minutes for this section. Go slowly: this is the core of the lecture.
+:::
+
+## A random org chart {style="font-size: 0.7em;"}
+
+Each V is a boss with 2 reports. At each tip: a person with no reports (a shape), or another boss (another V).
 
 ```{pyodide}
-import numpy as np
-import matplotlib.pyplot as plt
-def move_pen(x, y, angle, length):
-    """
-    Moves a point from initial location of x and y according to
-    angle and length specified.
-
-    Parameters
-    ----------
-    x : float
-        initial location of pen on the x axis
-    y : float
-        initial location of pen on the y axis
-    angle : float
-        direction from initial location (0 means up)
-    length: distance from the initial location desired to move
-
-    Returns
-    -------
-    new_x : float
-        new location on the x axis
-    new_y : float
-        new location on the y axis
-
-    Examples
-    --------
-    >>> move_pen(0, 0, 90,2)
-    (2.0, 0)
-    >>> move_pen(0, 0, 180,2)
-    (0, -2.0)
-
-    """
-    new_x = x + length * np.sin(angle * np.pi / 180.0)
-    new_y = y + length * np.cos(angle * np.pi / 180.0)
-    return new_x, new_y
-
-def branch(x, y, angle=0, length=1, marker="."):
-    """
-    Plot a shape at the end of a tree branch.
-
-    Parameters
-    ----------
-    x : float
-        initial location on the x axis
-    y : float
-        initial location on the y axis
-    angle : float, optional (default = 0)
-        not used, needed to conform to the same interface as vee
-    length: float, optional (default = 1)
-        not used, needed to conform to the same interface as vee
-    marker : str, optional (default = ".")
-        the shape at the end of the branch
-    """
-    plt.plot(x, y, marker=marker, markersize="15",
-             markerfacecolor="None", markeredgecolor="k")
-
-def square(*args):
-    return branch(*args, marker="s")
-
-def hexagon(*args):
-    return branch(*args, marker="h")
-
-def star(*args, length=1):
-    return branch(*args, marker="*")
-
 def vee(x=0, y=0, angle=0, length=1):
-    """
-    Plots a tree with random shaped nodes given
-    a trunk location, branch angle and branch length.
+    """Draw a V. At the tip of each branch: a random shape, or another V."""
+    for turn in [-6.4, 6.4]:                        # left branch, then right branch
+        new_angle = angle + turn
+        new_x, new_y = move_pen(x, y, new_angle, length)
+        plt.plot([x, new_x], [y, new_y], "k")       # draw the branch
 
-    Parameters
-    ----------
-    x : float, optional (default = 0)
-        location of pen on the x axis
-    y : float, optional (default = 5)
-        location of pen on the y axis
-    angle : float, optional (default = 0)
-        direction from location desired to move in degrees
-    length: float,  (default = 1)
-        distance from the location desired to move
-    """
-#     plt.figure(figsize=(4,3))
-
-    # possible shapes
-    shapes = [square, hexagon, star]
-
-    # branch left
-    shape = np.random.choice(shapes)
-    new_angle = angle - 20/np.pi
-    new_x, new_y = move_pen(x, y, new_angle, length)
-    plt.plot([x, new_x], [y, new_y], 'k')
-    shape(new_x, new_y, new_angle, length)
-
-    # branch right
-    shape = np.random.choice(shapes)
-    new_angle = angle + 20/np.pi
-    new_x, new_y = move_pen(x, y, new_angle, length)
-    plt.plot([x, new_x], [y, new_y], 'k')
-    shape(new_x, new_y, new_angle, length)
-
-    plt.xticks(())
-    plt.yticks(())
-    plt.xlim((-2, 2))
-    plt.ylim((0, 10))
-#     plt.draw()
-#     plt.pause(0.05)
+        shape = random.choice(["square", "hexagon", "star", "vee", "vee"])
+        if shape == "vee":
+            vee(new_x, new_y, new_angle, length)    # another V: vee calls itself
+        else:
+            draw_shape(new_x, new_y, shape)         # the branch ends here
 ```
 
-## Recursion intro: random tree graphics
-
 ```{pyodide}
-plt.figure(figsize=(5, 3))
+random.seed(0)                # try other seeds!
+plt.figure(figsize=(4, 4))
 vee()
+plt.axis("off")
 plt.show()
 ```
 
-## Recursion intro: the details
+::: {.notes}
+- `move_pen` and `draw_shape` are small helpers from the lecture notes.
+- `vee` never draws the whole tree. It draws one V and hands the rest to `vee`.
+- Change the seed a few times live.
+- Credit: idea from Paul Goldenberg, shown to us by Dan Garcia.
+:::
 
-- **Step 1**: functions with outputs but no inputs
+## Question: what stops it? {style="font-size: 0.85em;"}
+
+`vee` calls itself. Why doesn't it call itself forever?
+
+::: {.fragment}
+- The square, hexagon and star. They draw a shape and stop, with no more calls.
+- Each V starts on average $2 \times \frac{2}{5} = 0.8$ new Vs. Less than 1, so the tree dies out.
+- The case that stops is called the **base case**.
+:::
+
+::: {.notes}
+- If the list were all "vee", it would never stop.
+:::
+
+## Functions that call functions {style="font-size: 0.8em;"}
+
+Like the CEO asking a VP, who asks a manager.
 
 ```{pyodide}
 def h():
     return 0
-```
 
-```{pyodide}
-h()
-```
-
-```{pyodide}
 def g():
-    return h() + 1
-```
+    return h() + 1   # call h, then add 1
 
-```{pyodide}
-g()
-```
-
-```{pyodide}
 def f():
-    return g() + 1
-```
+    return g() + 1   # call g, then add 1
 
-```{pyodide}
 f()
 ```
 
-## Recursion intro: the details
+::: {.fragment}
+Once you know `g()` returns 1, forget how. To understand `f`, you only need **what** `g` returns.
+:::
 
-- **Step 2**: functions with inputs but no outputs
+::: {.notes}
+- Predict before running: 2.
+- This "trust the answer" trick is what makes recursion easy to read later.
+:::
+
+## Who finishes first? {style="font-size: 0.8em;"}
+
+Predict the order of the printout.
 
 ```{pyodide}
 def h(n):
-    print("You called h with n=", n)
-    print("Ending h with n=", n)
-```
+    print("start h, n =", n)
+    print("end   h, n =", n)
 
-```{pyodide}
-h(3)
-#h(2)
-```
-
-```{pyodide}
 def g(n):
-    print("You called g with n=", n)
-    h(n-1)
-    print("Ending g with n= ", n)
-```
+    print("start g, n =", n)
+    h(n - 1)
+    print("end   g, n =", n)
 
-```{pyodide}
-g(1)
-#g(2)
-#g(3)
-```
-
-```{pyodide}
 def f(n):
-    print("You called f with n=", n)
-    g(n-1)
-    print("Ending f with n=", n)
-```
+    print("start f, n =", n)
+    g(n - 1)
+    print("end   f, n =", n)
 
-```{pyodide}
 f(5)
-# f(10) # Optional note: call stack
 ```
 
-## Recursion intro: the details
+```{python}
+#| echo: false
+# Hidden: the two call stack step-throughs. Instrumented copies of the visible f, g, h (with
+# f(5)) and of the recursive f (with f(3)) log every start and end, with the line they print.
+def stack_steps(events):
+    """One step per start or end. events: (kind, label, value, line, note)."""
+    stack, lines, steps = [], [], [{"say": "Nothing has run yet.", "lines": [], "frames": [],
+                                    "popped": "", "popped_cls": "sq-empty"}]
+    for kind, label, value, line, note in events:
+        popped = ""
+        if kind == "call":
+            caller = stack[-1] if stack else None
+            say = f"{caller} calls {label}. {caller} waits, and {label} goes on top." if caller \
+                else f"Call {label}. It goes on the stack."
+            stack.append(label)
+        else:
+            stack.pop()
+            popped = label + (f" → {value}" if value is not None else "")
+            back = stack[-1] if stack else None
+            say = (f"{label} ends" + (f" and returns {value}" if value is not None else "")
+                   + ". It comes off the top. "
+                   + (f"{back} carries on where it left off." if back else "The stack is empty: done."))
+        lines.append(line)
+        steps.append({"say": note + say,
+                      "lines": [{"text": t, "cls": "new" if j == len(lines) - 1 else ""}
+                                for j, t in enumerate(lines)],
+                      "frames": [{"label": u, "cls": "end" if i == len(stack) - 1 else "wait",
+                                  "tag": "◀ running" if i == len(stack) - 1 else ""}
+                                 for i, u in enumerate(stack)],
+                      "popped": popped, "popped_cls": "found" if popped else "sq-empty"})
+    for k, step in enumerate(steps):
+        step["count"] = f"Step {k} of {len(steps) - 1}"
+    return steps
 
-- **Step 3**: functions with inputs and outputs
-```{pyodide}
-def h(n):
-    print("Starting h with n=", n)
-    value = 0
-    print("Ending h with n=", value)
+
+fgh_log = []
+
+def h_logged(n):
+    fgh_log.append(("call", f"h({n})", None, f"start h, n = {n}", ""))
+    fgh_log.append(("return", f"h({n})", None, f"end   h, n = {n}", ""))
+
+def g_logged(n):
+    fgh_log.append(("call", f"g({n})", None, f"start g, n = {n}", ""))
+    h_logged(n - 1)
+    fgh_log.append(("return", f"g({n})", None, f"end   g, n = {n}", ""))
+
+def f_logged(n):
+    fgh_log.append(("call", f"f({n})", None, f"start f, n = {n}", ""))
+    g_logged(n - 1)
+    fgh_log.append(("return", f"f({n})", None, f"end   f, n = {n}", ""))
+
+f_logged(5)
+
+
+rec_log = []
+
+def f_rec_logged(n):
+    rec_log.append(("call", f"f({n})", None, f"start f, n = {n}", ""))
+    if n == 0:
+        rec_log.append(("return", "f(0)", 0, "end   f, n = 0, return 0 (base case)",
+                        "Base case, no more calls. "))
+        return 0
+    value = f_rec_logged(n - 1) + 1
+    rec_log.append(("return", f"f({n})", value, f"end   f, n = {n}, return {value}", ""))
     return value
+
+f_rec_logged(3)
+
+ojs_define(fgh_steps = stack_steps(fgh_log), rec_steps = stack_steps(rec_log))
 ```
 
-```{pyodide}
-h(5)
+## The call stack {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: the printout, the stack and the sentence come from Python (fgh_steps, rec_steps).
+draw_stack = s => html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+  <div class="cs-wrap">
+    <div><div class="ds-caption">printed so far</div>
+      <div class="cs-console">${s.lines.map(l => html`<div class="${l.cls}">${l.text}</div>`)}</div></div>
+    <div class="sq-lift">
+      <div class="ds-box ${s.popped_cls}">${s.popped}</div>
+      <div class="sq-stack tall">${s.frames.map(f =>
+        html`<div class="ds-box ${f.cls}">${f.label}<span class="sq-tag right">${f.tag}</span></div>`)}</div>
+      <div class="ds-caption">call stack</div>
+    </div>
+  </div>`
 ```
 
-```{pyodide}
-def g(n):
-    print("Starting g with n=", n)
-    value = h(n-1) + 1
-    print("Ending g with n=", value)
-    return value
+```{ojs}
+//| echo: false
+viewof fgh_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, fgh_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
 ```
 
-```{pyodide}
-g(10)
+```{ojs}
+//| echo: false
+draw_stack(fgh_steps[fgh_step])
 ```
+
+::: {.fragment}
+`f` starts first but ends last: a **stack**, last in, first out (lecture 4).
+:::
+
+::: {.notes}
+- Orange: the call running now. Light blue: calls waiting for an answer. Blue: the call that just ended.
+- Each call gets its own `n`. f's n is still 5 when it carries on.
+- Python keeps this stack for every program you run.
+:::
+
+## Same job, different names {style="font-size: 0.75em;"}
+
+We are getting close to the punch line.
 
 ```{pyodide}
 def f(n):
-    print("Starting f with n=", n)
-    value = g(n-1) + 1
-    print("Ending f with n=", value)
-    return value
-```
-
-```{pyodide}
-f(11)
-```
-
-## Recursion intro: the details
-
-- Let's remove some of the print statements to make things more compact:
-```{pyodide}
-def f(n):
-    print("Starting f with n=", n)
-    return g(n-1) + 1
+    if n == 0:
+        return 0
+    else:
+        return g(n - 1) + 1
 
 def g(n):
-    print("Starting g with n=", n)
-    return h(n-1) + 1
+    if n == 0:
+        return 0
+    else:
+        return h(n - 1) + 1
 
 def h(n):
-    print("Starting h with n=", n)
-    return 0
-```
-```{pyodide}
-f(11)
-#f(1000)
-```
-
-## Recursion intro: the details
-
-- Now look at this code (we're getting close to the punch line):
-
-```{pyodide}
-def f(n):
-    print("Starting f with n=", n)
     if n == 0:
         return 0
     else:
-        return g(n-1) + 1
+        return i(n - 1) + 1   # we never wrote a function called i!
 
-def g(n):
-    print("Starting g with n=", n)
-    if n == 0:
-        return 0
-    else:
-        return h(n-1) + 1
-
-def h(n):
-    print("Starting h with n=", n)
-    if n == 0:
-        return 0
-    else:
-        return i(n-1) + 1
-
-# ...
-# ...
+for n in range(4):
+    print(f"f({n}) =", f(n))
 ```
 
-```{pyodide}
-f(0)
-#f(1)
-#f(2)
-#f(3)
-```
+::: {.fragment}
+`f`, `g` and `h` do the **same** job. Should we write `i`, `j`, `k`, ... forever?
+:::
 
-## Recursion intro: the details
+::: {.notes}
+- f(0), f(1), f(2) work. f(3) needs i, which doesn't exist: NameError.
+- Like a CEO, a VP and a manager all doing the same thing: ask the next person, add 1.
+:::
 
-- So why write a million times
-```{.python}
-def f(n):
-    if n == 0:
-        return 0
-    else:
-        return g(n-1) + 1
+## A function that calls itself {style="font-size: 0.8em;"}
 
-# def g(n):
-#     ...
-#
-# def h(n):
-#     ...
-```
-- when we can write
+:::: {.columns}
+::: {.column width="62%"}
 ```{pyodide}
 def f(n):
     if n == 0:
-        return 0
+        return 0              # base case: answer directly
     else:
-        return f(n-1) + 1
-```
+        return f(n - 1) + 1   # recursive step: call f on a smaller input
 
-## Recursion intro: the details
-```{pyodide}
-f(2)
-#f(-1)
+f(3)
 ```
 
 ::: {.incremental}
+- That is **recursion**: a function that calls itself.
+- Base case: small enough to answer directly. It stops the calls.
+- Recursive step: call itself on a smaller input, and use the answer.
+- Each call must get closer to the base case.
+:::
+:::
+::: {.column width="38%"}
+![](images/base_case_meme.jpg){width="85%" fig-align="center"}
+:::
+::::
 
-- <img width="400" src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Stack_Overflow_logo.svg/512px-Stack_Overflow_logo.svg.png">  </br>
-(Image source: [Wikipedia](https://commons.wikimedia.org/wiki/File:Stack_Overflow_logo.svg))
-
-- A stack overflow error most commonly occurs when a recursive function makes an exceedingly large numbers of calls to itself
-- causes the memory allocated for a function's call stack to overflow.
-- Python prevents this from happening by throwing a `RecursionError`.
-
+::: {.notes}
+- Think of each call as a separate copy of f with its own n, just like f, g and h were.
 :::
 
-## Recursion intro: the details
+::: footer
+Meme template: [Jake Clark](https://jake-clark.tumblr.com), via [imgflip](https://imgflip.com)
+:::
+
+## Watch it run {style="font-size: 0.8em;"}
+
 ```{pyodide}
 def f(n):
-    print("Starting f with n=", n)
+    print("start f, n =", n)
     if n == 0:
-        print("Ending f with n =", n, "and returning 0 (base case)")
+        print("end   f, n = 0, return 0 (base case)")
         return 0
     else:
-        value = f(n-1) + 1
-        print("Ending f with n =", n, "and returning", value)
+        value = f(n - 1) + 1
+        print(f"end   f, n = {n}, return {value}")
         return value
+
+f(3)
 ```
+
+::: {.fragment}
+Same pattern as `f`, `g` and `h`. Every call is now named `f`.
+:::
+
+## The call stack, again {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof rec_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, rec_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+draw_stack(rec_steps[rec_step])
+```
+
+::: {.fragment}
+The calls pile up until `n` hits 0. Then the answers come back, one at a time.
+:::
+
+::: {.notes}
+- Ask: when f(0) returns 0, what does f(1) do with it? Adds 1 and returns.
+- Four calls of f are waiting at the deepest point: f(3), f(2), f(1), f(0).
+:::
+
+## What if we never reach the base case? {style="font-size: 0.8em;"}
+
+`f(-1)` calls `f(-2)`, which calls `f(-3)`, ... `n` never hits 0.
 
 ```{pyodide}
-f(2)
-#f(5)
+def f(n):
+    if n == 0:
+        return 0
+    else:
+        return f(n - 1) + 1
+
+try:
+    f(-1)
+except RecursionError as error:   # catch the error, so we only see its message
+    print("RecursionError:", error)
+
+print("most calls allowed on the stack:", sys.getrecursionlimit())
 ```
 
-## Group Activity
+::: {.incremental}
+- Every waiting call takes memory on the stack. Without a limit: a **stack overflow**.
+- Python stops first, at about 1,000 calls, with a `RecursionError`. A loop has no such limit.
+:::
+
+::: {.notes}
+- In the org chart: a circular reporting line. kelp asks clam, clam asks kelp, and nobody ever answers.
+- Yes, that is where the website Stack Overflow got its name.
+:::
+
+## iClicker: time and space of `f(n)` {style="font-size: 0.8em;"}
 
 ```{.python}
 def f(n):
     if n == 0:
-        return ""
-    elif n == 3:
-        return "b" + f(n-1) + "c"
+        return 0
     else:
-        return "a" + f(n-1)
+        return f(n - 1) + 1
 ```
 
-**Without running the code**, fill in the table for what `f` returns:
+What are the time and space complexity of `f(n)` for $n \geq 0$?
 
-|  `n`   |   `f(n)` |
-|--------|--------|
-| 0      |       |
-| 1      |     |
-| 2      |    |
-| 3      |    |
-| 4      |      |
-| 5      |      |
-| -1     |       |
+- \(A) $O(1)$ time, $O(1)$ space
+- \(B) $O(n)$ time, $O(1)$ space
+- \(C) $O(n)$ time, $O(n)$ space
+- \(D) $O(n^2)$ time, $O(n)$ space
 
-## Group Activity
+::: {.fragment}
+- Answer: **C**. $n + 1$ calls, each $O(1)$ work.
+- Space: all $n + 1$ calls wait on the stack at the deepest point. Recursion uses memory even with no list.
+:::
 
-- Answer:
+# Back to the CEO's question {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-|  `n`   |   `f(n)` |
-|--------|--------|
-| 0      |   ""     |
-| 1      |   "a"    |
-| 2      |   "aa"   |
-| 3      |   "baac"   |
-| 4      |   "abaac"     |
-| 5      |   "aabaac"     |
-| -1     |   _infinite loop_     |
+Every subtree is a tree. So to answer a question about a tree:
 
-## Binary search, revisited
+::: {.incremental}
+1. Ask each child's subtree (recursion).
+2. Combine their answers with the current node.
+:::
 
-- Iterative implementation
+::: footer
+Image generated by OpenAI GPT-image-2.5-sunburst
+:::
+
+```{python}
+#| echo: false
+# Hidden: the "count the whole company" step-through. An instrumented count_nodes walks the
+# org chart exactly like the visible one and records the call stack and every answer.
+def record_count(children, root):
+    stack, answer, steps = [], {}, []
+
+    def snap(say):
+        top = stack[-1] if stack else None
+        nodes = {u: "done" for u in answer}
+        nodes.update({u: "waiting" for u in stack})
+        if top:
+            nodes[top] = "now"
+        steps.append({"say": say, "node_roles": nodes,
+                      "edge_roles": {u: "found" for u in answer if u != root},
+                      "labels": {u: f"{u}: {answer[u]}" for u in answer},
+                      "boxes": stack_boxes(stack)})
+
+    def count(node):
+        stack.append(node)
+        kids = children.get(node, [])
+        if not kids:
+            answer[node] = 1
+            snap(f"{node} has no reports, so {node} answers 1 right away. That is the base case.")
+        else:
+            snap(f"{node} asks {names(kids)}: how many people are in your team?")
+            for kid in kids:
+                count(kid)
+            answer[node] = 1 + sum(answer[k] for k in kids)
+            snap(f"{node} adds it up: 1 for {node}, plus "
+                 f"{' + '.join(str(answer[k]) for k in kids)} = {answer[node]}.")
+        stack.pop()
+
+    steps.append({"say": f"The CEO, {root}, needs the headcount.", "node_roles": {},
+                  "edge_roles": {}, "labels": {}, "boxes": []})
+    count(root)
+    steps[-1]["say"] += f" Done: {answer[root]} people, and nobody saw the whole chart."
+    for k, step in enumerate(steps):
+        step["count"] = f"Step {k} of {len(steps) - 1}"
+    return steps
+
+
+ojs_define(count_steps = record_count(reports, ceo))
+```
+
+## Count the whole company {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof count_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, count_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the counting was done in Python (count_steps).
+  const s = count_steps[count_step];
+  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${draw_tree(org_layout, s, {height: 270})}
+    <div class="ds-row center"><span class="ds-caption">call stack (top on the right):</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+}
+```
+
+::: {.notes}
+- Orange: asking or answering now. Light blue: waiting for answers. Blue: has answered, with the size of the team.
+- The call stack is the chain of bosses waiting, from the CEO down to the person asked now.
+- Python visits the people depth-first, like DFS in lecture 4.
+:::
+
+## Count it in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+def count_nodes(node):
+    total = 1                          # count this node
+    for child in node.children:
+        total += count_nodes(child)    # plus everyone in this child's subtree
+    return total
+
+count_nodes(ceo)
+```
+
+::: {.incremental}
+- Where is the base case? A leaf has no children: the loop does nothing, and it returns 1.
+- Every call is on a smaller subtree, so we always reach the leaves.
+:::
+
+## Question: how many levels? {style="font-size: 0.8em;"}
+
+Write `height(node)`: the number of edges on the longest path from `node` down to a leaf.
+
+Hint: what is the height of a leaf? If you know each child's height, what is yours?
+
+```{pyodide}
+def height(node):
+    ...
+
+print(height(ceo))   # should print 3
+```
+
+::: {.fragment}
 ```{.python}
-def binary_search(data, key):
+def height(node):
+    if not node.children:    # base case: a leaf has height 0
+        return 0
+    return 1 + max(height(child) for child in node.children)   # one edge down to the tallest subtree
+```
+:::
 
+::: {.notes}
+- Give them 3 minutes in pairs.
+- sky → otter → nori → ada: 3 edges.
+:::
+
+# Binary search, revisited {style="font-size: 0.8em;"}
+
+Find employee 212 in the sorted company directory. Lecture 2: keep cutting the rack in half.
+
+## Two ways to write it {style="font-size: 0.7em;"}
+
+:::: {.columns}
+::: {.column width="50%"}
+With a loop (lecture 2)
+
+```{.python}
+def binary_search_loop(data, key):
     low = 0
     high = len(data) - 1
-    while (low <= high):
-        mid = (high + low)//2
+    while low <= high:
+        mid = (low + high) // 2
         if data[mid] == key:
             return True
         if key < data[mid]:
@@ -679,152 +984,593 @@ def binary_search(data, key):
             low = mid + 1
     return False
 ```
+:::
+::: {.column width="50%"}
+With recursion
 
-## Binary search, revisited
-
-- Recursive implementation
-```{.python}
+```{.python code-line-numbers="|2-5|7-11"}
 def binary_search(data, key):
-    if len(data) == 1:
+    if len(data) == 0:      # base case: nothing left
+        return False
+    if len(data) == 1:      # base case: one item left
         return data[0] == key
 
-    mid = len(data)//2
+    mid = len(data) // 2
     if key < data[mid]:
-        return binary_search(data[:mid], key)
+        return binary_search(data[:mid], key)  # left half
     else:
-        return binary_search(data[mid:], key)
+        return binary_search(data[mid:], key)  # right half
 ```
+:::
+::::
 
-## Binary search, revisited
-
-- Recursive implementation
-
-```{.python code-line-numbers="2,3"}
-def binary_search(data, key):
-    if len(data) == 1:
-        return data[0] == key
-
-    mid = len(data)//2
-    if key < data[mid]:
-        return binary_search(data[:mid], key)
-    else:
-        return binary_search(data[mid:], key)
-```
-
-## Binary search, revisited
-
-- Recursive implementation
-
-```{.python code-line-numbers="5,6,7,8,9"}
-def binary_search(data, key):
-    if len(data) == 1:
-        return data[0] == key
-
-    mid = len(data)//2
-    if key < data[mid]:
-        return binary_search(data[:mid], key)
-    else:
-        return binary_search(data[mid:], key)
-```
-
-## Multiple recursive calls
-
-- Consider the function below.
-```{pyodide}
-def f(n):
-    if n == 1 or n == 2:
-        return 1
-    else:
-        return f(n-1) + f(n-2)
-```
-```{pyodide}
-f(3)
-#f(4)
-```
-```{pyodide}
-def f(n):
-    print("Starting f with n=", n)
-    if n == 1 or n == 2:
-        return 1
-    else:
-        return f(n-1) + f(n-2)
-```
-```{pyodide}
-f(4)
-```
-
-## Multiple recursive calls
-
-- The [Fibonacci sequence](https://en.wikipedia.org/wiki/Fibonacci_number): $F_n=F_{n-1}+F_{n-2}$.
-
-- In this case we need **2 base cases** to get things started, because $F_n$ depends on the **previous 2 steps**.
-- Recursive functions don't need to be sequences, as we'll see.
-- The time complexity here is something like $O(2^n)$
-  - (Slightly less than $2^n$ steps but close enough.)
-  - It is generally true, rougly speaking, that if a recursive function calls itself $k$ times and the "depth" of the recursion is $n$, then the time complexity is $k^n$. More on this next class.
-
-## Multiple recursive calls
-
-::: {.incremental}
-
-- **Question:** What is the space complexity of our Fibonacci function `f`?
-    - $O(2^n)$ \
-    - $O(n^2)$ \
-    - $O(n)$ \
-    - $O(1)$
-
-- **Answer:** $O(n)$
+::: {.fragment}
+"Search the left half" is the same problem on a smaller list. No `low`, `high` or `while`.
 :::
 
-## Multiple recursive calls
+## Try it: recursive binary search {style="font-size: 0.75em;"}
 
-Revisiting the binary search code above:
-
-```{.python}
+```{pyodide}
 def binary_search(data, key):
+    if len(data) == 0:
+        return False
     if len(data) == 1:
         return data[0] == key
 
-    mid = len(data)//2
+    mid = len(data) // 2
+    if key < data[mid]:
+        return binary_search(data[:mid], key)
+    else:
+        return binary_search(data[mid:], key)
+
+ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
+assert binary_search(ids, 212)        # in the middle somewhere
+assert binary_search(ids, 102)        # the first ID
+assert binary_search(ids, 259)        # the last ID
+assert not binary_search(ids, 300)    # bigger than everything
+assert not binary_search([], 5)       # empty list
+print("all tests passed")
+```
+
+## Question: is it $O(\log n)$? {style="font-size: 0.85em;"}
+
+How many times does `binary_search` call itself on $n$ IDs? Does that make it $O(\log n)$, like the loop?
+
+::: {.fragment}
+- About $\log_2 n$ calls: each one cuts the list in half.
+- But look at `data[:mid]`. What does slicing do?
+:::
+
+```{python}
+#| echo: false
+# Hidden: the "photocopy" step-through on the next slide. An instrumented copy of the visible
+# binary_search (same slicing, same ids and key) records each call's list and how many IDs
+# it copies for the next call.
+copy_ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
+copy_key = 212
+copy_calls = []
+
+def binary_search_logged(data, key, start=0):
+    """start: where data begins in copy_ids, so each call can be drawn in place."""
+    call = {"start": start, "data": data, "mid": None, "copied": 0, "found": False}
+    copy_calls.append(call)
+    if len(data) == 0:
+        return False
+    if len(data) == 1:
+        call["found"] = data[0] == key
+        return data[0] == key
+    mid = len(data) // 2
+    call["mid"] = mid
+    if key < data[mid]:
+        call["copied"] = mid
+        return binary_search_logged(data[:mid], key, start)
+    call["copied"] = len(data) - mid
+    return binary_search_logged(data[mid:], key, start + mid)
+
+binary_search_logged(copy_ids, copy_key)
+
+copy_rows = []
+for k, call in enumerate(copy_calls, start=1):
+    boxes = []
+    for slot in range(len(copy_ids)):
+        i = slot - call["start"]
+        if 0 <= i < len(call["data"]):
+            cls = "found" if call["found"] else "end" if i == call["mid"] else ""
+            boxes.append({"label": copy_ids[slot], "cls": cls})
+        else:
+            boxes.append({"label": "", "cls": "sq-empty"})
+    copy_rows.append({"name": f"call {k}", "boxes": boxes,
+                      "note": "found!" if call["found"] else f"copies {call['copied']}"})
+
+copy_total = sum(c["copied"] for c in copy_calls)
+copy_steps = [{"rows": [], "say": f"{len(copy_ids)} sorted IDs. Find {copy_key}."}]
+for k, call in enumerate(copy_calls, start=1):
+    n_here = len(call["data"])
+    if call["found"]:
+        copied = " + ".join(str(c["copied"]) for c in copy_calls if c["copied"])
+        say = (f"Call {k} gets 1 ID: {copy_key}. Found! IDs copied in total: {copied} = {copy_total}, "
+               f"about n = {len(copy_ids)}.")
+    else:
+        middle = call["data"][call["mid"]]
+        side = "left" if copy_key < middle else "right"
+        say = (f"Call {k} gets {'the list' if k == 1 else 'a copy'} of {n_here} IDs. The middle is {middle}, "
+               f"so it copies the {side} {call['copied']} for the next call.")
+    copy_steps.append({"rows": copy_rows[:k], "say": say})
+for k, step in enumerate(copy_steps):
+    step["count"] = f"Step {k} of {len(copy_steps) - 1}"
+ojs_define(copy_steps = copy_steps)
+```
+
+## Every call makes a photocopy {style="font-size: 0.8em;"}
+
+```{ojs}
+//| echo: false
+viewof copy_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, copy_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every row, count and sentence was worked out in Python (copy_steps).
+  const s = copy_steps[copy_step];
+  const rows = s.rows.map(r => html`<div class="ds-row bs-copy"><span class="csr-name">${r.name}</span>
+    ${r.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`)}
+    <span class="bs-note">${r.note}</span></div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>${rows}`;
+}
+```
+
+::: {.fragment}
+- Copying costs $\frac{n}{2} + \frac{n}{4} + \dots \approx n$. So this version is $O(n)$, not $O(\log n)$. ⚠️
+- The fix: pass `low` and `high` instead of a copy, like the loop. Then $O(\log n)$.
+:::
+
+::: {.notes}
+- Orange: the middle ID of each call.
+- Like photocopying half the directory before handing it to an assistant, instead of saying "look at pages 9 to 16".
+- Recursion makes code shorter, but you still have to count what each line costs.
+- The fixed version is a bonus slide.
+:::
+
+## Recursion or a loop? {style="font-size: 0.75em;"}
+
+Anything you write with recursion, you can write with a loop. Pick the clearer one.
+
+| | loop | recursion |
+|---|---|---|
+| how it repeats | `for` or `while` | the function calls itself |
+| when it stops | the loop condition is `False` | it reaches the base case |
+| extra memory | none | one spot on the stack per waiting call |
+| limit in Python | none | about 1,000 calls deep |
+| good for | the same step for each item | problems made of smaller copies: trees, binary search, fractals |
+
+# Group activity {style="font-size: 0.8em;"}
+
+::: {.notes}
+About 10 minutes. Groups of 3.
+:::
+
+## Group activity: trace it by hand {style="font-size: 0.8em;"}
+
+:::: {.columns}
+::: {.column width="55%"}
+```{.python}
+def f(n):
+    if n == 0:
+        return ""
+    elif n == 3:
+        return "b" + f(n - 1) + "c"
+    else:
+        return "a" + f(n - 1)
+```
+
+**Without running the code**, fill in the table.
+
+Tip: start small, then reuse your answers.
+:::
+::: {.column width="45%"}
+| `n` | `f(n)` |
+|---|---|
+| 0 | |
+| 1 | |
+| 2 | |
+| 3 | |
+| 4 | |
+| 5 | |
+| -1 | |
+:::
+::::
+
+::: {.notes}
+- The trick from "Functions that call functions": once you know f(3), use it for f(4) without tracing again.
+:::
+
+## Group activity: answers {style="font-size: 0.8em;"}
+
+:::: {.columns}
+::: {.column width="50%"}
+| `n` | `f(n)` |
+|---|---|
+| 0 | `""` |
+| 1 | `"a"` |
+| 2 | `"aa"` |
+| 3 | `"baac"` |
+| 4 | `"abaac"` |
+| 5 | `"aabaac"` |
+| -1 | `RecursionError` |
+:::
+::: {.column width="50%"}
+```{pyodide}
+def f(n):
+    if n == 0:
+        return ""
+    elif n == 3:
+        return "b" + f(n - 1) + "c"
+    else:
+        return "a" + f(n - 1)
+
+for n in range(6):
+    print(f"f({n}) = {f(n)!r}")
+```
+:::
+::::
+
+::: {.notes}
+- f(4) = "a" + f(3) = "a" + "baac".
+- f(-1) never hits 0 or 3: RecursionError.
+:::
+
+# Multiple recursive calls {style="font-size: 0.8em;"}
+
+A startup grows by referrals.
+
+::: {.notes}
+About 15 minutes.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the headcount table on the next slide, from the same rule as the visible f.
+def headcount(n):
+    return 1 if n in (1, 2) else headcount(n - 1) + headcount(n - 2)
+
+hire_table = "| month | " + " | ".join(str(n) for n in range(1, 8)) + " |\n" \
+             + "|---" * 8 + "|\n" \
+             + "| people | " + " | ".join(str(headcount(n)) for n in range(1, 8)) + " |"
+```
+
+## A startup that grows by referrals {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- Month 1: the founder starts.
+- A new hire spends their first month in training.
+- After that, each person refers one new hire every month.
+:::
+
+::: {.fragment}
+```{python}
+#| echo: false
+#| output: asis
+print(hire_table)
+```
+:::
+
+::: {.fragment}
+People this month = people last month + one new hire for each person here two months ago.
+:::
+
+::: {.notes}
+- Month 3: the founder refers the first hire. Month 4: the founder refers again, the first hire is still training.
+- Ask: how many people in month 8?
+:::
+
+## Headcount in code {style="font-size: 0.8em;"}
+
+```{pyodide}
+def f(n):
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return f(n - 1) + f(n - 2)   # two recursive calls
+
+print(f(3), f(4), f(10))
+```
+
+::: {.incremental}
+- This is the **Fibonacci** sequence: 1, 1, 2, 3, 5, 8, 13, ...
+- Two base cases, because each month depends on the **two** before it.
+:::
+
+::: {.notes}
+- Predict f(3) and f(4) before running: f(3) = f(2) + f(1) = 2, f(4) = f(3) + f(2) = 3.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the call tree step-through for f(5). An instrumented copy of the visible f builds
+# the tree of calls as it runs and records the stack and every answer; OJS only draws.
+def record_fib(n_top):
+    children, label, value, stack, steps, times = {}, {}, {}, [], [], {}
+
+    def snap(say):
+        nodes = {u: "hidden" for u in label}
+        nodes.update({u: "done" for u in value})
+        nodes.update({u: "waiting" for u in stack})
+        nodes[stack[-1]] = "now"
+        steps.append({"say": say, "node_roles": nodes,
+                      "labels": {u: f"{label[u]} = {value[u]}" if u in value else label[u] for u in label},
+                      "seen": list(label), "done": list(value), "stack": list(stack)})
+
+    def f(n):
+        me = f"c{len(label)}"
+        label[me] = f"f({n})"
+        if stack:
+            children.setdefault(stack[-1], []).append(me)
+        caller = label[stack[-1]] if stack else None
+        stack.append(me)
+        times[n] = times.get(n, 0) + 1
+        start = f"{caller} calls f({n})." if caller else f"Call f({n})."
+        again = f" f({n}) again! Already worked out, but Python does it all over." if times[n] > 1 and n > 2 else ""
+        if n in (1, 2):
+            value[me] = 1
+            snap(f"{start} f({n}) is a base case: it returns 1.")
+            result = 1
+        else:
+            snap(f"{start}{again} f({n}) needs f({n - 1}) + f({n - 2}), so it calls f({n - 1}) first.")
+            a = f(n - 1)
+            b = f(n - 2)
+            result = value[me] = a + b
+            snap(f"f({n}) = f({n - 1}) + f({n - 2}) = {a} + {b} = {result}. It returns {result}.")
+        stack.pop()
+        return result
+
+    f(n_top)
+    lay = tree_layout(children, "c0", pad=0.6)
+    lay.pop("pos")
+    repeats = ", ".join(f"f({k}) {t} times" for k, t in sorted(times.items(), reverse=True) if t > 1)
+    deepest = max(len(s["stack"]) for s in steps)
+    steps[-1]["say"] += f" {len(label)} calls in total: {repeats}. The stack was never taller than {deepest}."
+    out = [{"say": "", "node_roles": {u: "hidden" for u in label}, "edge_roles": {}, "labels": {},
+            "boxes": []}]
+    for s in steps:
+        out.append({"say": s["say"], "labels": s["labels"],
+                    "node_roles": {**{u: "hidden" for u in label}, **s["node_roles"]},
+                    "edge_roles": {**{u: "hidden" for u in label},
+                                   **{u: "base" for u in s["seen"]},
+                                   **{u: "found" for u in s["done"]}},
+                    "boxes": stack_boxes(s["stack"], lambda u: label[u])})
+    out[0]["say"] = f"Call f({n_top}) and watch the calls grow into a tree."
+    for k, step in enumerate(out):
+        step["count"] = f"Step {k} of {len(out) - 1}"
+    return lay, out, deepest
+
+
+fib_layout, fib_steps, fib_deepest = record_fib(5)
+ojs_define(fib_layout = fib_layout, fib_steps = fib_steps)
+```
+
+## The call tree {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof fib_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, fib_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the calls were made and recorded in Python (fib_steps).
+  const s = fib_steps[fib_step];
+  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${draw_tree(fib_layout, s, {height: 270})}
+    <div class="ds-row center"><span class="ds-caption">call stack (top on the right):</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+}
+```
+
+::: {.fragment}
+Who calls whom is a **tree**: the first call is the root, the base cases are the leaves.
+:::
+
+::: {.notes}
+- Python finishes f(n − 1) completely before it starts f(n − 2): all the way down the left first. That is DFS order, and the call stack is DFS's stack.
+- Point at the repeats: f(3) is worked out twice. That is the waste.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the calls chart on the next slide. Calls made by f(n) for Fibonacci (same count as
+# the visible count_calls, built up from the smaller n) and by the count-down f(n) (n + 1 calls).
+calls = {1: 1, 2: 1}
+for n in range(3, 31):
+    calls[n] = 1 + calls[n - 1] + calls[n - 2]
+fib_kind, down_kind = "Fibonacci: 2 calls per step", "count down: 1 call per step"
+calls_rows = ([{"n": n, "calls": calls[n], "kind": fib_kind} for n in calls]
+              + [{"n": n, "calls": n + 1, "kind": down_kind} for n in calls])
+calls_view = {"rows": calls_rows, "kinds": [down_kind, fib_kind],
+              "y_max": {n: calls[n] * 1.15 for n in calls},
+              "say": {n: f"n = {n}: Fibonacci makes {calls[n]:,} calls, counting down makes {n + 1}."
+                      for n in calls}}
+ojs_define(calls_view = calls_view)
+```
+
+## How fast is it? {style="font-size: 0.75em;"}
+
+```{pyodide}
+def count_calls(n):
+    if n == 1 or n == 2:
+        return 1    # a base case is one call
+    # this call, plus every call in both branches
+    return 1 + count_calls(n - 1) + count_calls(n - 2)
+
+for n in [5, 10, 20, 30]:
+    print(f"f({n}) makes {count_calls(n):>9,} calls")
+```
+
+```{ojs}
+//| echo: false
+viewof calls_n = Inputs.range([3, 30], {value: 10, step: 1, label: "n"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every count was computed in Python (calls_view).
+  const v = calls_view;
+  return html`<div class="ojs-readout">${v.say[calls_n]}</div>${Plot.plot({
+    width: 820, height: 170, marginLeft: 80, marginBottom: 40,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {label: "n →", domain: [1, calls_n]},
+    y: {label: "calls", grid: true, domain: [0, v.y_max[calls_n]]},
+    color: {domain: v.kinds, range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
+    marks: [
+      Plot.line(v.rows, {filter: d => d.n <= calls_n, x: "n", y: "calls", stroke: "kind", strokeWidth: 3}),
+      Plot.dot(v.rows, {filter: d => d.n === calls_n, x: "n", y: "calls", fill: "kind", r: 5}),
+      Plot.ruleY([0])
+    ]
+  })}`;
+}
+```
+
+::: {.fragment}
+2 calls per step, about $n$ levels deep: $O(2^n)$. Roughly, $k$ calls per step and $n$ levels: $O(k^n)$.
+:::
+
+::: {.notes}
+- Slide n up: the blue line stays flat on the floor.
+- From 20 to 30, about 120 times more calls.
+- Precisely it grows like 1.6ⁿ, but O(2ⁿ) is a fine upper bound.
+- Dynamic programming (a later lecture) makes this fast by remembering answers.
+:::
+
+## iClicker: space of Fibonacci {style="font-size: 0.8em;"}
+
+Fibonacci `f(n)` takes $O(2^n)$ time. What is its space complexity?
+
+- \(A) $O(2^n)$
+- \(B) $O(n^2)$
+- \(C) $O(n)$
+- \(D) $O(1)$
+
+::: {.fragment}
+- Answer: **C**. Only the calls on the current path wait on the stack. A call's memory is freed when it returns.
+- The longest path is about $n$ calls. For `f(5)` the stack was never taller than `{python} fib_deepest`.
+:::
+
+## Today's cheat sheet {style="font-size: 0.7em;"}
+
+| function | calls per step | how deep | time | space (call stack) |
+|---|---|---|---|---|
+| `f(n)`: count down to 0 | 1 | $n$ | $O(n)$ | $O(n)$ |
+| `count_nodes`: tree with $V$ nodes | one per child | the height | $O(V)$ | $O(\text{height})$ |
+| `binary_search` with slicing | 1 | $\log n$ | $O(n)$ | $O(n)$ |
+| `binary_search` with `low`, `high` | 1 | $\log n$ | $O(\log n)$ | $O(\log n)$ |
+| Fibonacci | 2 | $n$ | $O(2^n)$ | $O(n)$ |
+
+## Today's takeaways {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- A tree is a connected graph with no cycles: one path between any two nodes, $V - 1$ edges.
+- Recursion: a function that calls itself on a smaller input. It needs a base case and a recursive step.
+- Python tracks calls on a call stack. Recursion $n$ deep needs $O(n)$ space, and too deep raises a `RecursionError`.
+- To trace recursion, work out the small inputs first and reuse them.
+- Trees are made of smaller trees, so recursion fits them: ask each subtree, then combine.
+- More calls per step can mean exponential time: Fibonacci is $O(2^n)$.
+:::
+
+# Questions?
+
+## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
+
+## (Bonus Slide) Question: two calls in binary search? {style="font-size: 0.8em;"}
+
+```{.python}
+def binary_search(data, key):
+    if len(data) == 0:
+        return False
+    if len(data) == 1:
+        return data[0] == key
+
+    mid = len(data) // 2
     if key < data[mid]:
         return binary_search(data[:mid], key)
     else:
         return binary_search(data[mid:], key)
 ```
-- **Question:** Is this function making multiple recursive calls and thus running in $O(2^n)$ time?
 
-## Group Activity
+The name `binary_search` appears twice inside. Does that make it $O(2^n)$, like Fibonacci?
 
-Consider the code below:
+::: {.fragment}
+- No. Because of the `if`/`else`, only **one** call runs each time: a single path of about $\log_2 n$ calls.
+- Count the calls that actually run, not the times the name appears.
+:::
+
+## (Bonus Slide) Binary search without copies {style="font-size: 0.75em;"}
+
+Pass where to look, not a copy. Each call is $O(1)$, so the search is $O(\log n)$.
+
+```{pyodide}
+def binary_search(data, key, low=0, high=None):
+    if high is None:
+        high = len(data) - 1           # first call: search the whole list
+    if low > high:                     # base case: nothing left
+        return False
+
+    mid = (low + high) // 2
+    if data[mid] == key:               # base case: found it
+        return True
+    if key < data[mid]:
+        return binary_search(data, key, low, mid - 1)    # left half, no copy
+    else:
+        return binary_search(data, key, mid + 1, high)   # right half, no copy
+
+ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
+print(binary_search(ids, 212), binary_search(ids, 300))
+```
+
+## (Bonus Slide) Group activity: a harder trace {style="font-size: 0.8em;"}
+
+```{.python}
+def f(n):
+    if n < 3:
+        return 1
+    if f(n - 1) > f(n - 2):
+        return f(n - 2) - 1
+    else:
+        return f(n - 3) + 1
+```
+
+**Without running the code**, fill in `f(n)` for `n` from 0 to 8.
+
+| `n` | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| `f(n)` | | | | | | | | | |
+
+## (Bonus Slide) A harder trace: answers {style="font-size: 0.8em;"}
 
 ```{pyodide}
 def f(n):
     if n < 3:
         return 1
-    if f(n-1) > f(n-2):
-        return f(n-2) - 1
+    if f(n - 1) > f(n - 2):
+        return f(n - 2) - 1
     else:
-        return f(n-3) + 1
-```
-**Without running the code**, fill in the table for what `f` returns:
+        return f(n - 3) + 1
 
-|  `n`   |   `f(n)` |
-|--------|--------|
-| 0      |        |
-| 1      |        |
-| 2      |        |
-| 3      |        |
-| 4      |        |
-| 5      |        |
-| 6      |        |
-| 7      |        |
-| 8      |        |
-
-## Group Activity
-
-- **Answer**
-
-```{pyodide}
 for n in range(9):
-    print(f'f({n}) = {f(n)}')
+    print(f"f({n}) = {f(n)}")
 ```
+
+::: {.incremental}
+- `f(3)`: is `f(2) > f(1)`? No, $1 = 1$. So `f(0) + 1 = 2`.
+- `f(4)`: is `f(3) > f(2)`? Yes, $2 > 1$. So `f(2) - 1 = 0`.
+:::

@@ -155,3 +155,22 @@
 .reveal table.csr-work td.value { min-width: 290px; }
 /* list.pop(0) vs deque: wider boxes so the 📷 labels fit */
 .reveal .ds-row.csr.shift .ds-box { width: 64px; }
+
+/* Lecture 5: call stack step-throughs. Left: what has been printed so far (newest line orange).
+   Right: the call stack, newest call on top. Orange = running, light blue = waiting,
+   blue = the call that just returned. */
+.reveal .ds-box.wait { background: #dbe8f8; border-color: #a9c8ef; color: #0b0b0b; }
+.reveal .cs-wrap { display: flex; gap: 80px; justify-content: center; align-items: flex-end; }
+.reveal .cs-console {
+  font-family: var(--r-code-font, monospace); font-size: 16px; line-height: 1.5;
+  background: #f2f1ee; border-radius: 6px; padding: 8px 14px; width: 420px; height: 250px;
+  box-sizing: border-box; text-align: left; white-space: pre; overflow: hidden;
+}
+.reveal .cs-console div { color: #52514e; }
+.reveal .cs-console div.new { color: #eb6834; font-weight: bold; }
+.reveal .sq-stack.tall { height: 250px; }
+.reveal .sq-lift > .found { animation: sq-rise 0.5s ease-out; }
+/* Lecture 5: recursive binary search, one row per call, each drawn where its IDs sit in the list */
+.reveal .ds-row.bs-copy { gap: 3px; min-height: 40px; justify-content: center; }
+.reveal .ds-row.bs-copy .ds-box { min-width: 0; width: 42px; height: 32px; padding: 0; font-size: 15px; }
+.reveal .bs-note { font-size: 16px; min-width: 110px; padding-left: 10px; color: #eb6834; font-weight: bold; }
