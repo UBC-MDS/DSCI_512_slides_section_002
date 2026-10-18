@@ -1,8 +1,9 @@
 ---
-title: "DSCI 512 Lecture 6 : Recursive Data Structures"
+title: "DSCI 512 Lecture 6 : Recursive Algorithms and Data Structures"
 author: "Sky (Kehan) Sheng"
 format:
   live-revealjs:
+    css: assets/slides.css
     include-in-header:
       - text: |
           <script src="assets/unregister-coi-sw.js"></script>
@@ -15,72 +16,98 @@ format:
     menu:
       side: right
       width: wide
-engine: markdown
+engine: jupyter
 pyodide:
   packages:
     - numpy
-    - pandas
-    - altair
+    - scikit-learn
 resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-notes: "[1] iClicker Cloud open, remember to select the right answer<br>[2] Encourage questions: if one student has a question, likely others do too. <br>[3] Connect my logitech highlighter<br>[4] connect my writing notepad to the laptop""
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (85 min): Fibonacci 20, linked lists 20, nearest neighbours 10, k-d trees 20, amortization 10."
 ---
 
-## Outline
+## Learning objectives {style="font-size: 0.85em;"}
 
-- Recursive data structures
-- Trees, binary search trees
-- Nearest neighbours intro
-- $k$-d trees
-- Amortization
+```{python}
+#| echo: false
+# Hidden: imports and helpers for the whole deck, kept in one place so the visible
+# cells below contain only the code students should read.
+import sys
+import timeit
 
-## Learning Objectives
+import numpy as np
+import scipy.spatial
 
-* Implement a simple recursive data structure such as a linked list.
-* Compare and contrast a binary search tree to a hash table.
-* Select an appropriate algorithm for finding nearest neighbours.
 
-## Motivation for recursion
+def tree_layout(children, root, pad=0.5):
+    """Where to draw every node and edge of a tree given as {node: [children]}. Leaves sit
+    one unit apart, left to right, and each parent is centred over its children.
+    Every edge is named by its child, since each child has exactly one parent."""
+    pos, order, next_leaf = {}, [], [0]
 
-- Last class we talked about recursive functions, which call themselves.
-- We saw how this made the binary search code more elegant.
-- Today we'll see a stronger motivation for recursive functions and recursive thinking.
+    def place(node, depth):
+        order.append(node)
+        kids = children.get(node, [])
+        for kid in kids:
+            place(kid, depth + 1)
+        if kids:
+            x = sum(pos[k][0] for k in kids) / len(kids)
+        else:
+            x = next_leaf[0]
+            next_leaf[0] += 1
+        pos[node] = (x, -depth)
 
-## Recursive data structures
+    place(root, 0)
+    xs = [x for x, _ in pos.values()]
+    ys = [y for _, y in pos.values()]
+    return {"nodes": [{"id": u, "x": pos[u][0], "y": pos[u][1]} for u in order],
+            "edges": [{"child": c, "x1": pos[p][0], "y1": pos[p][1], "x2": pos[c][0], "y2": pos[c][1]}
+                      for p in order for c in children.get(p, [])],
+            "x_domain": [min(xs) - pad, max(xs) + pad],
+            "y_domain": [min(ys) - pad, max(ys) + pad]}
 
-```{pyodide}
-x = [[1, 2, 3], ["a", "b", "c"]]
-x
+
+def stack_boxes(stack, label=lambda u: u):
+    """The call stack as a row of boxes, bottom on the left: the running call is orange (end),
+    the calls waiting under it are light blue (wait)."""
+    return [{"label": label(u), "cls": "end" if i == len(stack) - 1 else "wait"}
+            for i, u in enumerate(stack)]
+
+
+# The songs: the same 20 random points and query as the notes and the pyodide cells.
+# Coordinate 0 is energy, coordinate 1 is danceability.
+rng = np.random.default_rng(1)
+X = rng.random((20, 2))
+query = np.array([0.5, 0.3])
+feature = ["energy", "danceability"]
+
+
+def nearest_neighbour(data, query):
+    """Same as the visible pyodide version: the row of data nearest to query."""
+    squared_distances = np.sum((data - query) ** 2, axis=1)
+    return np.argmin(squared_distances)
 ```
 
-- This is a list of lists.
-- We have also seen dicts of dicts before.
-
-## Recursive data structures
-
-![](https://upload.wikimedia.org/wikipedia/commons/7/71/Russian-Matroshka.jpg){width="600" fig-align="center"}
-
-(Image attribution to Fanghong, from [Wikipedia article](https://en.wikipedia.org/wiki/Matryoshka_doll))
-
-## Recursive data structures
-
 ```{pyodide}
-class TreasureBox:
+#| include: false
+# Hidden setup for the runnable cells: the TreasureBox class, the songs and the k-d tree,
+# so a later cell still works when an earlier slide was skipped.
+import numpy as np
 
+
+class TreasureBox:
     def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
+        self.treasure = treasure
+        self.next = None
 
     def append_outer(self, treasure):
-
         new_box = TreasureBox(treasure)
         new_box.next = self
         return new_box
 
     def append_inner(self, treasure):
-
         if self.next is None:
             self.next = TreasureBox(treasure)
         else:
@@ -88,241 +115,521 @@ class TreasureBox:
         return self
 
     def get(self, depth):
-
         if depth == 0:
             return self.treasure
-
         if self.next is None:
-            return None  # Index out of bounds
+            return None
+        return self.next.get(depth - 1)
 
-        return self.next.get(depth-1)
+
+rng = np.random.default_rng(1)
+X = rng.random((20, 2))
+query = np.array([0.5, 0.3])
+
+
+def nearest_neighbour(data, query):
+    squared_distances = np.sum((data - query) ** 2, axis=1)
+    return np.argmin(squared_distances)
+
+
+class KDTree:
+    def __init__(self, points, depth=0):
+        self.left = None
+        self.right = None
+        if len(points) == 1:
+            self.point = points[0]
+            return
+        self.dim = depth % points.shape[1]
+        points = points[np.argsort(points[:, self.dim])]
+        mid = len(points) // 2
+        self.split = points[mid, self.dim]
+        self.left = KDTree(points[:mid], depth + 1)
+        self.right = KDTree(points[mid:], depth + 1)
+
+    def approx_nearest(self, query):
+        if self.left is None:
+            return self.point
+        if query[self.dim] < self.split:
+            return self.left.approx_nearest(query)
+        else:
+            return self.right.approx_nearest(query)
+
+
+kdt = KDTree(X)
 ```
 
-## Recursive data structures
+::: {.incremental}
+- Estimate the time and space of a function that calls itself more than once.
+- Explain what a recursive data structure is, and write one: a linked list.
+- Write recursive functions that follow the shape of the data.
+- Find nearest neighbours by brute force, and explain how a $k$-d tree speeds it up.
+- Explain amortization: when work up front pays off over many operations.
+:::
+
+# How many users in month 30? {style="font-size: 0.8em;"}
+
+A new music app grows by referrals.
+
+::: {.notes}
+About 20 minutes for Fibonacci.
+- Last lecture: one recursive call per step. Today: two.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the users table on the next slide, from the same rule as the visible f.
+def users(n):
+    return 1 if n in (1, 2) else users(n - 1) + users(n - 2)
+
+user_table = "| month | " + " | ".join(str(n) for n in range(1, 8)) + " |\n" \
+             + "|---" * 8 + "|\n" \
+             + "| users | " + " | ".join(str(users(n)) for n in range(1, 8)) + " |"
+```
+
+## The referral rule {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- Month 1: the founder joins.
+- A new user spends their first month just listening.
+- After that, each user brings in one new user every month.
+:::
+
+::: {.fragment}
+```{python}
+#| echo: false
+#| output: asis
+print(user_table)
+```
+:::
+
+::: {.fragment}
+Users this month = users last month + one new user for each user here two months ago.
+:::
+
+::: {.notes}
+- Month 3: the founder brings the first friend. Month 4: the founder brings another, the first friend is still new.
+- Ask: how many in month 8? 13 + 8 = 21.
+:::
+
+## Users in code {style="font-size: 0.8em;"}
 
 ```{pyodide}
-box = TreasureBox("Initial box")
+def f(n):
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return f(n - 1) + f(n - 2)   # two recursive calls
 
-box = box.append_outer("Wrapped initial box")
-box = box.append_outer("Wrapped the second box")
+print(f(3), f(4), f(10))
 ```
+
+::: {.incremental}
+- This is the **Fibonacci** sequence: 1, 1, 2, 3, 5, 8, 13, ...
+- Two base cases, because each month depends on the two before it.
+- Now try `f(30)`. Then `f(35)`. Why so slow?
+:::
+
+::: {.notes}
+- Predict f(3) and f(4) before running: f(3) = f(2) + f(1) = 2, f(4) = f(3) + f(2) = 3.
+- f(30) takes a few seconds in the browser. f(35) takes much longer: stop it if needed.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the call tree step-through for f(5). An instrumented copy of the visible f builds
+# the tree of calls as it runs and records the stack and every answer; OJS only draws.
+def record_fib(n_top):
+    children, label, value, stack, steps, times = {}, {}, {}, [], [], {}
+
+    def snap(say):
+        nodes = {u: "hidden" for u in label}
+        nodes.update({u: "done" for u in value})
+        nodes.update({u: "waiting" for u in stack})
+        nodes[stack[-1]] = "now"
+        steps.append({"say": say, "node_roles": nodes,
+                      "labels": {u: f"{label[u]} = {value[u]}" if u in value else label[u] for u in label},
+                      "seen": list(label), "done": list(value), "stack": list(stack)})
+
+    def f(n):
+        me = f"c{len(label)}"
+        label[me] = f"f({n})"
+        if stack:
+            children.setdefault(stack[-1], []).append(me)
+        caller = label[stack[-1]] if stack else None
+        stack.append(me)
+        times[n] = times.get(n, 0) + 1
+        start = f"{caller} calls f({n})." if caller else f"Call f({n})."
+        again = f" f({n}) again! Already worked out, but Python does it all over." if times[n] > 1 and n > 2 else ""
+        if n in (1, 2):
+            value[me] = 1
+            snap(f"{start} f({n}) is a base case: it returns 1.")
+            result = 1
+        else:
+            snap(f"{start}{again} f({n}) needs f({n - 1}) + f({n - 2}), so it calls f({n - 1}) first.")
+            a = f(n - 1)
+            b = f(n - 2)
+            result = value[me] = a + b
+            snap(f"f({n}) = f({n - 1}) + f({n - 2}) = {a} + {b} = {result}. It returns {result}.")
+        stack.pop()
+        return result
+
+    f(n_top)
+    lay = tree_layout(children, "c0", pad=0.6)
+    repeats = ", ".join(f"f({k}) {t} times" for k, t in sorted(times.items(), reverse=True) if t > 1)
+    deepest = max(len(s["stack"]) for s in steps)
+    steps[-1]["say"] += f" {len(label)} calls in total: {repeats}. The stack was never taller than {deepest}."
+    out = [{"say": f"Call f({n_top}) and watch the calls grow into a tree.",
+            "node_roles": {u: "hidden" for u in label}, "edge_roles": {}, "labels": {}, "boxes": []}]
+    for s in steps:
+        out.append({"say": s["say"], "labels": s["labels"],
+                    "node_roles": {**{u: "hidden" for u in label}, **s["node_roles"]},
+                    "edge_roles": {**{u: "hidden" for u in label},
+                                   **{u: "base" for u in s["seen"]},
+                                   **{u: "found" for u in s["done"]}},
+                    "boxes": stack_boxes(s["stack"], lambda u: label[u])})
+    for k, step in enumerate(out):
+        step["count"] = f"Step {k} of {len(out) - 1}"
+    return lay, out, deepest
+
+
+fib_layout, fib_steps, fib_deepest = record_fib(5)
+ojs_define(fib_layout = fib_layout, fib_steps = fib_steps)
+```
+
+## The call tree {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+// Draw only: a tree laid out in Python, with colour roles and labels from Python.
+// Orange: running now. Light blue: waiting. Blue: done.
+draw_tree = (lay, s, {width = 860, height = 280, r = 14} = {}) => {
+  const fill = {now: "#eb6834", path: "#eb6834", waiting: "#a9c8ef", done: "#2a78d6", other: "#b8b6b0"};
+  const stroke = {path: "#eb6834", found: "#2a78d6", base: "#d9d8d4"};
+  const labels = s.labels ?? {};
+  const nodes = lay.nodes.map(d => ({...d, role: s.node_roles[d.id] ?? "other", label: labels[d.id] ?? d.id}))
+                         .filter(d => d.role !== "hidden");
+  const edges = lay.edges.map(d => ({...d, role: s.edge_roles[d.child] ?? "base"}))
+                         .filter(d => d.role !== "hidden");
+  return Plot.plot({
+    width, height, margin: 14, marginTop: 30,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: lay.x_domain}, y: {axis: null, domain: lay.y_domain},
+    marks: [
+      Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
+                        strokeWidth: d => d.role === "base" ? 2 : 4}),
+      Plot.dot(nodes, {x: "x", y: "y", r, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
+      Plot.text(nodes, {x: "x", y: "y", text: "label", dy: -(r + 10), fontWeight: "bold",
+                        fill: "#0b0b0b", stroke: "white", strokeWidth: 5, paintOrder: "stroke"})
+    ]
+  });
+}
+```
+
+```{ojs}
+//| echo: false
+viewof fib_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, fib_steps.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the calls were made and recorded in Python (fib_steps).
+  const s = fib_steps[fib_step];
+  const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    ${draw_tree(fib_layout, s, {height: 270})}
+    <div class="ds-row center"><span class="ds-caption">call stack (top on the right):</span>
+      ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
+}
+```
+
+::: {.fragment}
+Who calls whom is a **tree**: the first call is the root, the base cases are the leaves.
+:::
+
+::: {.notes}
+- Orange: running now. Light blue: waiting for an answer. Blue: returned, with its value.
+- Python finishes f(n − 1) completely before it starts f(n − 2): all the way down the left first. That is DFS order (lecture 4), and the call stack is DFS's stack.
+- Point at the repeats: f(3) is worked out twice. That is the waste.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the calls chart on the next slide. Calls made by f(n) for Fibonacci (same count as
+# the visible count_calls, built up from the smaller n) and by the count-down f(n) (n + 1 calls).
+calls = {1: 1, 2: 1}
+for n in range(3, 31):
+    calls[n] = 1 + calls[n - 1] + calls[n - 2]
+fib_kind, down_kind = "Fibonacci: 2 calls per step", "count down: 1 call per step"
+calls_view = {"rows": ([{"n": n, "calls": calls[n], "kind": fib_kind} for n in calls]
+                       + [{"n": n, "calls": n + 1, "kind": down_kind} for n in calls]),
+              "kinds": [down_kind, fib_kind],
+              "y_max": {n: calls[n] * 1.15 for n in calls},
+              "say": {n: f"n = {n}: Fibonacci makes {calls[n]:,} calls, counting down makes {n + 1}."
+                      for n in calls}}
+ojs_define(calls_view = calls_view)
+```
+
+## How fast is it? {style="font-size: 0.75em;"}
 
 ```{pyodide}
-box.get(0)
+def count_calls(n):
+    if n == 1 or n == 2:
+        return 1    # a base case is one call
+    # this call, plus every call in both branches
+    return 1 + count_calls(n - 1) + count_calls(n - 2)
+
+for n in [5, 10, 20, 30]:
+    print(f"f({n}) makes {count_calls(n):>9,} calls")
 ```
 
-```{pyodide}
-box.get(1)
+```{ojs}
+//| echo: false
+viewof calls_n = Inputs.range([3, 30], {value: 10, step: 1, label: "n"})
 ```
 
-```{pyodide}
-box.get(2)
+```{ojs}
+//| echo: false
+{
+  // Draw only: every count was computed in Python (calls_view).
+  const v = calls_view;
+  return html`<div class="ojs-readout">${v.say[calls_n]}</div>${Plot.plot({
+    width: 820, height: 170, marginLeft: 80, marginBottom: 40,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {label: "n →", domain: [1, calls_n]},
+    y: {label: "calls", grid: true, domain: [0, v.y_max[calls_n]]},
+    color: {domain: v.kinds, range: ["#2a78d6", "#eb6834"], legend: true, swatchSize: 16},
+    marks: [
+      Plot.line(v.rows, {filter: d => d.n <= calls_n, x: "n", y: "calls", stroke: "kind", strokeWidth: 3}),
+      Plot.dot(v.rows, {filter: d => d.n === calls_n, x: "n", y: "calls", fill: "kind", r: 5}),
+      Plot.ruleY([0])
+    ]
+  })}`;
+}
 ```
 
-```{pyodide}
-box.get(3)
-```
+::: {.fragment}
+2 calls per step, about $n$ levels deep: $O(2^n)$. Roughly, $k$ calls per step and $n$ levels: $O(k^n)$.
+:::
 
-## Recursive data structures
+::: {.notes}
+- Slide n up: the blue line stays flat on the floor.
+- From 20 to 30, about 120 times more calls.
+- Precisely it grows like 1.6ⁿ, but O(2ⁿ) is a fine upper bound.
+- Dynamic programming (lecture 7) makes this fast by remembering answers.
+:::
 
-```{pyodide}
-box = TreasureBox("Initial box")
+## iClicker: space of Fibonacci {style="font-size: 0.8em;"}
 
-box = box.append_inner("Box in initial box")
-box = box.append_inner("Box in the second box")
-```
+Fibonacci `f(n)` takes $O(2^n)$ time. What is its space complexity?
 
-```{pyodide}
-box.get(0)
-```
+- \(A) $O(2^n)$
+- \(B) $O(n^2)$
+- \(C) $O(n)$
+- \(D) $O(1)$
 
-```{pyodide}
-box.get(1)
-```
+::: {.fragment}
+- Answer: **C**. Only the calls on the current path wait on the stack. A call's memory is freed when it returns.
+- The longest path is about $n$ calls. For `f(5)` the stack was never taller than `{python} fib_deepest`.
+:::
 
-```{pyodide}
-box.get(2)
-```
-
-```{pyodide}
-box.get(3)
-```
-
-## Recursive data structures
+## Question: two calls in the code? {style="font-size: 0.8em;"}
 
 ```{.python}
-class TreasureBox:
+def bst_contains(node, item):
+    if node is None:
+        return False
+    if item == node.item:
+        return True
+    if item < node.item:
+        return bst_contains(node.left, item)
+    else:
+        return bst_contains(node.right, item)
+```
 
+`bst_contains` from lecture 5 also has two recursive calls in the code. Is it $O(2^n)$?
+
+::: {.fragment}
+- No. Because of the `if`/`else`, only **one** call runs each time: a single path down the tree.
+- Count the calls that actually run, not the times the name appears.
+:::
+
+# A box inside a box {style="font-size: 0.8em;"}
+
+::: {.notes}
+About 20 minutes for linked lists.
+:::
+
+## Russian dolls {style="font-size: 0.8em;"}
+
+:::: {.columns}
+::: {.column width="50%"}
+![](https://upload.wikimedia.org/wikipedia/commons/7/71/Russian-Matroshka.jpg){width="100%"}
+:::
+::: {.column width="50%"}
+Each box holds one treasure, and maybe one smaller box.
+
+::: {.incremental}
+- How would you add a treasure on the **outside**?
+- How would you add one on the **inside**?
+:::
+:::
+::::
+
+::: {.notes}
+- Outside: make a new box and put everything in it. One step.
+- Inside: open every box until the smallest one. Many steps.
+- We have seen nested data before: a list of lists, a dict of dicts. This is nesting with one rule: one box inside, at most.
+:::
+
+::: footer
+Image: Fanghong, [Wikimedia Commons](https://en.wikipedia.org/wiki/Matryoshka_doll)
+:::
+
+## The `TreasureBox` class {style="font-size: 0.65em;"}
+
+```{.python code-line-numbers="|2-4|6-9|11-16|18-23"}
+class TreasureBox:
     def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
+        self.treasure = treasure   # the item stored in this box
+        self.next = None           # the box inside this one, or None
 
     def append_outer(self, treasure):
-
         new_box = TreasureBox(treasure)
-        new_box.next = self
+        new_box.next = self        # the old box goes inside the new one
         return new_box
 
     def append_inner(self, treasure):
-
-        if self.next is None:
+        if self.next is None:                    # base case: the innermost box
             self.next = TreasureBox(treasure)
         else:
-            self.next.append_inner(treasure)
+            self.next.append_inner(treasure)     # recursive step: let the inner box do it
         return self
 
     def get(self, depth):
-
-        if depth == 0:
+        if depth == 0:                           # base case: it's this box
             return self.treasure
-
-        if self.next is None:
-            return None  # Index out of bounds
-
-        return self.next.get(depth-1)
+        if self.next is None:                    # base case: no more boxes
+            return None
+        return self.next.get(depth - 1)          # recursive step: one box in, one less to go
 ```
 
-## Recursive data structures
+```{python}
+#| echo: false
+# Hidden: the box step-throughs on the next slides. Each script is replayed with the same
+# rules as TreasureBox; every highlight and sentence is worked out here, OJS only draws.
+def nested(boxes):
+    """["$20", "$100", "$5"] -> '[ "$20" [ "$100" [ "$5" ] ] ]'."""
+    return "".join(f'[ "{b}" ' for b in boxes) + "] " * len(boxes)
 
-```{.python code-line-numbers="3,7,13,21"}
-class TreasureBox:
 
-    def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
+def replay_boxes(script):
+    boxes, steps = [], []
 
-    def append_outer(self, treasure):
+    def snap(code, say, cur=None, walked=0, new=None, result=""):
+        steps.append({"code": code, "say": say, "nested": nested(boxes).strip(), "result": result,
+                      "boxes": [{"label": b, "cls": "end" if i == cur else "wait" if i < walked
+                                 else "found" if i == new else ""} for i, b in enumerate(boxes)]})
 
-        new_box = TreasureBox(treasure)
-        new_box.next = self
-        return new_box
+    for op, arg in script:
+        if op == "new":
+            boxes = [arg]
+            snap(f'box = TreasureBox("{arg}")', f'One box holding "{arg}". Nothing inside it.', new=0)
+        elif op == "outer":
+            boxes.insert(0, arg)
+            snap(f'box = box.append_outer("{arg}")',
+                 f'A new box with "{arg}" goes on the outside, and the old boxes go inside it. '
+                 "One step, no matter how many boxes.", new=0)
+        elif op == "inner":
+            code = f'box = box.append_inner("{arg}")'
+            for i, b in enumerate(boxes):
+                if i < len(boxes) - 1:
+                    snap(code, f'append_inner on the "{b}" box: there is a box inside, '
+                               "so hand the job to it.", cur=i, walked=i)
+                else:
+                    boxes.append(arg)
+                    snap(code, f'The "{b}" box is the innermost (next is None). Put a new box with '
+                               f'"{arg}" inside it. That is the base case. {len(boxes) - 1} box{"es" if len(boxes) > 2 else ""} opened.',
+                         cur=i, walked=i, new=i + 1)
+                    break
+        else:   # get
+            code = f"box.get({arg})"
+            for i, b in enumerate(boxes):
+                left = arg - i
+                if left == 0:
+                    snap(code, f'get(0) on the "{b}" box: depth is 0, so return "{b}". Base case.',
+                         cur=i, walked=i, result=f'returns "{b}"')
+                    break
+                if i == len(boxes) - 1:
+                    snap(code, f'get({left}) on the "{b}" box: no box inside, so return None. Base case.',
+                         cur=i, walked=i, result="returns None")
+                    break
+                snap(code, f'get({left}) on the "{b}" box: depth is not 0, so ask the box inside '
+                           f"for get({left - 1}).", cur=i, walked=i)
+    for k, step in enumerate(steps):
+        step["count"] = f"Step {k + 1} of {len(steps)}"
+    return steps
 
-    def append_inner(self, treasure):
 
-        if self.next is None:
-            self.next = TreasureBox(treasure)
-        else:
-            self.next.append_inner(treasure)
-        return self
-
-    def get(self, depth):
-
-        if depth == 0:
-            return self.treasure
-
-        if self.next is None:
-            return None  # Index out of bounds
-
-        return self.next.get(depth-1)
+box_scripts = {
+    "the example": [("new", "$5"), ("outer", "$100"), ("outer", "$20"), ("inner", "$1"),
+                    ("get", 2), ("get", 5)],
+    "the question": [("new", "A"), ("inner", "B"), ("outer", "C"), ("outer", "D"),
+                     ("inner", "E"), ("get", 3)],
+}
+ojs_define(box_view = {"names": list(box_scripts),
+                       "steps": {k: replay_boxes(v) for k, v in box_scripts.items()}})
 ```
 
-## Recursive data structures
+## Watch the boxes {style="font-size: 0.75em;"}
 
-```{.python code-line-numbers="3,4,5"}
-class TreasureBox:
-
-    def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
-
-    def append_outer(self, treasure):
-
-        new_box = TreasureBox(treasure)
-        new_box.next = self
-        return new_box
-
-    def append_inner(self, treasure):
-
-        if self.next is None:
-            self.next = TreasureBox(treasure)
-        else:
-            self.next.append_inner(treasure)
-        return self
-
-    def get(self, depth):
-
-        if depth == 0:
-            return self.treasure
-
-        if self.next is None:
-            return None  # Index out of bounds
-
-        return self.next.get(depth-1)
+```{ojs}
+//| echo: false
+viewof box_script = Inputs.radio(box_view.names, {value: "the example", label: "replay"})
 ```
 
-## Recursive data structures
-
-```{.python code-line-numbers="7,8,9,10,11,12"}
-class TreasureBox:
-
-    def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
-
-    def append_outer(self, treasure):
-
-        new_box = TreasureBox(treasure)
-        new_box.next = self
-        return new_box
-
-    def append_inner(self, treasure):
-
-        if self.next is None:
-            self.next = TreasureBox(treasure)
-        else:
-            self.next.append_inner(treasure)
-        return self
-
-    def get(self, depth):
-
-        if depth == 0:
-            return self.treasure
-
-        if self.next is None:
-            return None  # Index out of bounds
-
-        return self.next.get(depth-1)
+```{ojs}
+//| echo: false
+viewof box_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, box_view.steps[box_script].length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
 ```
 
-## Recursive data structures
-
-```{.python code-line-numbers="13,14,15,16,17,18,19"}
-class TreasureBox:
-
-    def __init__(self, treasure):
-        self.next = None # data type: TreasureBox
-        self.treasure = treasure # data type: whatever
-
-    def append_outer(self, treasure):
-
-        new_box = TreasureBox(treasure)
-        new_box.next = self
-        return new_box
-
-    def append_inner(self, treasure):
-
-        if self.next is None:
-            self.next = TreasureBox(treasure)
-        else:
-            self.next.append_inner(treasure)
-        return self
-
-    def get(self, depth):
-
-        if depth == 0:
-            return self.treasure
-
-        if self.next is None:
-            return None  # Index out of bounds
-
-        return self.next.get(depth-1)
+```{ojs}
+//| echo: false
+{
+  // Draw only: every box, highlight and sentence was worked out in Python (box_view).
+  const steps = box_view.steps[box_script];
+  const s = steps[Math.min(box_step, steps.length - 1)];
+  const chain = s.boxes.flatMap((b, i) => [
+    ...(i > 0 ? [html`<span class="ll-arrow">→</span>`] : []),
+    html`<div class="ds-box ${b.cls}">${b.label}</div>`]);
+  return html`<div class="ll-code">${s.code}</div>
+    <div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    <div class="ds-row center ll-chain"><span class="ll-arrow">box →</span>${chain}<span class="ll-arrow">→ None</span></div>
+    <div class="ds-caption">nested: ${s.nested}</div>
+    <div class="ojs-readout ll-result">${s.result}</div>`;
+}
 ```
 
-## Group Activity
+::: {.notes}
+- Orange: the box working right now. Light blue: boxes already opened, their calls waiting. Blue: the new box.
+- append_outer is one step. append_inner opens every box first.
+- "the question" replays the question on the next slide: let them predict first.
+:::
 
-```{pyodide}
+## Question: what does it return? {style="font-size: 0.8em;"}
+
+**Without running the code**, what does `box.get(3)` return?
+
+```{.python}
 box = TreasureBox("A")
-
 box = box.append_inner("B")
 box = box.append_outer("C")
 box = box.append_outer("D")
@@ -331,395 +638,638 @@ box = box.append_inner("E")
 box.get(3)
 ```
 
-## Linked-list
+::: {.fragment}
+`"B"`. The boxes are D → C → A → B → E. Depth 0 is D, so depth 3 is B.
+:::
 
-- In computer science, this is called a [linked list](https://en.wikipedia.org/wiki/Linked_list).
-- It's not just a nested data structure (list of lists); the definition of the data type itself is recursive.
-    - What is a list? It contains stuff (including possibly lists).
-    - What is a treasure box? It contains one thing, and _another treasure box_.
+::: {.notes}
+- Draw the boxes after each line. Then replay "the question" on the previous slide.
+:::
 
-- Could we just implement this with lists?
-    - Yes, if we decide each list contains 2 elements, an item and another list.
-    - But using OOP we can make it more clear.
+## Why is this "recursive"? {style="font-size: 0.8em;"}
 
-## Trees (recap)
+This is a **linked list**. Its definition refers to itself:
 
-![](images/organization_tree.jpg){width="90%" fig-align="center"}
+::: {.incremental}
+- A `TreasureBox` is one treasure, plus another `TreasureBox` (or nothing).
+- A tree (lecture 5) is one node, plus children that are trees.
+- So the functions follow the same shape. Base case: the innermost box, or depth 0. Recursive step: hand the job to `self.next`.
+:::
 
-## Binary Tree
+::: {.fragment}
+Recursive data, recursive functions. That's today's main idea.
+:::
 
-A binary tree is a tree where each node has at most 2 children.
+::: {.notes}
+- Could we use plain lists, like ["$20", ["$100", ["$5", None]]]? Yes. A class makes the structure clear and names the operations.
+:::
 
-```{pyodide}
-class BinaryTree:
+## Question: linked list or `list`? {style="font-size: 0.75em;"}
 
-    def __init__(self, item):
-        self.item = item
-        self.left = None  # type = BinaryTree
-        self.right = None # type = BinaryTree
+A linked list has $n$ boxes. What is the time complexity of each?
 
-    def insert(self, item):
-        # pick a random side to insert on
-        if item == self.item:
-            return
-        if item < self.item:
-            if self.left is None:
-                self.left = BinaryTree(item)
-            else:
-                self.left.insert(item)
-        else:
-            if self.right is None:
-                self.right = BinaryTree(item)
-            else:
-                self.right.insert(item)
+| operation | `TreasureBox` | Python `list` |
+|---|---|---|
+| add to the front (`append_outer`, `lst.insert(0, x)`) | ? | ? |
+| add to the end (`append_inner`, `lst.append(x)`) | ? | ? |
+| get item $i$ (`get(i)`, `lst[i]`) | ? | ? |
 
-    def contains(self, item):
-        if self.item == item:
-            return True
+::: {.fragment}
+| operation | `TreasureBox` | Python `list` |
+|---|---|---|
+| add to the front | $O(1)$: one new box | $O(n)$: shift every item over |
+| add to the end | $O(n)$: open every box | $O(1)$ |
+| get item $i$ | $O(i)$: open $i$ boxes | $O(1)$ |
+:::
 
-        if self.left is not None:
-            if self.left.contains(item):
-                return True
+::: {.notes}
+- Neither wins at everything. Linked lists are fast at the front, Python lists at the end and at jumping anywhere.
+- `deque` (lecture 4) is built from linked blocks: fast at both ends.
+:::
 
-        if self.right is not None:
-            if self.right.contains(item):
-                return True
-
-        return False
-
-    # We would want some more functions here, e.g. to add/remove things from the tree.
-```
-
-## Binary Tree
+## What happens here? {style="font-size: 0.8em;"}
 
 ```{pyodide}
-tree = BinaryTree("CEO")
-tree.insert("CTO")
-tree.insert("CFO")
-tree.insert("COO")
+box = TreasureBox(0)
+try:
+    for i in range(1, 5000):
+        box = box.append_inner(i)
+except RecursionError as error:
+    print(f"RecursionError after {i} boxes:", error)
 ```
 
-```{pyodide}
-tree.contains("Clown")
-```
+::: {.fragment}
+Each `append_inner` opens every box, one call per box. About 1,000 boxes deep: `RecursionError` (lecture 5).
+:::
 
-```{pyodide}
-tree.contains("CTO")
-```
-
-```{pyodide}
-type(tree)
-```
-
-```{pyodide}
-type(tree.right)
-```
-
-## Binary search trees (BSTs)
-
-- _Binary search tree_: for all nodes, all keys in its left subtree are smaller than its key, and all keys in its right subtree are larger than its key.
-
-- Requirement to use BSTs: we must be able to compare keys.
-- Compare this to a hash table: we need to be able to hash the keys.
-
-## Binary search trees (BSTs)
-- Example1: [8, 1, 13, 9, 5942]
-- Example2: [1, 2, 3, 4, 5]
-
-## Binary search trees (BSTs)
-
-- Binary search trees (BSTs) can be slow if they become very unbalanced (think of adding numbers in increasing order).
-- Industrial strength implementations automatically stay balanced and are still efficient.
-- Deletion is more tricky and we won't cover it here.
-- But the take-home message is that search/insert/delete all run in $O(\log n)$ time, which is pretty fast.
-
-## Nearest neighbours intro
-
-- A common problem (DSCI 571, 563, more) is to find the _nearest neighbours_ of a point.
-- We can start in 2D:
-
-```{pyodide}
-import numpy as np
-# Creating Data
-n = 20
-np.random.seed(1)
-X = np.random.rand(n, 2)
-X
-```
-
-## Nearest neighbours intro
-
-```{pyodide}
-import altair as alt
-import pandas as pd
-
-data = pd.DataFrame({'x0': X[:, 0], "x1" : X[:, 1]})
-data['m0'] = .5
-data['m1'] = .5
-
-# Creating Plot
-chart1 = alt.Chart(data).mark_circle(size=60).encode(
-    x= alt.X('x0',
-             axis=alt.Axis(grid=False)),
-    y = alt.Y('x1',
-             axis=alt.Axis(grid=False))).properties(width=700, height=600)
-
-chart2 = alt.Chart(data).mark_circle().encode(
-    x= alt.X('m0',
-              axis=alt.Axis(title = "")),
-    y = alt.Y('m1',
-               axis=alt.Axis(title = "")),
-    color = alt.value('red'),
-    size = alt.value(50)
-).properties(width=700, height=600)
-
-chart1 + chart2
-```
-
-## Nearest neighbours intro
-
-```{pyodide}
-def nearest_neighbour(data, query):
-    if query.ndim == 1:
-        query = query[None]
-
-    return np.argmin(np.sum((data - query)**2, axis=1))
-```
-
-## Nearest neighbours intro
-
-```{pyodide}
-query = np.array([0.5, 0.5])
-nn = nearest_neighbour(X, query)
-nn
-```
-
-```{pyodide}
-X[8]
-```
-
-## Nearest neighbours intro
-
+::: {.fragment}
 ```{.python}
-def nearest_neighbour(data, query):
-    if query.ndim == 1:
-        query = query[None]
+def append_inner(self, treasure):
+    box = self
+    while box.next is not None:   # walk to the innermost box with a loop
+        box = box.next
+    box.next = TreasureBox(treasure)
+    return self
+```
 
-    return np.argmin(np.sum((data - query)**2, axis=1))
+Recursion is a natural way to **think** about recursive data. A loop is sometimes safer to **write** in Python.
+:::
+
+# Songs like this one {style="font-size: 0.8em;"}
+
+You just liked a song. Out of 100 million songs, which ones are most similar? 🤔
+
+::: {.notes}
+About 10 minutes for nearest neighbours.
+- Same question everywhere: recommendations, k-nearest neighbours (DSCI 571), searching documents by their embeddings.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the brute-force step-through on the next slide. Distances from the query to the
+# same 20 songs as the pyodide cells; every colour and sentence is worked out here.
+dist = np.sqrt(np.sum((X - query) ** 2, axis=1))
+nn_steps, best = [], None
+for k in range(len(X) + 1):
+    if k == 0:
+        say = f"{len(X)} songs (grey), and the song you just liked (dark). Check them one by one."
+    else:
+        i = k - 1
+        new_best = best is None or dist[i] < dist[best]
+        if new_best:
+            best = i
+        say = (f"Song {i}: distance {dist[i]:.2f}. "
+               + ("New closest!" if new_best else f"Closest so far is still song {best} ({dist[best]:.2f})."))
+        if k == len(X):
+            say += f" All {len(X)} checked: song {best} is the nearest. {len(X)} distances for {len(X)} songs."
+    roles = ["checked" if j < k else "unchecked" for j in range(len(X))]
+    lines = []
+    if k > 0:
+        roles[best] = "best"
+        lines.append({"x2": float(X[best, 0]), "y2": float(X[best, 1]), "role": "best"})
+        if k - 1 != best:
+            roles[k - 1] = "now"
+            lines.append({"x2": float(X[k - 1, 0]), "y2": float(X[k - 1, 1]), "role": "now"})
+    nn_steps.append({"say": say, "roles": roles, "lines": lines})
+ojs_define(songs = [{"id": i, "x": float(x), "y": float(y)} for i, (x, y) in enumerate(X)],
+           song_query = [float(v) for v in query], nn_steps = nn_steps)
+```
+
+## Brute force: check every song {style="font-size: 0.75em;"}
+
+Each song has two numbers: energy and danceability. The distance between songs $a$ and $b$:
+
+$$\sqrt{(a_1 - b_1)^2 + (a_2 - b_2)^2}$$
+
+```{ojs}
+//| echo: false
+viewof nn_k = Inputs.range([0, nn_steps.length - 1], {value: 0, step: 1, label: "songs checked"})
+```
+
+```{ojs}
+//| echo: false
+// Draw only: songs, query and colours for the scatter plots (shared by the k-d slides too).
+song_plot = (marks, {width = 430, height = 330} = {}) => Plot.plot({
+  width, height, marginLeft: 50, marginBottom: 44, marginTop: 30,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {label: "energy →", domain: [0, 1]}, y: {label: "↑ danceability", domain: [0, 1]},
+  marks: [
+    ...marks,
+    Plot.dot([song_query], {x: d => d[0], y: d => d[1], r: 8, fill: "#52514e", symbol: "star"})
+  ]
+})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: distances and the best so far were worked out in Python (nn_steps).
+  const s = nn_steps[nn_k];
+  const fill = {unchecked: "#b8b6b0", checked: "#a9c8ef", now: "#2a78d6", best: "#eb6834"};
+  const rows = songs.map((d, i) => ({...d, role: s.roles[i]}));
+  return html`<div class="ojs-readout">${s.say}</div>${song_plot([
+    Plot.link(s.lines, {x1: song_query[0], y1: song_query[1], x2: "x2", y2: "y2",
+                        stroke: d => d.role === "best" ? "#eb6834" : "#2a78d6", strokeWidth: 3}),
+    Plot.dot(rows, {x: "x", y: "y", r: 6, fill: d => fill[d.role]})
+  ])}`;
+}
+```
+
+::: {.notes}
+- Orange: the closest so far. Blue: the song we just checked. Dark star: the song you liked.
+- Slide all the way: every song gets a distance. No shortcuts.
+:::
+
+## Brute force in code {style="font-size: 0.75em;"}
+
+```{pyodide}
+def nearest_neighbour(data, query):
+    # data - query subtracts the query from every row at once (numpy broadcasting)
+    # we skip the square root: it doesn't change which distance is smallest
+    squared_distances = np.sum((data - query) ** 2, axis=1)
+    return np.argmin(squared_distances)   # the index of the smallest value
+
+rng = np.random.default_rng(1)
+X = rng.random((20, 2))          # 20 songs: energy and danceability
+query = np.array([0.5, 0.3])     # the song you liked
+nn = nearest_neighbour(X, query)
+print("song", nn, "at", X[nn])
+```
+
+## iClicker: how fast is brute force? {style="font-size: 0.8em;"}
+
+$n$ songs, each with $k$ numbers (dimensions). Time complexity of `nearest_neighbour`?
+
+- \(A) $O(n)$
+- \(B) $O(k)$
+- \(C) $O(n^2 k)$
+- \(D) $O(nk)$
+
+::: {.fragment}
+- Answer: **D**. One distance per song, and each distance adds up $k$ squared differences.
+- Fine for 20 songs. Not for 100 million songs and thousands of listeners per second.
+:::
+
+# Split the songs {style="font-size: 0.8em;"}
+
+A BST throws away half the items at each step: "smaller, so go left". Can we do that with points?
+
+::: {.notes}
+About 20 minutes for k-d trees.
+- A point has two numbers, so "smaller" makes no sense. But "is its energy smaller?" does.
+:::
+
+## The $k$-d tree {style="font-size: 0.8em;"}
+
+To build one:
+
+::: {.incremental}
+1. Only one point? Stop: this is a leaf. (base case)
+2. Pick a coordinate. Take turns at each level: energy, danceability, energy, ...
+3. Split the points at the **median** of that coordinate: a lower half and an upper half.
+4. Build a $k$-d tree for each half. (recursive step)
+:::
+
+::: {.notes}
+- k means the number of dimensions. Nothing to do with the k in k-nearest neighbours.
+- Same shape as BinaryTree: every KDTree holds two smaller KDTrees.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the k-d tree slides. The tree is built exactly like the KDTree class (sort on the
+# coordinate, split at index len // 2); every split line, box and sentence is worked out here.
+kd_lines = []      # one entry per split: its level, coordinate, value and line ends
+
+
+def build(points, depth, box):
+    """box = [xmin, xmax, ymin, ymax]. Returns a node dict like a KDTree."""
+    if len(points) == 1:
+        return {"point": points[0]}
+    dim = depth % 2
+    points = points[np.argsort(points[:, dim])]
+    mid = len(points) // 2
+    split = float(points[mid, dim])
+    if dim == 0:
+        line = {"level": depth + 1, "x1": split, "x2": split, "y1": box[2], "y2": box[3]}
+        lo, hi = [box[0], split, box[2], box[3]], [split, box[1], box[2], box[3]]
+    else:
+        line = {"level": depth + 1, "x1": box[0], "x2": box[1], "y1": split, "y2": split}
+        lo, hi = [box[0], box[1], box[2], split], [box[0], box[1], split, box[3]]
+    kd_lines.append(line)
+    return {"dim": dim, "split": split, "box": box, "line": line,
+            "left": build(points[:mid], depth + 1, lo), "right": build(points[mid:], depth + 1, hi)}
+
+
+kd_root = build(X, 0, [0.0, 1.0, 0.0, 1.0])
+kd_levels = max(line["level"] for line in kd_lines)
+first = kd_root
+level_say = {0: f"{len(X)} songs, no splits yet."}
+for L in range(1, kd_levels + 1):
+    boxes = sum(1 for line in kd_lines if line["level"] <= L) + 1
+    if L == 1:
+        level_say[L] = (f"Level 1: split on {feature[first['dim']]} at {first['split']:.2f}. "
+                        f"{len(X) // 2} songs on each side.")
+    elif L == kd_levels:
+        level_say[L] = f"Level {L}: every song is alone in its own box."
+    else:
+        level_say[L] = (f"Level {L}: each box splits on {feature[(L - 1) % 2]} at its own median. "
+                        f"Now {boxes} boxes.")
+ojs_define(kd_view = {"lines": kd_lines, "levels": kd_levels, "say": level_say})
+
+# The walk down the tree for the query, like approx_nearest, one step per node.
+walk, node = [], kd_root
+while "point" not in node:
+    side = "left" if query[node["dim"]] < node["split"] else "right"
+    word = "lower" if side == "left" else "upper"
+    b = node["box"]
+    walk.append({"box": {"x1": b[0], "x2": b[1], "y1": b[2], "y2": b[3]},
+                 "line": [node["line"]],
+                 "say": (f"Split on {feature[node['dim']]} at {node['split']:.2f}. The query's "
+                         f"{feature[node['dim']]} is {query[node['dim']]:.2f}, so go {side} ({word} side)."),
+                 "rings": []})
+    node = node[side]
+tree_nn = node["point"]
+true_nn = X[nearest_neighbour(X, query)]
+d_tree = float(np.sqrt(np.sum((tree_nn - query) ** 2)))
+d_true = float(np.sqrt(np.sum((true_nn - query) ** 2)))
+walk.append({"box": walk[-1]["box"], "line": [],
+             "say": f"A leaf: the song at ({tree_nn[0]:.2f}, {tree_nn[1]:.2f}), distance {d_tree:.2f}. "
+                    f"Only {len(walk)} splits checked, not {len(X)} songs.",
+             "rings": [{"x": float(tree_nn[0]), "y": float(tree_nn[1]), "role": "tree"}]})
+if not np.allclose(tree_nn, true_nn):
+    walk.append({"box": {"x1": 0.0, "x2": 1.0, "y1": 0.0, "y2": 1.0}, "line": [kd_root["line"]],
+                 "say": f"But the true nearest is at ({true_nn[0]:.2f}, {true_nn[1]:.2f}), distance {d_true:.2f}: "
+                        f"just across the first line. The walk picked a side and never looked back.",
+                 "rings": [{"x": float(tree_nn[0]), "y": float(tree_nn[1]), "role": "tree"},
+                           {"x": float(true_nn[0]), "y": float(true_nn[1]), "role": "true"}]})
+for k, step in enumerate(walk):
+    step["count"] = f"Step {k + 1} of {len(walk)}"
+ojs_define(kd_walk = walk)
+```
+
+## Build it, level by level {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof kd_level = Inputs.range([0, kd_view.levels], {value: 0, step: 1, label: "levels"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every split line was worked out in Python (kd_view).
+  const lines = kd_view.lines.filter(l => l.level <= kd_level);
+  return html`<div class="ojs-readout">${kd_view.say[kd_level]}</div>${song_plot([
+    Plot.link(lines, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", strokeWidth: d => d.level === kd_level ? 3 : 1.5,
+                      stroke: d => d.level === kd_level ? "#eb6834" : "#8a8880"}),
+    Plot.dot(songs, {x: "x", y: "y", r: 5, fill: "#2a78d6"})
+  ], {height: 360})}`;
+}
+```
+
+::: {.notes}
+- Orange: the splits added at this level. Grey: earlier levels.
+- Level 1: one vertical line at the median energy. Level 2: each half gets its own horizontal line.
+- The class code is on the next slide.
+:::
+
+## The `KDTree` class {style="font-size: 0.7em;"}
+
+```{.python code-line-numbers="|5-7|9-13|14-15"}
+class KDTree:
+    def __init__(self, points, depth=0):
+        self.left = None
+        self.right = None
+        if len(points) == 1:                  # base case: a leaf holds one point
+            self.point = points[0]
+            return
+
+        self.dim = depth % points.shape[1]    # which coordinate: 0, 1, 0, 1, ...
+        points = points[np.argsort(points[:, self.dim])]   # sort on that coordinate
+        mid = len(points) // 2
+        self.split = points[mid, self.dim]    # the median
+        self.left = KDTree(points[:mid], depth + 1)    # recursive step: lower half
+        self.right = KDTree(points[mid:], depth + 1)   # and upper half
+
+    def approx_nearest(self, query):
+        if self.left is None:                 # base case: a leaf
+            return self.point
+        if query[self.dim] < self.split:
+            return self.left.approx_nearest(query)    # lower side of the line
+        else:
+            return self.right.approx_nearest(query)   # upper side
+```
+
+::: {.fragment}
+`approx_nearest` walks down like `bst_contains`: compare one coordinate, go left or right.
+:::
+
+## Search: walk down the tree {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof kd_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, kd_walk.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the walk was done in Python (kd_walk).
+  const s = kd_walk[kd_step];
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>${song_plot([
+    Plot.rect([s.box], {x1: "x1", x2: "x2", y1: "y1", y2: "y2", fill: "#dbe8f8"}),
+    Plot.link(kd_view.lines, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#d9d8d4", strokeWidth: 1.5}),
+    Plot.link(s.line, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#eb6834", strokeWidth: 3}),
+    Plot.dot(songs, {x: "x", y: "y", r: 5, fill: "#2a78d6"}),
+    Plot.dot(s.rings, {x: "x", y: "y", r: 13, strokeWidth: 3, fill: "none",
+                       stroke: d => d.role === "tree" ? "#eb6834" : "#0b8a3a"})
+  ], {height: 360})}`;
+}
+```
+
+::: {.notes}
+- Light blue: the box we are still searching. Orange line: the split we compare against.
+- Last step: orange ring is the tree's answer, green ring the true nearest.
+- The exact algorithm backs up and checks the other side of a line, but only when that line is closer than the best song so far. Usually it isn't, so it stays fast. scikit-learn does this.
+:::
+
+## The exact answer {style="font-size: 0.75em;"}
+
+```{pyodide}
+import sklearn.neighbors
+
+kdt = KDTree(X)
+print("our walk:    ", kdt.approx_nearest(query))
+print("brute force: ", X[nearest_neighbour(X, query)])
+
+sk_tree = sklearn.neighbors.KDTree(X)              # scikit-learn's k-d tree
+distance, index = sk_tree.query([query], k=1)      # the k nearest points to each query
+print("scikit-learn:", X[index[0, 0]])
 ```
 
 ::: {.incremental}
-
-- **Question**
-what is the time complexity of `nearest_neighbour` if we have $n$ points in $k$ dimensions?
-    - $O(n)$
-    - $O(k)$
-    - $O(n^2k)$
-    - $O(nk)$
-
-- **Answer**: $O(nk)$, because we have to loop over all $n$ points, and computing the distance requires looping over the $k$ dimensions.
-- This may be way too slow!
-
+- scikit-learn's version backs up and checks the other side, only when it could be closer.
+- ⚠️ $k$-d trees work best with few dimensions. With hundreds (like text embeddings), it checks almost every point.
 :::
 
-## $k$-d trees
+::: {.notes}
+- For many dimensions, people use approximate methods such as Annoy (Spotify) or FAISS (Meta): very fast, allowed to be slightly wrong.
+- Lesson: if a slightly wrong answer is OK, you can often go much faster.
+:::
 
-- Sometimes we speed things up with faster algorithms.
-- But, as we've seen with trees and hash tables, sometime we speed things up with _better data structures_.
-- One of the classic ways to speed up nearest neighbours is a data structure call the [$k$-d tree](https://en.wikipedia.org/wiki/K-d_tree).
+## Timing: tree vs brute force {style="font-size: 0.65em;"}
 
-## $k$-d trees
-
-```{pyodide}
-# You do not need to read/understand this code, but I think
-# you shouldn't have any problem understanding it with a bit of time spent.
-
-import numpy as np
-import pandas as pd
-import altair as alt
-
-class KDTree:
-    def __init__(self):
-        self.location = None
-        self.leftSubTree = None
-        self.rightSubTree = None
-        self.dim = None
-        self.data = None
-
-    def build(self, data, depth=0):
-        nrows = data.shape[0]
-        self.dim = depth % data.shape[1]
-        self.data = data
-
-        self.location = np.median(data[:, self.dim])
-
-        if nrows == 1:
-            return
-
-        data = data[np.argsort(data[:, self.dim])]
-        self.leftSubTree = KDTree()
-        self.leftSubTree.build(data[:nrows//2], depth+1)
-        self.rightSubTree = KDTree()
-        self.rightSubTree.build(data[nrows//2:], depth+1)
-
-    def approximateNearestNeighbour(self, query):
-        if self.data.shape[0] == 1:
-            return self.data[0]
-
-        if query[self.dim] < self.location:
-            return self.leftSubTree.approximateNearestNeighbour(query)
-        else:
-            return self.rightSubTree.approximateNearestNeighbour(query)
-
-    def plot2d(self, depth=1, minx=0.0, maxx=1.0, miny=0.0, maxy=1.0, color_idx=0):
-        """Plot the k-d tree with different colors for each splitting line, and larger plot size."""
-        color_palette = [
-            "#e41a1c", "#377eb8", "#4daf4a", "#984ea3",
-            "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999"
-        ]
-        color = color_palette[color_idx % len(color_palette)]
-
-        # Base data (points)
-        data = pd.DataFrame({'x0': self.data[:, 0], "x1": self.data[:, 1]})
-        chart1 = (
-            alt.Chart(data)
-            .mark_circle(size=80)  # slightly larger points
-            .encode(
-                x=alt.X('x0', axis=alt.Axis(grid=False)),
-                y=alt.Y('x1', axis=alt.Axis(grid=False))
-            )
-            .properties(width=400, height=400)
-        )
-
-        charts_list = [chart1]
-        if depth == 0:
-            return chart1
-
-        if self.dim == 0:
-            # vertical split line
-            data2 = pd.DataFrame({'x0': [self.location, self.location], "x1": [miny, maxy]})
-            chart2 = (
-                alt.Chart(data2)
-                .mark_line(color=color, strokeWidth=2)
-                .encode(
-                    x=alt.X('x0', axis=alt.Axis(grid=False)),
-                    y=alt.Y('x1', axis=alt.Axis(grid=False))
-                )
-                .properties(width=400, height=400)
-            )
-            charts_list.append(chart2)
-
-            if self.leftSubTree is not None:
-                charts_list.append(self.leftSubTree.plot2d(
-                    depth-1, minx=minx, maxx=self.location, miny=miny, maxy=maxy, color_idx=color_idx+1))
-            if self.rightSubTree is not None:
-                charts_list.append(self.rightSubTree.plot2d(
-                    depth-1, minx=self.location, maxx=maxx, miny=miny, maxy=maxy, color_idx=color_idx+1))
-
-        elif self.dim == 1:
-            # horizontal split line
-            data3 = pd.DataFrame({'x0': [minx, maxx], "x1": [self.location, self.location]})
-            chart3 = (
-                alt.Chart(data3)
-                .mark_line(color=color, strokeWidth=2)
-                .encode(
-                    x=alt.X('x0', axis=alt.Axis(grid=False)),
-                    y=alt.Y('x1', axis=alt.Axis(grid=False))
-                )
-                .properties(width=400, height=400)
-            )
-            charts_list.append(chart3)
-
-            if self.leftSubTree is not None:
-                charts_list.append(self.leftSubTree.plot2d(
-                    depth-1, minx=minx, maxx=maxx, miny=miny, maxy=self.location, color_idx=color_idx+1))
-            if self.rightSubTree is not None:
-                charts_list.append(self.rightSubTree.plot2d(
-                    depth-1, minx=minx, maxx=maxx, miny=self.location, maxy=maxy, color_idx=color_idx+1))
-
-        return alt.layer(*charts_list).encode().properties(width=400, height=400)
-
-```
-
-## $k$-d trees
-
-```{pyodide}
-kdt = KDTree()
-kdt.build(X)
-kdt.plot2d(depth=1)
-```
-
-## $k$-d trees
-
-```{pyodide}
-kdt.approximateNearestNeighbour(np.array([1, 1]))
-```
-
-```{pyodide}
-X[nearest_neighbour(X, np.array([1,1]))]
-```
-
-```{pyodide}
-kdt.approximateNearestNeighbour(np.array([0.5, 0.5]))
-```
-
-```{pyodide}
-X[nearest_neighbour(X, np.array([0.5,0.5]))]
-```
-
-## $k$-d trees
-
-- Doesn't work perfectly here, but there is a fast correct algorithm, which is beyond the scope of the course.
-  - See [`sklearn.neighbors.KDTree`](https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KDTree.html#sklearn.neighbors.KDTree).
-- However, $k$-d trees get slow when the number of dimensions is large.
-
-## Timing experiments
-
-```{.python}
-n_sizes = [100, 1000, 10_000, 100_000]
-
-results = defaultdict(list)
-results["n"] = n_sizes
-
-d = 10
+```{python}
+#| echo: true
+n_sizes = [100, 1_000, 10_000, 100_000, 1_000_000]
+timing_rng = np.random.default_rng(0)
+results = {"n": [], "build": [], "query": [], "brute force": []}   # milliseconds
 
 for n in n_sizes:
-    print('n: ', n)
-    X = np.random.rand(n, d)
-    query = np.random.rand(1, d)
+    data = timing_rng.random((n, 2))   # n random songs
+    q = timing_rng.random(2)           # one random query
+    tree = scipy.spatial.KDTree(data)
+    # min of 3 repeats; number = how many times to run it in each repeat
+    build = min(timeit.repeat(lambda: scipy.spatial.KDTree(data), number=1, repeat=3))
+    query_time = min(timeit.repeat(lambda: tree.query(q), number=100, repeat=3)) / 100
+    brute = min(timeit.repeat(lambda: nearest_neighbour(data, q), number=10, repeat=3)) / 10
+    for name, t in [("n", n), ("build", build * 1e3), ("query", query_time * 1e3),
+                    ("brute force", brute * 1e3)]:
+        results[name].append(t)
 
-    print("  KDTree")
-    time = %timeit -q -o -r 3 sklearn.neighbors.KDTree(X)
-    results["KDTree init"].append(time.average)
-    KDT = sklearn.neighbors.KDTree(X)
-
-    time = %timeit -q -o -r 3 KDT.query(query)
-    results["KDTree query"].append(time.average)
-
-    print("  Brute force")
-    time = %timeit -q -o -r 3 nearest_neighbour(X, query)
-    results["Brute force"].append(time.average)
+for row in zip(*results.values()):
+    print(f"n = {row[0]:>9,}:  build {row[1]:8.2f} ms   query {row[2]:6.3f} ms   brute force {row[3]:8.3f} ms")
 ```
 
-## Timing experiments
+```{python}
+#| echo: false
+# Hidden: the timing chart on the next slide, from the same results printed above.
+timing_rows = [{"n": n, "ms": results[name][i], "what": name}
+               for name in ["build", "query", "brute force"] for i, n in enumerate(results["n"])]
+timing_labels = [{"n": results["n"][-1], "ms": results[name][-1], "what": name,
+                  "label": f"{name}: {results[name][-1]:,.2f} ms"} for name in ["build", "query", "brute force"]]
+ojs_define(timing_view = {"rows": timing_rows, "labels": timing_labels})
+```
 
-![](images/timing.png){width="80%" fig-align="center"}
+::: {.notes}
+- Timed with SciPy's k-d tree, which works like scikit-learn's.
+:::
 
-## Amortization
+## How does each one grow? {style="font-size: 0.75em;"}
 
-Let's focus on $n=10000$, and $k=10$. Then,
+```{ojs}
+//| echo: false
+// Draw only: every time was measured in Python (timing_view). Both axes are log scale.
+Plot.plot({
+  width: 860, height: 300, marginLeft: 60, marginRight: 190, marginBottom: 44,
+  style: {fontSize: "16px", background: "transparent"},
+  x: {type: "log", label: "number of songs n →", labelAnchor: "center",
+      ticks: [100, 1000, 10000, 100000, 1000000], tickFormat: ","},
+  y: {type: "log", label: "↑ milliseconds", grid: true, tickFormat: "~g"},
+  color: {domain: ["brute force", "build", "query"], range: ["#2a78d6", "#eb6834", "#8a8880"]},
+  marks: [
+    Plot.line(timing_view.rows, {x: "n", y: "ms", stroke: "what", strokeWidth: 3}),
+    Plot.dot(timing_view.rows, {x: "n", y: "ms", fill: "what", r: 4}),
+    Plot.text(timing_view.labels, {x: "n", y: "ms", text: "label", fill: "what", dx: 10,
+                                   textAnchor: "start", fontWeight: "bold"})
+  ]
+})
+```
 
-- $k$-d tree initialization takes $\approx 4$ ms
-- $k$-d tree query takes $\approx 0.1$ ms
-- brute force search takes $\approx 1$ ms
+::: {.incremental}
+- Brute force: 10 times the songs, about 10 times slower. $O(n)$.
+- Query with the tree: barely moves. About $\log_2 n$ levels: roughly $O(\log n)$.
+- Build: a bit faster than $n$, like sorting: about $O(n \log n)$.
+:::
 
-**Question:** How many queries do we need to do such that the $k$-d tree is better?
+::: {.notes}
+- Small n: brute force wins, the tree's overhead costs more than it saves.
+- So which is better? It depends on how many queries you run. Next section.
+:::
 
-## Other nearest neighbour approaches
+# Pay up front, save later {style="font-size: 0.8em;"}
 
-- Note: there are other nearest neighbour approaches besides $k$-d trees, including some very fast approximate algorithms.
-- In general, _you can often do something faster if the result can be slightly wrong_.
-- There are approaches based on hashing instead of trees.
-- Here are some resources:
-  - [`sklearn.neighbours` documentation](https://scikit-learn.org/stable/modules/neighbors.html#nearest-neighbor-algorithms)
-  - Approximate nearest neighbours, e.g. [locality-sensitive hashing](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) (LSH), [this package](https://github.com/spotify/annoy).
+::: {.incremental}
+- Sort once, then binary search many times (lecture 1).
+- Build a $k$-d tree once, then run fast queries.
+- Build a database index once, then look rows up fast (DSCI 513).
+:::
+
+::: {.fragment}
+The up-front cost is **amortized** (spread out) over all the operations that follow.
+:::
+
+::: {.notes}
+About 10 minutes for amortization.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the break-even chart on the next slide, from the timings at n = 100,000.
+i100k = results["n"].index(100_000)
+B, q_ms, b_ms = results["build"][i100k], results["query"][i100k], results["brute force"][i100k]
+m_star = B / (b_ms - q_ms)
+m_max = max(10, int(np.ceil(m_star * 3)))
+ms = np.unique(np.linspace(0, m_max, 40).round().astype(int))
+amort_rows = ([{"m": int(m), "ms": float(m * b_ms), "what": "brute force"} for m in ms]
+              + [{"m": int(m), "ms": float(B + m * q_ms), "what": "build the tree, then query"} for m in ms])
+ojs_define(amort_view = {"rows": amort_rows, "m_star": float(m_star),
+                         "say": f"n = 100,000 songs: build {B:.1f} ms, query {q_ms:.3f} ms, brute force "
+                                f"{b_ms:.2f} ms. The tree pays off after about {m_star:.0f} queries."})
+```
+
+## When does the tree pay off? {style="font-size: 0.75em;"}
+
+Build: $B$ ms. One query: $q$ ms with the tree, $b$ ms by brute force. For $m$ queries, the tree wins when
+
+$$B + m q < m b \quad \Longrightarrow \quad m > \frac{B}{b - q}$$
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every number was measured or computed in Python (amort_view).
+  const v = amort_view;
+  return html`<div class="ojs-readout">${v.say}</div>${Plot.plot({
+    width: 820, height: 230, marginLeft: 60, marginBottom: 44, marginTop: 30,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {label: "number of queries m →", labelAnchor: "center"},
+    y: {label: "↑ total milliseconds", grid: true},
+    color: {domain: ["brute force", "build the tree, then query"], range: ["#2a78d6", "#eb6834"],
+            legend: true, swatchSize: 16},
+    marks: [
+      Plot.line(v.rows, {x: "m", y: "ms", stroke: "what", strokeWidth: 3}),
+      Plot.ruleX([v.m_star], {stroke: "#52514e", strokeDasharray: "6,4"}),
+      Plot.ruleY([0])
+    ]
+  })}`;
+}
+```
+
+::: {.notes}
+- The dashed line is the break-even point. Left of it, brute force is cheaper. Right of it, the tree.
+- A music app runs millions of queries: build the tree.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the chart on the "Every append, counted" slide. CPython's real list growth, read with
+# sys.getsizeof like the visible cell; a resize copies every item already in the list.
+lst, append_rows = [], []
+for i in range(100):
+    before = sys.getsizeof(lst)
+    lst.append(i)
+    resized = sys.getsizeof(lst) != before
+    cost = 1 + (len(lst) - 1 if resized else 0)   # write the new item, plus copy the old ones
+    append_rows.append({"n": len(lst), "cost": cost, "kind": "resize: copy everything" if resized else "use spare room"})
+total = sum(r["cost"] for r in append_rows)
+running = 0
+for r in append_rows:
+    running += r["cost"]
+    r["average"] = running / r["n"]
+n_resize = sum(r["kind"].startswith("resize") for r in append_rows)
+ojs_define(append_view = {"rows": append_rows,
+                          "say": f"100 appends: {n_resize} resizes. Total work {total}, so about "
+                                 f"{total / 100:.1f} per append on average."})
+```
+
+## Why `list.append` is fast {style="font-size: 0.7em;"}
+
+A list keeps spare room at the end. When it runs out, Python moves to a **bigger** block and copies every item: one slow $O(n)$ append.
+
+```{pyodide}
+import sys
+
+lst = []
+last_size = sys.getsizeof(lst)
+for i in range(100):
+    lst.append(i)
+    size = sys.getsizeof(lst)          # memory used by the list, in bytes
+    if size != last_size:              # only print when the list grew
+        print(f"length {len(lst):>3}: {size} bytes")
+        last_size = size
+```
+
+## Every append, counted {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: the cost of every append was worked out in Python (append_view).
+  const v = append_view;
+  return html`<div class="ojs-readout">${v.say}</div>${Plot.plot({
+    width: 860, height: 260, marginLeft: 50, marginBottom: 40,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {label: "list length after the append →", labelAnchor: "center"},
+    y: {label: "↑ work", grid: true},
+    color: {domain: ["use spare room", "resize: copy everything"], range: ["#b8b6b0", "#eb6834"],
+            legend: true, swatchSize: 16},
+    marks: [
+      Plot.rectY(v.rows, {x1: d => d.n - 0.4, x2: d => d.n + 0.4, y: "cost", fill: "kind"}),
+      Plot.line(v.rows, {x: "n", y: "average", stroke: "#2a78d6", strokeWidth: 3}),
+      Plot.ruleY([0])
+    ]
+  })}`;
+}
+```
+
+::: {.fragment}
+The resizes get rarer as the list grows. Blue line: the average stays small. That's **amortized** $O(1)$.
+:::
+
+::: {.notes}
+- If the room doubled each time, the copying would be 1 + 2 + 4 + ... + n < 2n: O(n) total for n appends, O(1) each on average. Python grows by a bit less than double, same idea.
+- Lecture 2: a hash table resize works the same way.
+- The pyodide printout comes from the browser's Python, so its byte sizes can differ from the chart.
+:::
+
+## Today's cheat sheet {style="font-size: 0.6em;"}
+
+| function | calls per step | how deep | time | space (call stack) |
+|---|---|---|---|---|
+| `f(n)`: count down to 0 | 1 | $n$ | $O(n)$ | $O(n)$ |
+| Fibonacci | 2 | $n$ | $O(2^n)$ | $O(n)$ |
+
+| data structure | search | add | notes |
+|---|---|---|---|
+| linked list | $O(n)$ | $O(1)$ at the front, $O(n)$ at the end | each box holds one item and the next box |
+| BST, balanced | $O(\log n)$ | $O(\log n)$ | keeps items sorted |
+| hash table (`set`, `dict`) | $O(1)$ on average | amortized $O(1)$ | keys must be hashable, no order |
+| nearest neighbour, brute force | $O(nk)$ per query | none | no setup needed |
+| $k$-d tree | about $O(\log n)$ per query, few dimensions | build: about $O(n \log n)$ | worth it for many queries |
+
+## Today's takeaways {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- More recursive calls per step can mean exponential time: Fibonacci is $O(2^n)$, but only $O(n)$ space.
+- A recursive data structure is defined in terms of itself: a box holds a box, a tree holds trees.
+- Functions on it follow its shape. Base case: the smallest piece. Recursive step: hand the job to the piece inside.
+- Brute-force nearest neighbours is $O(nk)$ per query. A $k$-d tree splits at medians and makes queries fast in few dimensions.
+- Amortization: pay once up front, or now and then, so that many operations are cheap on average.
+:::
+
+# Questions?

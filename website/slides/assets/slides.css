@@ -174,3 +174,11 @@
 .reveal .ds-row.bs-copy { gap: 3px; min-height: 40px; justify-content: center; }
 .reveal .ds-row.bs-copy .ds-box { min-width: 0; width: 42px; height: 32px; padding: 0; font-size: 15px; }
 .reveal .bs-note { font-size: 16px; min-width: 110px; padding-left: 10px; color: #eb6834; font-weight: bold; }
+
+/* Lecture 6: linked list boxes in a row, joined by arrows, with the line of code above */
+.reveal .ll-code { font-family: var(--r-code-font, monospace); font-size: 18px; color: #0b0b0b;
+                   background: #f2f1ee; border-radius: 6px; padding: 4px 12px; display: inline-block; margin: 0.2em 0; }
+.reveal .ll-chain { margin: 0.8em 0 0.2em; }
+.reveal .ll-arrow { font-family: var(--r-code-font, monospace); font-size: 18px; color: #8a8880; }
+.reveal .ds-row.ll-chain .ds-box { min-width: 64px; }
+.reveal .ll-result { font-weight: bold; color: #2a78d6; min-height: 1.4em; }

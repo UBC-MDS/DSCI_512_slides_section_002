@@ -368,3 +368,6 @@ When solving a problem with dynamic programming:
 6. **Optimize space:** Store only what’s needed—sometimes just a few previous states.
 
 :::
+
+
+## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
