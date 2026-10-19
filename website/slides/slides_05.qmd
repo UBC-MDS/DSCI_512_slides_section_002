@@ -440,7 +440,7 @@ for u in game_layout["nodes"]:
 ojs_define(word_views = word_views, word_choices = [d["id"] for d in game_layout["nodes"]])
 ```
 
-## Tree words {style="font-size: 0.75em;"}
+## Tree words {style="font-size: 0.7em;"}
 
 :::: {.columns}
 ::: {.column width="30%"}
@@ -967,13 +967,13 @@ What are the time and space complexity of `f(n)` for $n \geq 0$?
 - Space: all $n + 1$ calls wait on the stack at the deepest point. Recursion uses memory even with no list.
 :::
 
-# Back to the animal game {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Recursion: Back to the animal game {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-Every subtree is a tree: after one answer, the rest is a smaller game. So to answer a question about a tree:
+Every subtree is still a tree. So to answer a question about a tree:
 
-::: {.incremental}
-1. At a leaf, answer directly (base case).
-2. Otherwise, ask the child subtrees you need (recursion), and combine their answers.
+::: {.incremental style="font-size: 0.7em;"}
+1. If at a leaf, answer directly (base case).
+2. Otherwise, ask the child subtrees you need (recursion)
 :::
 
 ::: footer
