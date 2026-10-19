@@ -798,12 +798,16 @@ def h(n):
     else:
         return i(n - 1) + 1   # we never wrote a function called i!
 
-for n in range(4):
+for n in range(2):
     print(f"f({n}) =", f(n))
 ```
 
 ::: {.fragment}
 `f`, `g` and `h` do the **same** job. Should we write `i`, `j`, `k`, ... forever?
+:::
+
+::: {.notes}
+try f(3), f(4)
 :::
 
 
@@ -878,11 +882,6 @@ draw_stack(rec_steps[rec_step])
 The calls pile up until `n` hits 0. Then the answers come back, one at a time.
 :::
 
-::: {.notes}
-- Ask: when f(0) returns 0, what does f(1) do with it? Adds 1 and returns.
-- Four calls of f are waiting at the deepest point: f(3), f(2), f(1), f(0).
-:::
-
 ## What if we never reach the base case? {style="font-size: 0.8em;"}
 
 `f(-1)` calls `f(-2)`, which calls `f(-3)`, ... `n` never hits 0.
@@ -907,11 +906,6 @@ print("most calls allowed on the stack:", sys.getrecursionlimit())
 - Python stops first, at about 1,000 calls, with a `RecursionError`. A loop has no such limit.
 :::
 
-::: {.notes}
-- In the animal game: imagine an answer that sent you back to the first question. The game asks the same questions forever and never guesses.
-- Like two mirrors facing each other: reflections of reflections, with no end.
-- Yes, that is where the website Stack Overflow got its name.
-:::
 
 ## {background-image="images/recursion_minion.png" background-size="contain" background-position="center"}
 
