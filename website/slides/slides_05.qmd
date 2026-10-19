@@ -1736,55 +1736,6 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 
 ## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
 
-## (Bonus Slide) A BST keeps things sorted {style="font-size: 0.7em;"}
-
-Left subtree, then the node, then the right subtree:
-
-```{pyodide}
-def in_order(node):
-    if node is None:          # base case: an empty tree has no items
-        return []
-    return in_order(node.left) + [node.item] + in_order(node.right)
-
-in_order(bst)
-```
-
-The items come out **sorted**, for free. A hash table can't do that (lecture 2).
-
-| | hash table (`set`, `dict`) | balanced BST |
-|---|---|---|
-| search, insert | $O(1)$ on average | $O(\log n)$ |
-| keys must be | hashable | comparable with `<` |
-| keeps items in order? | no | yes |
-| good for | "is $x$ in here?" | "lightest animal", "all animals between 1 and 10 kg" |
-
-::: {.notes}
-- Python has no built-in BST, so for plain lookups use a `set` or `dict`.
-- Databases (DSCI 513) use B-trees, close cousins of the BST, to find all rows between two dates without scanning the table.
-:::
-
-## (Bonus Slide) Question: two calls in binary search? {style="font-size: 0.8em;"}
-
-```{.python}
-def binary_search(data, key):
-    if len(data) == 0:
-        return False
-    if len(data) == 1:
-        return data[0] == key
-
-    mid = len(data) // 2
-    if key < data[mid]:
-        return binary_search(data[:mid], key)
-    else:
-        return binary_search(data[mid:], key)
-```
-
-The name `binary_search` appears twice inside. Does it search both halves, like `contains` searches both sides of a tree?
-
-::: {.fragment}
-- No. Because of the `if`/`else`, only **one** call runs each time: a single path of about $\log_2 n$ calls.
-- Count the calls that actually run, not the times the name appears. `bst_contains` works the same way.
-:::
 
 ## (Bonus Slide) Binary search without copies {style="font-size: 0.75em;"}
 
