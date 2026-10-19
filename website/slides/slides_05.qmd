@@ -25,7 +25,7 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-background-image: images/li_otter_orgchart.png
+  data-background-image: images/lec05_title_bg.png
   data-background-size: cover
   data-background-position: right bottom
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (85 min): trees 15, recursion 25, recursion on trees 10, binary search 5, binary search trees 25. Group activities are bonus slides for the lab."
@@ -35,13 +35,15 @@ title-slide-attributes:
 
 ```{python}
 #| echo: false
-# Hidden: imports, the org chart and the drawing helpers for the whole deck, kept in
+# Hidden: imports, the animal game and the drawing helpers for the whole deck, kept in
 # one place so the visible cells below contain only the code students should read.
+import math
+
 import networkx as nx
 
 
 def names(items):
-    """["ada", "kelp", "nori"] -> "ada, kelp and nori"."""
+    """["crow", "seagull", "orca"] -> "crow, seagull and orca"."""
     items = [str(x) for x in items]
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
@@ -49,7 +51,8 @@ def names(items):
 def tree_layout(children, root, pad=0.5):
     """Where to draw every node and edge of a tree given as {node: [children]}. Leaves sit
     one unit apart, left to right, and each parent is centred over its children.
-    Every edge is named by its child, since each child has exactly one parent."""
+    Every edge is named by its child, since each child has exactly one parent.
+    Two children are a yes (left) and a no (right) answer, written on their edge near the parent."""
     pos, order, next_leaf = {}, [], [0]
 
     def place(node, depth):
@@ -67,10 +70,15 @@ def tree_layout(children, root, pad=0.5):
     place(root, 0)
     xs = [x for x, _ in pos.values()]
     ys = [y for _, y in pos.values()]
+    edges = []
+    for p in order:
+        for i, c in enumerate(children.get(p, [])):
+            (x1, y1), (x2, y2) = pos[p], pos[c]
+            edges.append({"child": c, "x1": x1, "y1": y1, "x2": x2, "y2": y2, "text": ["yes", "no"][i],
+                          "mx": round(x1 + 0.35 * (x2 - x1), 3), "my": round(y1 + 0.35 * (y2 - y1), 3)})
     return {"pos": pos,
             "nodes": [{"id": u, "x": pos[u][0], "y": pos[u][1]} for u in order],
-            "edges": [{"child": c, "x1": pos[p][0], "y1": pos[p][1], "x2": pos[c][0], "y2": pos[c][1]}
-                      for p in order for c in children.get(p, [])],
+            "edges": edges,
             "x_domain": [min(xs) - pad, max(xs) + pad],
             "y_domain": [min(ys) - pad, max(ys) + pad]}
 
@@ -82,25 +90,37 @@ def stack_boxes(stack, label=lambda u: u):
             for i, u in enumerate(stack)]
 
 
-# The org chart: who reports to whom. The same dict as the visible pyodide cells.
-reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
-           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
-ceo = "sky"
-boss_of = {p: boss for boss, team in reports.items() for p in team}
-org_tree = nx.Graph([(boss, p) for boss, team in reports.items() for p in team])
-org_depth = nx.shortest_path_length(org_tree, ceo)
-org_height = max(org_depth.values())
-n_people = org_tree.number_of_nodes()
-n_lines = org_tree.number_of_edges()
-org_layout = tree_layout(reports, ceo)
-org_pos = org_layout.pop("pos")
-ojs_define(org_layout = org_layout)
+# The animal game: each question -> [its yes answer, its no answer]. The same dict as the
+# visible pyodide cells. Answers that are not questions are the animals.
+game = {"In water?": ["Mammal?", "Can fly?"],
+        "Mammal?": ["orca", "Has a shell?"],
+        "Has a shell?": ["crab", "salmon"],
+        "Can fly?": ["All black?", "Bigger than you?"],
+        "All black?": ["crow", "seagull"],
+        "Bigger than you?": ["bear", "Wears a mask?"],
+        "Wears a mask?": ["raccoon", "Bushy tail?"],
+        "Bushy tail?": ["squirrel", "slug"]}
+top = "In water?"
+parent_of = {a: q for q, answers in game.items() for a in answers}
+game_graph = nx.Graph([(q, a) for q, answers in game.items() for a in answers])
+game_depth = nx.shortest_path_length(game_graph, top)
+game_height = max(game_depth.values())
+n_nodes = game_graph.number_of_nodes()
+n_edges = game_graph.number_of_edges()
+game_layout = tree_layout(game, top)
+game_pos = game_layout.pop("pos")
+animals = [d["id"] for d in game_layout["nodes"] if d["id"] not in game]   # left to right
+n_animals = len(animals)
+n_questions = len(game)
+balanced_questions = math.ceil(math.log2(n_animals))   # fewest questions that can tell them apart
+ojs_define(game_layout = game_layout)
 ```
 
 ```{pyodide}
 #| include: false
 # Hidden setup for the runnable cells: the drawing helpers for vee, the Node class, the
-# org chart and the two binary trees, so a later cell still works when an earlier slide was skipped.
+# animal game, the animal weights and the two binary trees, so a later cell still works
+# when an earlier slide was skipped.
 import math
 import random
 import sys
@@ -138,21 +158,32 @@ class Node:
             child.print_tree(level + 1)
 
 
-reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
-           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
-people = {"sky": Node("sky")}
-for boss, team in reports.items():
-    for name in team:
-        people[name] = Node(name)
-        people[boss].add_child(people[name])
-ceo = people["sky"]
+game = {"In water?": ["Mammal?", "Can fly?"],
+        "Mammal?": ["orca", "Has a shell?"],
+        "Has a shell?": ["crab", "salmon"],
+        "Can fly?": ["All black?", "Bigger than you?"],
+        "All black?": ["crow", "seagull"],
+        "Bigger than you?": ["bear", "Wears a mask?"],
+        "Wears a mask?": ["raccoon", "Bushy tail?"],
+        "Bushy tail?": ["squirrel", "slug"]}
+nodes = {"In water?": Node("In water?")}
+for question, answers in game.items():
+    for answer in answers:
+        nodes[answer] = Node(answer)
+        nodes[question].add_child(nodes[answer])
+root = nodes["In water?"]
 
 
-def count_nodes(node):
-    total = 1
+def count_leaves(node):
+    if not node.children:
+        return 1
+    total = 0
     for child in node.children:
-        total += count_nodes(child)
+        total += count_leaves(child)
     return total
+
+
+weights = [0.004, 0.1, 0.4, 0.6, 0.9, 1.1, 3, 4.5, 7, 20, 60, 90, 120, 600, 4000, 30000]
 
 
 class BinaryTree:
@@ -165,9 +196,9 @@ class BinaryTree:
 tree = BinaryTree(1,
                   left=BinaryTree(2, BinaryTree(4), BinaryTree(5)),
                   right=BinaryTree(3, BinaryTree(6), BinaryTree(7)))
-bst = BinaryTree(8,
-                 left=BinaryTree(3, BinaryTree(1), BinaryTree(6, BinaryTree(4), BinaryTree(7))),
-                 right=BinaryTree(10, right=BinaryTree(14, left=BinaryTree(13))))
+bst = BinaryTree(3,
+                 left=BinaryTree(0.6, BinaryTree(0.1, right=BinaryTree(0.4)), BinaryTree(1.1, left=BinaryTree(0.9))),
+                 right=BinaryTree(120, BinaryTree(7), BinaryTree(4000)))
 ```
 
 
@@ -181,20 +212,28 @@ bst = BinaryTree(8,
 - Search and insert in a binary search tree, and explain when it is $O(\log n)$ or $O(n)$.
 :::
 
-# How many people work here? {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Think of a Vancouver animal {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-Your CEO wants the exact headcount by Friday.
+Pick one and keep it secret:
 
-There is no HR database. Each person only knows their own **direct reports**.
+orca, crab, salmon, crow, seagull, black bear, raccoon, squirrel, banana slug
 
 ::: {.fragment}
-How would you get the number? 🤔
+I'll guess it with a few yes/no questions.
+:::
+
+::: {.fragment}
+How can a few questions be enough?
 :::
 
 ::: {.notes}
-- Let them suggest. Walk around with a clipboard? Who do you ask first?
-- Steer towards: the CEO asks each VP "how many people are in your team?", and each VP does the same.
-- Don't name recursion yet. We come back to this question after the break.
+- Play it live with one student, then with the whole room (an iClicker yes/no works too).
+- Follow the tree. Yes first, then no:
+  - In water? yes: Mammal? yes: orca. no: Has a shell? yes: crab, no: salmon.
+  - In water? no: Can fly? yes: All black? yes: crow, no: seagull.
+  - Can fly? no: Bigger than you? yes: black bear. no: Wears a mask? yes: raccoon. no: Bushy tail? yes: squirrel, no: banana slug.
+- Then: Akinator (akinator.com) does the same with thousands of characters. How could that work?
+- Don't show the tree yet. That is the next slide.
 :::
 
 ::: footer
@@ -203,53 +242,64 @@ Image generated by OpenAI GPT-image-2.5-sunburst
 
 ```{python}
 #| echo: false
-# Hidden: the "draw the org chart" step-through on the next slide. The path and the cycle
+# Hidden: the "draw the questions" step-through on the next slide. The paths and the cycle
 # come from networkx; every colour role and sentence is worked out here, OJS only draws.
-def org_roles(nodes=None, edges=None, labels=None, show_edges=True, extra=()):
-    """Colour roles keyed by person (nodes) and by the child end of each line (edges)."""
+def game_roles(nodes=None, edges=None, labels=None, show_edges=True, extra=()):
+    """Colour roles keyed by node (nodes) and by the child end of each edge (edges)."""
     return {"node_roles": nodes or {}, "edge_roles": edges or {}, "labels": labels or {},
             "show_edges": show_edges, "extra": list(extra)}
 
 
-def line_children(path):
-    """The lines on a path, each named by its child end."""
-    return [v if boss_of.get(v) == u else u for u, v in zip(path, path[1:])]
+def edge_children(path):
+    """The edges on a path, each named by its child end."""
+    return [v if parent_of.get(v) == u else u for u, v in zip(path, path[1:])]
 
 
-one_path = nx.shortest_path(org_tree, "ada", "bubbles")
-second_boss = ("clam", "kelp")                      # what if kelp also reported to clam?
-loop = nx.shortest_path(org_tree, "kelp", "clam")   # kelp, otter, sky, clam
-extra_line = {"x1": org_pos["clam"][0], "y1": org_pos["clam"][1],
-              "x2": org_pos["kelp"][0], "y2": org_pos["kelp"][1]}
+def answers_on(path):
+    """The yes/no answers you give walking down a path from the top."""
+    return [["yes", "no"][game[q].index(a)] for q, a in zip(path, path[1:])]
+
+
+raccoon_path = nx.shortest_path(game_graph, top, "raccoon")
+one_path = nx.shortest_path(game_graph, "crow", "salmon")
+loop = nx.shortest_path(game_graph, top, "Bushy tail?")   # down to Bushy tail?, then back up
+extra_line = {"x1": game_pos["Bushy tail?"][0], "y1": game_pos["Bushy tail?"][1],
+              "x2": game_pos[top][0], "y2": game_pos[top][1]}
 
 draw_steps = [
-    {**org_roles(show_edges=False),
-     "say": f"{n_people} people work at the company. Who reports to whom?"},
-    {**org_roles({ceo: "root"}),
-     "say": f"Draw a line from each boss down to each direct report. The CEO, {ceo}, goes on top."},
-    {**org_roles({u: "path" for u in one_path}, {c: "path" for c in line_children(one_path)}),
-     "say": f"From ada to bubbles there is exactly one path: {' → '.join(one_path)}."},
-    {**org_roles({u: "path" for u in loop}, {c: "path" for c in line_children(loop)}, extra=[extra_line]),
-     "say": f"What if kelp also reported to clam? {' → '.join(loop + ['kelp'])} goes around in a loop: "
-            "a cycle. Now kelp has two paths up to the CEO."},
+    {**game_roles(show_edges=False),
+     "say": f"{n_questions} questions and {n_animals} animals. Which question comes after which?"},
+    {**game_roles({top: "root"}),
+     "say": f"Draw an edge from each question down to its two answers: yes on the left, no on the right. "
+            f"The first question, {top}, goes on top."},
+    {**game_roles({u: "path" for u in raccoon_path}, {c: "path" for c in edge_children(raccoon_path)}),
+     "say": f"Thinking of a raccoon? You answer {', '.join(answers_on(raccoon_path))}: "
+            f"{' → '.join(raccoon_path)}. One path from the top."},
+    {**game_roles({u: "path" for u in one_path}, {c: "path" for c in edge_children(one_path)}),
+     "say": f"From crow to salmon there is exactly one path: {' → '.join(one_path)}."},
+    {**game_roles({u: "path" for u in loop}, {c: "path" for c in edge_children(loop)}, extra=[extra_line]),
+     "say": f"What if one answer to Bushy tail? sent you back to the first question? {' → '.join(loop + [top])} "
+            "goes round in a loop: a cycle. The game could ask forever."},
 ]
 for k, step in enumerate(draw_steps):
     step["count"] = f"Step {k} of {len(draw_steps) - 1}"
 ojs_define(draw_steps = draw_steps)
 ```
 
-## Draw the org chart {style="font-size: 0.8em;"}
+## Draw the questions {style="font-size: 0.8em;"}
 
 ```{ojs}
 //| echo: false
 // Draw only: a tree laid out in Python, with colour roles and labels from Python.
 // Orange: running now or on a path. Light blue: waiting. Blue: done or in the subtree. Dark: root or parent.
+// Edges may carry a yes/no answer (text) and nodes a display name, both from Python.
 draw_tree = (lay, s, {width = 860, height = 290, r = 14} = {}) => {
   const fill = {now: "#eb6834", path: "#eb6834", pick: "#eb6834", waiting: "#a9c8ef",
                 done: "#2a78d6", friend: "#2a78d6", root: "#52514e", you: "#52514e", other: "#b8b6b0"};
   const stroke = {path: "#eb6834", found: "#2a78d6", friend: "#2a78d6", base: "#d9d8d4"};
   const labels = s.labels ?? {};
-  const nodes = lay.nodes.map(d => ({...d, role: s.node_roles[d.id] ?? "other", label: labels[d.id] ?? d.id}))
+  const nodes = lay.nodes.map(d => ({...d, role: s.node_roles[d.id] ?? "other",
+                                     label: labels[d.id] ?? d.name ?? d.id}))
                          .filter(d => d.role !== "hidden");
   const edges = s.show_edges === false ? [] :
     lay.edges.map(d => ({...d, role: s.edge_roles[d.child] ?? "base"})).filter(d => d.role !== "hidden");
@@ -260,6 +310,10 @@ draw_tree = (lay, s, {width = 860, height = 290, r = 14} = {}) => {
     marks: [
       Plot.link(edges, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: d => stroke[d.role],
                         strokeWidth: d => d.role === "base" ? 2 : 4}),
+      Plot.text(edges.filter(d => d.text === "yes"), {x: "mx", y: "my", text: "text", dx: -8,
+                                                      textAnchor: "end", fill: "#8a8880"}),
+      Plot.text(edges.filter(d => d.text === "no"), {x: "mx", y: "my", text: "text", dx: 8,
+                                                     textAnchor: "start", fill: "#8a8880"}),
       Plot.link(s.extra ?? [], {x1: "x1", y1: "y1", x2: "x2", y2: "y2", stroke: "#eb6834",
                                 strokeWidth: 4, strokeDasharray: "8,6"}),
       Plot.dot(nodes, {x: "x", y: "y", r, fill: d => fill[d.role], stroke: "white", strokeWidth: 2}),
@@ -285,18 +339,19 @@ viewof draw_step = Inputs.button([
   // Print and draw only: the sentence and colours were worked out in Python (draw_steps).
   const s = draw_steps[draw_step];
   return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
-    ${draw_tree(org_layout, s)}`;
+    ${draw_tree(game_layout, s, {height: 400})}`;
 }
 ```
 
 ::: {.fragment}
-Connected, with no cycles: exactly one path between any two people. That is a **tree**.
+Connected, with no cycles: exactly one path between any two nodes. That is a **tree**.
 :::
 
 ::: {.notes}
-- Step 2: ask them to find another path from ada to bubbles. There is none.
-- Step 3: two bosses breaks it. In a tree, everyone has exactly one boss.
-- Lecture 4: the lines BFS walked along also formed a tree.
+- Step 2: every animal has one path from the top. That path is the list of answers you give.
+- Step 3: ask them to find another path from crow to salmon. There is none.
+- Step 4: a cycle breaks it. In a tree, every node has exactly one parent.
+- Lecture 4: the edges BFS walked along also formed a tree.
 :::
 
 ## What is a tree? {style="font-size: 0.85em;"}
@@ -311,35 +366,37 @@ We draw it upside down: the root at the top, the leaves at the bottom.
 
 ```{python}
 #| echo: false
-# Hidden: parent, children, subtree and depth of every person, for the "Tree words" slide.
-def team_of(p):
-    """p plus everyone below p: the subtree that starts at p."""
-    return [p] + [d for kid in reports.get(p, []) for d in team_of(kid)]
+# Hidden: parent, children, subtree and depth of every node, for the "Tree words" slide.
+def subtree_of(u):
+    """u plus everything below u: the subtree that starts at u."""
+    return [u] + [d for kid in game.get(u, []) for d in subtree_of(kid)]
 
 
 word_views = {}
-for p in org_layout["nodes"]:
-    p = p["id"]
-    team = team_of(p)
-    kids = reports.get(p, [])
-    nodes = {u: "friend" for u in team}
-    if p in boss_of:
-        nodes[boss_of[p]] = "you"
-    nodes[p] = "pick"
-    facts = ["the root, no parent" if p == ceo else f"parent {boss_of[p]}",
-             f"children {names(kids)}" if kids else "no children, so a leaf",
-             "subtree: the whole company" if p == ceo else f"subtree {names(team)}",
-             f"depth {org_depth[p]}"]
-    word_views[p] = {"node_roles": nodes, "edge_roles": {c: "friend" for c in team if c != p},
-                     "say": f"{p}: " + ", ".join(facts) + "."}
-ojs_define(word_views = word_views, word_choices = [d["id"] for d in org_layout["nodes"]])
+for u in game_layout["nodes"]:
+    u = u["id"]
+    sub = subtree_of(u)
+    kids = game.get(u, [])
+    sub_animals = [a for a in sub if a not in game]
+    roles = {v: "friend" for v in sub}
+    if u in parent_of:
+        roles[parent_of[u]] = "you"
+    roles[u] = "pick"
+    facts = ["the root, no parent" if u == top else f"parent {parent_of[u]}",
+             f"children {names(kids)}" if kids else "no children, so a leaf: an animal",
+             "subtree: the whole tree" if u == top
+             else f"subtree of {len(sub)} nodes with {len(sub_animals)} animals" if kids else f"subtree just {u}",
+             f"depth {game_depth[u]}" + ("" if u == top else f": {game_depth[u]} question{'s' if game_depth[u] > 1 else ''} to get here")]
+    word_views[u] = {"node_roles": roles, "edge_roles": {c: "friend" for c in sub if c != u},
+                     "say": f"{u}: " + ", ".join(facts) + "."}
+ojs_define(word_views = word_views, word_choices = [d["id"] for d in game_layout["nodes"]])
 ```
 
 ## Tree words {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
-viewof word_pick = Inputs.select(word_choices, {value: "nori", label: "person"})
+viewof word_pick = Inputs.select(word_choices, {value: "Wears a mask?", label: "node"})
 ```
 
 ```{ojs}
@@ -347,24 +404,24 @@ viewof word_pick = Inputs.select(word_choices, {value: "nori", label: "person"})
 {
   // Print and draw only: every fact and colour was worked out in Python (word_views).
   const s = word_views[word_pick];
-  return html`<div class="ojs-readout">${s.say}</div>${draw_tree(org_layout, s, {height: 240})}`;
+  return html`<div class="ojs-readout">${s.say}</div>${draw_tree(game_layout, s, {height: 380})}`;
 }
 ```
 
 ::: {.incremental}
-- Root: the top node, with no parent. The CEO.
-- Parent: the node directly above (dark). Your boss.
-- Children: the nodes directly below. Your direct reports.
-- Leaf: a node with no children.
+- Root: the top node, with no parent. The first question.
+- Parent: the node directly above (dark). Children: the nodes directly below.
+- Leaf: a node with no children. Here, an animal: the game stops.
 - Subtree: a node plus everything below it (blue). Every subtree is a **tree**.
-- Height: edges on the longest path from the root down to a leaf. Here: `{python} org_height`.
+- Height: edges on the longest path from the root down to a leaf. Here: `{python} game_height`.
 - Balanced: at every node, the subtrees have about the same height.
 :::
 
 ::: {.notes}
-- Pick a leaf (kelp) and the root (sky) to contrast.
-- A subtree is a team: clam's subtree is clam's whole department.
-- Depth counts edges down from the root. Height is the largest depth.
+- Pick a leaf (orca) and the root (In water?) to contrast.
+- A subtree is the rest of the game after one answer: say no to "In water?" and you play the Can fly? subtree.
+- Depth counts edges down from the root: the number of questions asked so far. Height is the largest depth.
+- Not balanced: orca takes 2 questions, squirrel takes 5.
 :::
 
 ## iClicker: how many edges? {style="font-size: 0.8em;"}
@@ -377,17 +434,23 @@ A tree has $V$ nodes. How many edges does it have?
 - \(D) $\frac{V(V-1)}{2}$
 
 ::: {.fragment}
-- Answer: **A**. Everyone except the CEO has exactly one line up to their boss.
+- Answer: **A**. Every node except the root has exactly one edge up to its parent.
 - Add one edge: a cycle. Remove one: two pieces. A tree is the cheapest way to connect $V$ nodes.
 :::
 
 ```{pyodide}
-reports = {"sky": ["otter", "clam"], "otter": ["kelp", "nori", "mochi"],
-           "clam": ["bubbles", "pixel"], "nori": ["ada", "waffle"], "pixel": ["river"]}
+game = {"In water?": ["Mammal?", "Can fly?"],          # question: [yes answer, no answer]
+        "Mammal?": ["orca", "Has a shell?"],
+        "Has a shell?": ["crab", "salmon"],
+        "Can fly?": ["All black?", "Bigger than you?"],
+        "All black?": ["crow", "seagull"],
+        "Bigger than you?": ["bear", "Wears a mask?"],
+        "Wears a mask?": ["raccoon", "Bushy tail?"],
+        "Bushy tail?": ["squirrel", "slug"]}
 
-G = nx.Graph([(boss, name) for boss, team in reports.items() for name in team])
+G = nx.Graph([(question, answer) for question, answers in game.items() for answer in answers])
 print("is it a tree?", nx.is_tree(G))   # connected and no cycles
-print(G.number_of_nodes(), "people,", G.number_of_edges(), "reporting lines")
+print(G.number_of_nodes(), "nodes,", G.number_of_edges(), "edges")
 ```
 
 ::: {.notes}
@@ -400,10 +463,10 @@ print(G.number_of_nodes(), "people,", G.number_of_edges(), "reporting lines")
 ::: {.column width="55%"}
 ::: {.incremental}
 - File systems: folders inside folders.
-- Org charts: each employee has one boss.
-- Web pages: HTML tags nested inside tags.
-- Machine learning: decision trees, random forests (DSCI 571, 573).
-- Fast search: binary search trees (lecture 6), heaps, the B-trees inside databases.
+- Web pages and JSON: tags inside tags, dicts inside lists.
+- Comment threads: replies to replies.
+- Machine learning: our animal game is a **decision tree** (DSCI 571, 573).
+- Fast search: binary search trees (later today), the B-trees inside databases.
 :::
 :::
 ::: {.column width="45%"}
@@ -444,14 +507,14 @@ class Node:
 ```
 
 ```{pyodide}
-people = {"sky": Node("sky")}            # name -> Node, starting with the CEO
-for boss, team in reports.items():
-    for name in team:
-        people[name] = Node(name)
-        people[boss].add_child(people[name])
+nodes = {"In water?": Node("In water?")}    # text -> Node, starting with the first question
+for question, answers in game.items():
+    for answer in answers:                   # the yes answer, then the no answer
+        nodes[answer] = Node(answer)
+        nodes[question].add_child(nodes[answer])
 
-ceo = people["sky"]
-ceo.print_tree()
+root = nodes["In water?"]
+root.print_tree()
 ```
 
 ::: {.fragment}
@@ -460,7 +523,7 @@ Look at `print_tree`: it calls **itself**. Hold that thought.
 
 ::: {.notes}
 - `networkx` treats a tree as just another graph. A `Node` class is the usual way to write one by hand.
-- It works because every subtree is a tree: printing a team is printing the boss, then printing each smaller team.
+- It works because every subtree is a tree: printing a question is printing the question, then printing the game after each answer.
 :::
 
 # A function that calls itself {style="font-size: 0.8em;"}
@@ -469,9 +532,9 @@ Look at `print_tree`: it calls **itself**. Hold that thought.
 About 25 minutes for this section. Go slowly: this is the core of the lecture.
 :::
 
-## A random org chart {style="font-size: 0.7em;"}
+## Grow a random tree {style="font-size: 0.7em;"}
 
-Each V is a boss with 2 reports. At each tip: a person with no reports (a shape), or another boss (another V).
+A branch splits in two. At each tip: a leaf (a shape), or another branch that splits again (another V).
 
 ```{pyodide}
 def vee(x=0, y=0, angle=0, length=1):
@@ -499,6 +562,7 @@ plt.show()
 ::: {.notes}
 - `move_pen` and `draw_shape` are small helpers from the lecture notes.
 - `vee` never draws the whole tree. It draws one V and hands the rest to `vee`.
+- Real trees grow like this: every branch is a smaller tree. Show a fern or a Romanesco broccoli if you have one.
 - Change the seed a few times live.
 - Credit: idea from Paul Goldenberg, shown to us by Dan Garcia.
 :::
@@ -519,7 +583,7 @@ plt.show()
 
 ## Functions that call functions {style="font-size: 0.8em;"}
 
-Like the CEO asking a VP, who asks a manager.
+A function can call another function, which calls another.
 
 ```{pyodide}
 def h():
@@ -711,7 +775,7 @@ for n in range(4):
 
 ::: {.notes}
 - f(0), f(1), f(2) work. f(3) needs i, which doesn't exist: NameError.
-- Like a CEO, a VP and a manager all doing the same thing: ask the next person, add 1.
+- All three do the same thing: ask the next one, add 1.
 :::
 
 ## A function that calls itself {style="font-size: 0.8em;"}
@@ -818,7 +882,8 @@ print("most calls allowed on the stack:", sys.getrecursionlimit())
 :::
 
 ::: {.notes}
-- In the org chart: a circular reporting line. kelp asks clam, clam asks kelp, and nobody ever answers.
+- In the animal game: the cycle from "Draw the questions". The game asks the same questions forever and never guesses.
+- Like two mirrors facing each other: reflections of reflections, with no end.
 - Yes, that is where the website Stack Overflow got its name.
 :::
 
@@ -844,23 +909,49 @@ What are the time and space complexity of `f(n)` for $n \geq 0$?
 - Space: all $n + 1$ calls wait on the stack at the deepest point. Recursion uses memory even with no list.
 :::
 
-# Back to the CEO's question {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Back to the animal game {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-Every subtree is a tree. So to answer a question about a tree:
+Every subtree is a tree: after one answer, the rest is a smaller game. So to answer a question about a tree:
 
 ::: {.incremental}
-1. Ask each child's subtree (recursion).
-2. Combine their answers with the current node.
+1. At a leaf, answer directly (base case).
+2. Otherwise, ask the child subtrees you need (recursion), and combine their answers.
 :::
 
 ::: footer
 Image generated by OpenAI GPT-image-2.5-sunburst
 :::
 
+## How does the game play? {style="font-size: 0.8em;"}
+
+```{pyodide}
+def play(node, answers):
+    if not node.children:                  # base case: a leaf, so guess the animal
+        return "Is it a " + node.data + "?"
+    print(node.data, answers[0])
+    yes, no = node.children
+    if answers[0] == "yes":
+        return play(yes, answers[1:])      # the rest of the game, after a yes
+    else:
+        return play(no, answers[1:])       # the rest of the game, after a no
+
+play(root, ["no", "no", "no", "yes"])      # thinking of a raccoon
+```
+
+::: {.fragment}
+One call per question, straight down **one** path. At most `{python} game_height` questions.
+:::
+
+::: {.notes}
+- Try other answers live. Which animal is `["yes", "no", "no"]`? Salmon.
+- Each call plays a smaller game: the subtree after one answer.
+- Remember this shape, one call per level. Searching a BST later today works exactly the same way.
+:::
+
 ```{python}
 #| echo: false
-# Hidden: the "count the whole company" step-through. An instrumented count_nodes walks the
-# org chart exactly like the visible one and records the call stack and every answer.
+# Hidden: the "how many animals" step-through. An instrumented count_leaves walks the
+# animal game exactly like the visible one and records the call stack and every answer.
 def record_count(children, root):
     stack, answer, steps = [], {}, []
 
@@ -880,29 +971,29 @@ def record_count(children, root):
         kids = children.get(node, [])
         if not kids:
             answer[node] = 1
-            snap(f"{node} has no reports, so {node} answers 1 right away. That is the base case.")
+            snap(f"{node} is an animal, so it answers 1 right away. That is the base case.")
         else:
-            snap(f"{node} asks {names(kids)}: how many people are in your team?")
+            snap(f"{node} asks its yes side, then its no side: how many animals are below you?")
             for kid in kids:
                 count(kid)
-            answer[node] = 1 + sum(answer[k] for k in kids)
-            snap(f"{node} adds it up: 1 for {node}, plus "
-                 f"{' + '.join(str(answer[k]) for k in kids)} = {answer[node]}.")
+            answer[node] = sum(answer[k] for k in kids)
+            snap(f"{node} adds them up: {' + '.join(str(answer[k]) for k in kids)} = {answer[node]} animals.")
         stack.pop()
 
-    steps.append({"say": f"The CEO, {root}, needs the headcount.", "node_roles": {},
-                  "edge_roles": {}, "labels": {}, "boxes": []})
+    steps.append({"say": f"How many animals does the game know? Ask the first question, {root}.",
+                  "node_roles": {}, "edge_roles": {}, "labels": {}, "boxes": []})
     count(root)
-    steps[-1]["say"] += f" Done: {answer[root]} people, and nobody saw the whole chart."
+    steps[-1]["say"] += f" Done: {answer[root]} animals, and no node saw the whole tree."
     for k, step in enumerate(steps):
         step["count"] = f"Step {k} of {len(steps) - 1}"
     return steps
 
 
-ojs_define(count_steps = record_count(reports, ceo))
+ojs_define(count_steps = record_count(game, top))
+max_animals = f"{2 ** 20:,}"   # for the "20 questions" slide
 ```
 
-## Count the whole company {style="font-size: 0.75em;"}
+## How many animals does it know? {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
@@ -920,38 +1011,40 @@ viewof count_step = Inputs.button([
   const s = count_steps[count_step];
   const boxes = s.boxes.map(b => html`<div class="ds-box ${b.cls}">${b.label}</div>`);
   return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
-    ${draw_tree(org_layout, s, {height: 270})}
+    ${draw_tree(game_layout, s, {height: 380})}
     <div class="ds-row center"><span class="ds-caption">call stack (top on the right):</span>
       ${boxes.length ? boxes : html`<span class="ds-caption">empty</span>`}</div>`;
 }
 ```
 
 ::: {.notes}
-- Orange: asking or answering now. Light blue: waiting for answers. Blue: has answered, with the size of the team.
-- The call stack is the chain of bosses waiting, from the CEO down to the person asked now.
-- Python visits the people depth-first, like DFS in lecture 4.
+- Orange: asking or answering now. Light blue: waiting for answers. Blue: has answered, with its number of animals.
+- The call stack is the chain of questions waiting, from the first question down to the node asked now.
+- Unlike `play`, this asks **both** sides, so it visits every node. Depth-first, like DFS in lecture 4.
 :::
 
 ## Count it in code {style="font-size: 0.8em;"}
 
 ```{pyodide}
-def count_nodes(node):
-    total = 1                          # count this node
+def count_leaves(node):
+    if not node.children:              # base case: a leaf is one animal
+        return 1
+    total = 0
     for child in node.children:
-        total += count_nodes(child)    # plus everyone in this child's subtree
+        total += count_leaves(child)   # animals in this child's subtree
     return total
 
-count_nodes(ceo)
+count_leaves(root)
 ```
 
 ::: {.incremental}
-- Where is the base case? A leaf has no children: the loop does nothing, and it returns 1.
 - Every call is on a smaller subtree, so we always reach the leaves.
+- To count every node, questions too: start at `total = 1` and drop the `if`. That gives `{python} n_nodes`.
 :::
 
-## Question: how many levels? {style="font-size: 0.8em;"}
+## Question: the most questions? {style="font-size: 0.8em;"}
 
-Write `height(node)`: the number of edges on the longest path from `node` down to a leaf.
+Write `height(node)`: the number of edges on the longest path from `node` down to a leaf. That is the most questions the game ever asks.
 
 Hint: what is the height of a leaf? If you know each child's height, what is yours?
 
@@ -959,7 +1052,7 @@ Hint: what is the height of a leaf? If you know each child's height, what is you
 def height(node):
     ...
 
-print(height(ceo))   # should print 3
+print(height(root))   # should print 5
 ```
 
 ::: {.fragment}
@@ -973,12 +1066,35 @@ def height(node):
 
 ::: {.notes}
 - Give them 3 minutes in pairs.
-- sky → otter → nori → ada: 3 edges.
+- In water? → Can fly? → Bigger than you? → Wears a mask? → Bushy tail? → squirrel: 5 edges.
+:::
+
+## Question: 20 questions? {style="font-size: 0.8em;"}
+
+Every question splits the animals into two groups. With 20 questions, how many animals can a game tell apart, at most?
+
+::: {.fragment}
+$2 \times 2 \times \dots \times 2 = 2^{20}$ = `{python} max_animals`. Scientists have named over a million animal species.
+:::
+
+::: {.fragment}
+Flip it: $n$ animals need only about $\log_2 n$ questions, **if** the tree is balanced.
+:::
+
+::: {.fragment}
+Our `{python} n_animals` animals: `{python} balanced_questions` questions would do. Our tree asks up to `{python} game_height`.
+:::
+
+::: {.notes}
+- Halving again and again is binary search. That is next.
+- Akinator plays with a much bigger tree, and it guesses well when its questions split the candidates about in half.
 :::
 
 # Binary search, revisited {style="font-size: 0.8em;"}
 
-Find employee 212 in the sorted company directory. Lecture 2: keep cutting the rack in half.
+Now give the animals an order: line them up from lightest to heaviest.
+
+A ranger weighs an animal: 90 kg. Is that weight in our field guide? Lecture 2: keep cutting the line in half.
 
 ## Two ways to write it {style="font-size: 0.7em;"}
 
@@ -1039,18 +1155,25 @@ def binary_search(data, key):
     else:
         return binary_search(data[mid:], key)
 
-ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
-assert binary_search(ids, 212)        # in the middle somewhere
-assert binary_search(ids, 102)        # the first ID
-assert binary_search(ids, 259)        # the last ID
-assert not binary_search(ids, 300)    # bigger than everything
-assert not binary_search([], 5)       # empty list
+animals = ["hummingbird", "banana slug", "crow", "squirrel", "crab", "seagull", "salmon", "bald eagle",
+           "raccoon", "beaver", "cougar", "harbour seal", "black bear", "sea lion", "orca", "humpback whale"]
+weights = [0.004, 0.1, 0.4, 0.6, 0.9, 1.1, 3, 4.5, 7, 20, 60, 90, 120, 600, 4000, 30000]   # kg, lightest first
+
+assert binary_search(weights, 90)          # the harbour seal, in the middle somewhere
+assert binary_search(weights, 0.004)       # the first: hummingbird
+assert binary_search(weights, 30000)       # the last: humpback whale
+assert not binary_search(weights, 13)      # no 13 kg animal in the guide
+assert not binary_search([], 5)            # empty list
 print("all tests passed")
 ```
 
+::: {.notes}
+- Weights are rough adult averages. Close enough for a field guide.
+:::
+
 ## Question: is it $O(\log n)$? {style="font-size: 0.85em;"}
 
-How many times does `binary_search` call itself on $n$ IDs? Does that make it $O(\log n)$, like the loop?
+How many times does `binary_search` call itself on $n$ weights? Does that make it $O(\log n)$, like the loop?
 
 ::: {.fragment}
 - About $\log_2 n$ calls: each one cuts the list in half.
@@ -1060,14 +1183,14 @@ How many times does `binary_search` call itself on $n$ IDs? Does that make it $O
 ```{python}
 #| echo: false
 # Hidden: the "photocopy" step-through on the next slide. An instrumented copy of the visible
-# binary_search (same slicing, same ids and key) records each call's list and how many IDs
-# it copies for the next call.
-copy_ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
-copy_key = 212
+# binary_search (same slicing, same weights and key) records each call's list and how many
+# weights it copies for the next call.
+copy_weights = [0.004, 0.1, 0.4, 0.6, 0.9, 1.1, 3, 4.5, 7, 20, 60, 90, 120, 600, 4000, 30000]
+copy_key = 90
 copy_calls = []
 
 def binary_search_logged(data, key, start=0):
-    """start: where data begins in copy_ids, so each call can be drawn in place."""
+    """start: where data begins in copy_weights, so each call can be drawn in place."""
     call = {"start": start, "data": data, "mid": None, "copied": 0, "found": False}
     copy_calls.append(call)
     if len(data) == 0:
@@ -1083,33 +1206,33 @@ def binary_search_logged(data, key, start=0):
     call["copied"] = len(data) - mid
     return binary_search_logged(data[mid:], key, start + mid)
 
-binary_search_logged(copy_ids, copy_key)
+binary_search_logged(copy_weights, copy_key)
 
 copy_rows = []
 for k, call in enumerate(copy_calls, start=1):
     boxes = []
-    for slot in range(len(copy_ids)):
+    for slot in range(len(copy_weights)):
         i = slot - call["start"]
         if 0 <= i < len(call["data"]):
             cls = "found" if call["found"] else "end" if i == call["mid"] else ""
-            boxes.append({"label": copy_ids[slot], "cls": cls})
+            boxes.append({"label": copy_weights[slot], "cls": cls})
         else:
             boxes.append({"label": "", "cls": "sq-empty"})
     copy_rows.append({"name": f"call {k}", "boxes": boxes,
                       "note": "found!" if call["found"] else f"copies {call['copied']}"})
 
 copy_total = sum(c["copied"] for c in copy_calls)
-copy_steps = [{"rows": [], "say": f"{len(copy_ids)} sorted IDs. Find {copy_key}."}]
+copy_steps = [{"rows": [], "say": f"{len(copy_weights)} sorted weights (kg). Find {copy_key}."}]
 for k, call in enumerate(copy_calls, start=1):
     n_here = len(call["data"])
     if call["found"]:
         copied = " + ".join(str(c["copied"]) for c in copy_calls if c["copied"])
-        say = (f"Call {k} gets 1 ID: {copy_key}. Found! IDs copied in total: {copied} = {copy_total}, "
-               f"about n = {len(copy_ids)}.")
+        say = (f"Call {k} gets 1 weight: {copy_key}. Found! Weights copied in total: {copied} = {copy_total}, "
+               f"about n = {len(copy_weights)}.")
     else:
         middle = call["data"][call["mid"]]
         side = "left" if copy_key < middle else "right"
-        say = (f"Call {k} gets {'the list' if k == 1 else 'a copy'} of {n_here} IDs. The middle is {middle}, "
+        say = (f"Call {k} gets {'the list' if k == 1 else 'a copy'} of {n_here} weights. The middle is {middle}, "
                f"so it copies the {side} {call['copied']} for the next call.")
     copy_steps.append({"rows": copy_rows[:k], "say": say})
 for k, step in enumerate(copy_steps):
@@ -1146,8 +1269,8 @@ viewof copy_step = Inputs.button([
 :::
 
 ::: {.notes}
-- Orange: the middle ID of each call.
-- Like photocopying half the directory before handing it to an assistant, instead of saying "look at pages 9 to 16".
+- Orange: the middle weight of each call.
+- Like photocopying half the field guide before handing it to an assistant, instead of saying "look at pages 9 to 16".
 - Recursion makes code shorter, but you still have to count what each line costs.
 - The fixed version is a bonus slide.
 :::
@@ -1164,16 +1287,16 @@ Anything you write with recursion, you can write with a loop. Pick the clearer o
 | limit in Python | none | about 1,000 calls deep |
 | good for | the same step for each item | problems made of smaller copies: trees, binary search, fractals |
 
-# Keep the directory sorted {background-image="images/li_orgchart_openai.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Keep the field guide sorted {background-image="images/lec05_weigh_in.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
-New hires join every week. Binary search needs the directory sorted.
+A coyote moves onto campus: 13 kg. Binary search needs the line-up sorted.
 
 ::: {.fragment}
-`list.insert` keeps it sorted, but shifts every ID after the new one over: $O(n)$ per new hire.
+`list.insert` keeps it sorted, but shifts every heavier animal over: $O(n)$ per new animal.
 :::
 
 ::: {.fragment}
-Can a tree keep it sorted **and** fast to search? 🤔
+Can a tree keep it sorted **and** fast to search?
 :::
 
 ::: {.notes}
@@ -1213,8 +1336,12 @@ print(tree.left.right.item)   # 2's right child
 `left` and `right` are binary trees too. The nesting in the code matches the picture.
 :::
 
+::: {.fragment}
+The animal game was one all along: left is yes, right is no.
+:::
+
 ::: {.notes}
-- Our org chart `Node` had a list of any number of children. A binary tree node has exactly two slots, and either one can be `None`.
+- Our game `Node` had a list of children. A binary tree node has exactly two slots, and either one can be `None`.
 :::
 
 ## Is it in the tree? {style="font-size: 0.8em;"}
@@ -1243,7 +1370,7 @@ A binary tree has $n$ nodes. What is the worst-case time complexity of `contains
 
 ::: {.fragment}
 - Answer: **C**. The item could be anywhere, so we may check every node. No faster than a list.
-- To do better, we need to know which **side** to look on.
+- To do better, we need to know which **side** to look on. The animal game knew: each answer sent it to one side.
 :::
 
 ## Binary search tree {style="font-size: 0.8em;"}
@@ -1263,17 +1390,18 @@ Check node 3 on the right: 1 below it on the left is smaller. 6, 4 and 7 on the 
 
 ::: {.notes}
 - Both are binary trees. Only the right one is a BST.
+- A BST is a question tree where every question is the same kind: "lighter than this animal?"
 - Items must be comparable with `<`. Numbers work, and so do strings: "apple" < "banana".
 :::
 
 ## Search a BST {style="font-size: 0.75em;"}
 
-Binary search again: smaller, go left. Bigger, go right. Never look at the other side.
+Binary search again: lighter, go left. Heavier, go right. Never look at the other side.
 
 ```{pyodide}
-bst = BinaryTree(8,
-                 left=BinaryTree(3, BinaryTree(1), BinaryTree(6, BinaryTree(4), BinaryTree(7))),
-                 right=BinaryTree(10, right=BinaryTree(14, left=BinaryTree(13))))
+bst = BinaryTree(3,    # weights in kg: salmon at the root
+                 left=BinaryTree(0.6, BinaryTree(0.1, right=BinaryTree(0.4)), BinaryTree(1.1, left=BinaryTree(0.9))),
+                 right=BinaryTree(120, BinaryTree(7), BinaryTree(4000)))
 
 def bst_contains(node, item):
     if node is None:              # base case: fell off the tree, so it is not here
@@ -1286,18 +1414,33 @@ def bst_contains(node, item):
     else:
         return bst_contains(node.right, item)   # bigger: it can only be on the right
 
-bst_contains(bst, 7)
+bst_contains(bst, 7)   # the raccoon
 ```
 
 ::: {.notes}
-- One recursive call runs each time, not two: that is the difference from `contains`.
+- One recursive call runs each time, not two: that is the difference from `contains`. It is `play` from the animal game.
+- The tree: salmon 3 at the root. Left: squirrel 0.6, slug 0.1, crow 0.4, seagull 1.1, crab 0.9. Right: bear 120, raccoon 7, orca 4000.
 :::
 
 ```{python}
 #| echo: false
 # Hidden: the BST step-throughs on the next slides (search, insert and the speed chart).
 # Trees are built with the same insert rule as the notes; every path, position and
-# sentence is worked out here, OJS only draws.
+# sentence is worked out here, OJS only draws. Items are weights in kg.
+animal_of = {0.1: "slug", 0.4: "crow", 0.6: "squirrel", 0.9: "crab", 1.1: "seagull", 3: "salmon",
+             7: "raccoon", 13: "coyote", 120: "bear", 4000: "orca"}
+
+
+def tag(w):
+    """3 -> "salmon 3": the label drawn on a node."""
+    return f"{animal_of[w]} {w:g}"
+
+
+def full(w):
+    """3 -> "salmon (3 kg)": for sentences."""
+    return f"{animal_of[w]} ({w:g} kg)"
+
+
 def bst_build(order):
     """Insert items one by one. Returns the children, the root, and one record per insert."""
     kids, root, records = {}, None, []
@@ -1326,7 +1469,7 @@ def bst_layout(kids, root, pad=0.6):
                 depth[c], parent[c] = depth[u] + 1, u
                 todo.append(c)
     rank = {u: i for i, u in enumerate(sorted(kids))}
-    return {"nodes": [{"id": str(u), "x": rank[u], "y": -depth[u]} for u in kids],
+    return {"nodes": [{"id": str(u), "name": tag(u), "x": rank[u], "y": -depth[u]} for u in kids],
             "edges": [{"child": str(c), "x1": rank[p], "y1": -depth[p], "x2": rank[c], "y2": -depth[c]}
                       for c, p in parent.items()],
             "x_domain": [-pad, len(kids) - 1 + pad],
@@ -1339,13 +1482,13 @@ def path_edges(path, role):
     return {str(c): role for c in path[1:]}
 
 
-# Search: the BST from the notes, built by inserting in this order.
-search_kids, search_root, _ = bst_build([8, 3, 10, 1, 6, 14, 4, 7, 13])
+# Search: the same BST as the visible bst, built by inserting in this order.
+search_kids, search_root, _ = bst_build([3, 0.6, 120, 0.1, 1.1, 7, 4000, 0.4, 0.9])
 search_layout = bst_layout(search_kids, search_root)
 search_layout.pop("parent")
 search_steps = {}
-for key in [7, 13, 5]:
-    steps = [{"say": f"Search for {key}. Start at the root, {search_root}.",
+for key in [7, 0.9, 13]:
+    steps = [{"say": f"Search for the {full(key)}. Start at the root, the {full(search_root)}.",
               "node_roles": {}, "edge_roles": {}}]
     node, visited = search_root, []
     while node is not None:
@@ -1353,42 +1496,43 @@ for key in [7, 13, 5]:
         roles = {str(u): "waiting" for u in visited}
         if key == node:
             roles[str(node)] = "done"
-            steps.append({"say": f"Visit {node}: found! {len(visited)} of {len(search_kids)} nodes visited.",
+            steps.append({"say": f"Visit the {animal_of[node]}: found! {len(visited)} of {len(search_kids)} "
+                                 "nodes visited.",
                           "node_roles": roles, "edge_roles": path_edges(visited, "path")})
             break
         side = "left" if key < node else "right"
         nxt = search_kids[node][side]
         roles[str(node)] = "now"
-        say = f"Visit {node}. {key} {'<' if side == 'left' else '>'} {node}, so go {side}"
-        say += "." if nxt is not None else f", but {node} has no {side} child."
+        say = f"Visit the {animal_of[node]}. {key:g} {'<' if side == 'left' else '>'} {node:g}, so go {side}"
+        say += "." if nxt is not None else f", but the {animal_of[node]} has no {side} child."
         steps.append({"say": say, "node_roles": roles, "edge_roles": path_edges(visited, "path")})
         node = nxt
     if visited[-1] != key:
-        steps.append({"say": f"Fell off the tree: {key} is not here. {len(visited)} of "
+        steps.append({"say": f"Fell off the tree: no {key:g} kg animal here. {len(visited)} of "
                              f"{len(search_kids)} nodes visited.",
                       "node_roles": {str(u): "waiting" for u in visited},
                       "edge_roles": path_edges(visited, "path")})
     for k, step in enumerate(steps):
         step["count"] = f"Step {k} of {len(steps) - 1}"
-    search_steps[key] = steps
+    search_steps[tag(key)] = steps
 ojs_define(search_view = {"layout": search_layout, "keys": list(search_steps), "steps": search_steps})
 
 # Insert: the two orders from the question, each drawn where its final tree will be.
 insert_views = {}
-for order in [[8, 1, 13, 9, 5942], [1, 2, 3, 4, 5]]:
+for order in [[3, 0.9, 120, 7, 4000, 13], [0.1, 0.4, 0.6, 0.9, 1.1]]:
     kids, root, records = bst_build(order)
     lay = bst_layout(kids, root)
     parent = lay.pop("parent")
-    name = ", ".join(map(str, order))
+    name = ", ".join(animal_of[w] for w in order)
     steps = [{"say": f"Insert {name} into an empty tree.",
               "node_roles": {str(u): "hidden" for u in kids},
               "edge_roles": {str(u): "hidden" for u in kids}}]
     placed = []
     for rec in records:
         item, path = rec["item"], rec["path"]
-        moves = [f"{item} {'<' if item < p else '>'} {p}, go {'left' if item < p else 'right'}" for p in path]
-        say = (f"Insert {item}: the tree is empty, so {item} is the root." if not path
-               else f"Insert {item}: " + ". ".join(moves) + f". Empty spot: {item} goes here.")
+        moves = [f"{item:g} {'<' if item < p else '>'} {p:g}, go {'left' if item < p else 'right'}" for p in path]
+        say = (f"Insert the {full(item)}: the tree is empty, so it is the root." if not path
+               else f"Insert the {full(item)}: " + ". ".join(moves) + ". Empty spot: it goes here.")
         placed.append(item)
         roles = {str(u): "hidden" for u in kids}
         roles.update({str(u): "other" for u in placed})
@@ -1415,17 +1559,17 @@ for k in range(2, 21):
     rows = [{"shape": "balanced", "visits": k, "label": f"{k:,} nodes"},
             {"shape": "sorted order: a stick", "visits": n, "label": f"{n:,} nodes"}]
     speed[k] = {"rows": rows, "x_max": n * 1.25,
-                "say": f"{n:,} IDs. Worst case, a balanced BST visits {k} nodes. The stick visits all {n:,}."}
+                "say": f"{n:,} animals. Worst case, a balanced BST visits {k} nodes. The stick visits all {n:,}."}
 ojs_define(speed_view = speed)
 ```
 
 ## Question: which nodes does it visit? {style="font-size: 0.75em;"}
 
-Predict first: `bst_contains(bst, 13)`? `bst_contains(bst, 5)`?
+Predict first: `bst_contains(bst, 0.9)`, the crab? `bst_contains(bst, 13)`, the coyote?
 
 ```{ojs}
 //| echo: false
-viewof search_key = Inputs.radio(search_view.keys, {value: 7, label: "search for"})
+viewof search_key = Inputs.radio(search_view.keys, {value: search_view.keys[0], label: "search for"})
 ```
 
 ```{ojs}
@@ -1454,17 +1598,17 @@ Each step goes **one level down**. The work depends on the tree's height, not on
 
 ::: {.notes}
 - Orange: the node we are at. Light blue: nodes visited on the way down (those calls are waiting on the stack). Blue: found.
-- 13: 8, 10, 14, 13. 5: 8, 3, 6, 4, then 4 has no right child: not here.
+- Crab 0.9: salmon 3, squirrel 0.6, seagull 1.1, crab 0.9. Coyote 13: salmon 3, bear 120, raccoon 7, then the raccoon has no right child: not here.
 :::
 
-## Insert a new hire {style="font-size: 0.8em;"}
+## Insert a new animal {style="font-size: 0.8em;"}
 
 To insert, **search** for it. Fall off the tree? That empty spot is where it goes.
 
-Start with an empty BST. Draw the tree after inserting, in this order:
+Start with an empty BST. Draw the tree after inserting these weights (kg), in this order:
 
-1. `8, 1, 13, 9, 5942`
-2. `1, 2, 3, 4, 5`
+1. salmon `3`, crab `0.9`, bear `120`, raccoon `7`, orca `4000`, coyote `13`
+2. slug `0.1`, crow `0.4`, squirrel `0.6`, crab `0.9`, seagull `1.1`
 
 ::: {.notes}
 - 2 minutes on paper, then the next slide.
@@ -1500,12 +1644,13 @@ viewof insert_step = Inputs.button([
 ```
 
 ::: {.fragment}
-Same items, different order, very different trees. Sorted order makes a stick.
+Different order, very different trees. Lightest to heaviest makes a stick.
 :::
 
 ::: {.notes}
 - Orange: the path walked down. Blue: the new node.
-- Nodes are drawn left to right in sorted order, so a BST always reads small to big across the page.
+- Nodes are drawn left to right in sorted order, so a BST always reads light to heavy across the page.
+- The stick is the worst guessing game ever: heavier than a slug? A crow? A squirrel? One question per animal.
 :::
 
 ## How fast is a BST? {style="font-size: 0.75em;"}
@@ -1544,7 +1689,7 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 :::
 
 ::: {.notes}
-- Slide to 20 levels: about a million IDs, 20 visits versus a million.
+- Slide to 20 levels: about a million animals, 20 visits versus a million. The 20 questions game again.
 - Deleting from a BST is trickier, and we skip it.
 :::
 
@@ -1553,7 +1698,8 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 | function | calls per step | how deep | time | space (call stack) |
 |---|---|---|---|---|
 | `f(n)`: count down to 0 | 1 | $n$ | $O(n)$ | $O(n)$ |
-| `count_nodes`: tree with $V$ nodes | one per child | the height | $O(V)$ | $O(\text{height})$ |
+| `play`: one path down a tree | 1 | the height | $O(\text{height})$ | $O(\text{height})$ |
+| `count_leaves`: tree with $V$ nodes | one per child | the height | $O(V)$ | $O(\text{height})$ |
 | `binary_search` with slicing | 1 | $\log n$ | $O(n)$ | $O(n)$ |
 | `binary_search` with `low`, `high` | 1 | $\log n$ | $O(\log n)$ | $O(\log n)$ |
 | `contains`: binary tree | 2 | the height | $O(n)$ | $O(\text{height})$ |
@@ -1600,7 +1746,7 @@ The items come out **sorted**, for free. A hash table can't do that (lecture 2).
 | search, insert | $O(1)$ on average | $O(\log n)$ |
 | keys must be | hashable | comparable with `<` |
 | keeps items in order? | no | yes |
-| good for | "is $x$ in here?" | "smallest item", "all IDs between 100 and 200" |
+| good for | "is $x$ in here?" | "lightest animal", "all animals between 1 and 10 kg" |
 
 ::: {.notes}
 - Python has no built-in BST, so for plain lookups use a `set` or `dict`.
@@ -1649,21 +1795,21 @@ def binary_search(data, key, low=0, high=None):
     else:
         return binary_search(data, key, mid + 1, high)   # right half, no copy
 
-ids = [102, 117, 125, 138, 146, 151, 163, 170, 184, 199, 205, 212, 228, 236, 247, 259]
-print(binary_search(ids, 212), binary_search(ids, 300))
+weights = [0.004, 0.1, 0.4, 0.6, 0.9, 1.1, 3, 4.5, 7, 20, 60, 90, 120, 600, 4000, 30000]   # kg
+print(binary_search(weights, 90), binary_search(weights, 13))
 ```
 
-## (Bonus Slide) For the lab: count the line {style="font-size: 0.75em;"}
+## (Bonus Slide) For the lab: the dark movie theatre {style="font-size: 0.75em;"}
 
-Everyone stands in one line. The TA asks the person at the front:
+The lights are off. Sit in one column, one person per row, and close your eyes. You may only tap the shoulder of the person directly in front of you and whisper.
 
-*"How many people are in the line, from you to the back?"*
+The person in the back row wants to know: *"Which row am I in?"*
 
 Everyone follows the same rule:
 
 ::: {.incremental}
-- Nobody behind you? Answer 1. That is the **base case**.
-- Otherwise, ask the person behind you the **same** question and raise your hand while you wait. When they answer, add 1 for yourself, tell the person who asked you, and lower your hand. That is the recursive step.
+- Reach forward. Nobody there? You are in row 1. That is the **base case**.
+- Otherwise, tap the person in front, whisper the **same** question, and raise your hand while you wait. When the answer comes back, add 1, whisper it to whoever asked you, and lower your hand. That is the recursive step.
 :::
 
 ::: {.fragment}
@@ -1671,31 +1817,31 @@ Watch the hands: the last hand up is the first hand down. The raised hands are t
 :::
 
 ::: {.notes}
-- Nobody looks at the whole line. Each person only talks to the person behind them.
-- The question is the same every time, on a line that is one person shorter. So it always reaches the back.
-- The answers travel forward: the back says 1, the next says 2, and so on, until the front says n.
+- Nobody sees the whole room. Each person only talks to the person in front of them.
+- The question is the same every time, one row closer to the screen. So it always reaches the front row.
+- The answers travel back: the front row says 1, the next says 2, and so on, until the back row hears n.
 :::
 
-## (Bonus Slide) For the lab: count the line, in code {style="font-size: 0.75em;"}
+## (Bonus Slide) For the lab: the dark movie theatre, in code {style="font-size: 0.75em;"}
 
 ```{.python}
-def count_line(person):
-    if person.behind is None:              # base case: the last person
+def which_row(person):
+    if person.in_front is None:               # base case: nobody in front, so row 1
         return 1
-    return 1 + count_line(person.behind)   # same question, one person shorter
+    return 1 + which_row(person.in_front)     # same question, one row closer to the screen
 ```
 
 ::: {.incremental}
-- Each person is one call. Time: one question per person, $O(n)$. Space: up to $n$ hands up at once, $O(n)$.
-- Round 2, the org chart: the TA asks each table lead, one at a time. Each lead asks each person at their table, one at a time, and answers 1 + the sum. That is `count_nodes`. How many hands are up at most?
-- Round 3, break the base case: the last person answers 0 instead of 1. What number reaches the TA?
-- Round 4, a loop: the last person asks the front person. What happens?
+- Each person is one call. Time: one question per row, $O(n)$. Space: up to $n$ hands up at once, $O(n)$.
+- Round 2, break the base case: the front row answers 0 instead of 1. What row does the back row hear?
+- Round 3, no base case: the front row taps the back row instead of answering. What happens?
+- Round 4, two people in front: sit in a triangle. Everyone asks the **two** people diagonally in front: "how many people are in front of you?", and answers 1 + both answers. Is the total right?
 :::
 
 ::: {.notes}
-- Round 2: at most 3 hands up (the TA, one lead, one person at a table): the height + 1, not the number of people.
-- Round 3: n − 1. Everyone else still adds 1 for themselves, but the last person forgot to count themselves.
-- Round 4: the front person asks the person behind them again, and so on forever. Nobody answers: a RecursionError. Stop it after one lap.
+- Round 2: n − 1. Everyone else still adds 1, but the front row forgot to count itself.
+- Round 3: the question goes round and round, and nobody ever answers: a RecursionError. Stop it after one lap.
+- Round 4: too big. The people in the middle get asked by two people behind them, so they are counted twice. They have two parents, so this is not a tree. Back to "Draw the questions": a tree has exactly one path to each node.
 :::
 
 ## (Bonus Slide) For the lab: be the call stack {style="font-size: 0.75em;"}
