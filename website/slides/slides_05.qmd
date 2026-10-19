@@ -1737,6 +1737,52 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 ## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
 
 
+## (Bonus Slide) Why do the copies cost $O(n)$? {style="font-size: 0.75em;"}
+
+Search 16 weights. How many weights get copied in total?
+
+::: {.fragment}
+Each call copies half of what it got: $S = 8 + 4 + 2 + 1 = 15$. One less than 16.
+:::
+
+::: {.fragment}
+Why one less? Double every term, then take $S$ away:
+
+$$
+\begin{aligned}
+2S &= 16 + 8 + 4 + 2 \\
+S &= \phantom{16 + {}} 8 + 4 + 2 + 1 \\
+2S - S &= 16 \phantom{{} + 8 + 4 + 2} - 1 && \text{8, 4 and 2 cancel} \\
+S &= 15 && \text{since } 2S - S = S
+\end{aligned}
+$$
+:::
+
+::: {.fragment}
+The same steps for any $n$:
+
+$$
+\begin{aligned}
+2S &= n + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 \\
+S &= \phantom{n + {}} \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 + 1 \\
+2S - S &= n \phantom{{} + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2} - 1 && \text{the middle terms cancel} \\
+S &= n - 1 && \text{since } 2S - S = S
+\end{aligned}
+$$
+:::
+
+::: {.fragment}
+- $S = n - 1$: less than $n$, so the copies cost $O(n)$. The first copy alone is $\frac{n}{2}$, so it is not less than that either.
+- Without copies, each call is $O(1)$ and there are about $\log_2 n$ calls: $O(\log n)$. ✅
+:::
+
+::: {.notes}
+- Every term in the middle shows up in both 2S and S, so it cancels. Only the biggest term of 2S (n) and the smallest term of S (1) are left.
+- Same idea as the guinea pig: the halves add up to just under one whole.
+- This assumes n is a power of 2 so every half is a whole number. For other n, the halves are rounded, and the total is still less than n.
+:::
+
+
 ## (Bonus Slide) Binary search without copies {style="font-size: 0.75em;"}
 
 Pass where to look, not a copy. Each call is $O(1)$, so the search is $O(\log n)$.
@@ -1761,6 +1807,8 @@ print(binary_search(weights, 90), binary_search(weights, 13))
 ```
 
 # Lab activity: the dark movie theatre {background-image="images/lec05_otter_theatre.png" background-size="cover" background-position="right" style="font-size: 0.9em;"}
+
+
 
 
 ## (Bonus Slide) For the lab: the dark movie theatre {style="font-size: 0.75em;"}
@@ -1936,49 +1984,4 @@ for n in range(9):
 ::: {.incremental}
 - `f(3)`: is `f(2) > f(1)`? No, $1 = 1$. So `f(0) + 1 = 2`.
 - `f(4)`: is `f(3) > f(2)`? Yes, $2 > 1$. So `f(2) - 1 = 0`.
-:::
-
-## (Bonus Slide) Why do the copies cost $O(n)$? {style="font-size: 0.75em;"}
-
-Search 16 weights. How many weights get copied in total?
-
-::: {.fragment}
-Each call copies half of what it got: $S = 8 + 4 + 2 + 1 = 15$. One less than 16.
-:::
-
-::: {.fragment}
-Why one less? Double every term, then take $S$ away:
-
-$$
-\begin{aligned}
-2S &= 16 + 8 + 4 + 2 \\
-S &= \phantom{16 + {}} 8 + 4 + 2 + 1 \\
-2S - S &= 16 \phantom{{} + 8 + 4 + 2} - 1 && \text{8, 4 and 2 cancel} \\
-S &= 15 && \text{since } 2S - S = S
-\end{aligned}
-$$
-:::
-
-::: {.fragment}
-The same steps for any $n$:
-
-$$
-\begin{aligned}
-2S &= n + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 \\
-S &= \phantom{n + {}} \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 + 1 \\
-2S - S &= n \phantom{{} + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2} - 1 && \text{the middle terms cancel} \\
-S &= n - 1 && \text{since } 2S - S = S
-\end{aligned}
-$$
-:::
-
-::: {.fragment}
-- $S = n - 1$: less than $n$, so the copies cost $O(n)$. The first copy alone is $\frac{n}{2}$, so it is not less than that either.
-- Without copies, each call is $O(1)$ and there are about $\log_2 n$ calls: $O(\log n)$. ✅
-:::
-
-::: {.notes}
-- Every term in the middle shows up in both 2S and S, so it cancels. Only the biggest term of 2S (n) and the smallest term of S (1) are left.
-- Same idea as the guinea pig: the halves add up to just under one whole.
-- This assumes n is a power of 2 so every half is a whole number. For other n, the halves are rounded, and the total is still less than n.
 :::
