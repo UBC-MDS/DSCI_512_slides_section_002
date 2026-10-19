@@ -588,7 +588,7 @@ plt.show()
 
 ::: {.notes}
 
-```{python}
+```
 shape = random.choice(["square", "hexagon", "star", "vee"])
 
 shape = random.choice(["square", "hexagon", "star", "vee", "vee"])
@@ -617,7 +617,9 @@ shape = random.choice(["vee", "vee"])
 
 A function can call another function, which calls another.
 
-```{pyodide}
+```{python}
+#| echo: true
+#| code-line-numbers: "1-2|4-5|7-8|1-8"
 def h():
     return 0
 
@@ -626,16 +628,22 @@ def g():
 
 def f():
     return g() + 1   # call g, then add 1
+```
 
+::: {.fragment}
+```{python}
+#| echo: true
 f()
 ```
+:::
 
 ::: {.fragment}
 Once you know `g()` returns 1, forget how. To understand `f`, you only need **what** `g` returns.
 :::
 
 ::: {.notes}
-- Predict before running: 2.
+- On arrival: `h` returns 0. Click 1: `g`. Click 2: `f`. Click 3: all three. Click 4: `f()` and its output.
+- Ask for a prediction before click 4: 2.
 - This "trust the answer" trick is what makes recursion easy to read later.
 :::
 
