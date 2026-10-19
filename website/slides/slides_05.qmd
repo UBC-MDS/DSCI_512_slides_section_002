@@ -1797,7 +1797,7 @@ print(binary_search(weights, 90), binary_search(weights, 13))
 
 ## (Bonus Slide) For the lab: the dark movie theatre {style="font-size: 0.75em;"}
 
-The lights are off. Sit in one column, one person per row, and close your eyes. You may only tap the shoulder of the person directly in front of you and whisper.
+The lights are off (or close your eyes). You may only tap the shoulder of the person directly in front of you and whisper.
 
 The person in the back row wants to know: *"Which row am I in?"*
 
@@ -1809,35 +1809,13 @@ Everyone follows the same rule:
 :::
 
 ::: {.fragment}
-Watch the hands: the last hand up is the first hand down. The raised hands are the call stack.
+The last hand up is the first hand down. The raised hands are the call stack.
 :::
 
 ::: {.notes}
 - Nobody sees the whole room. Each person only talks to the person in front of them.
 - The question is the same every time, one row closer to the screen. So it always reaches the front row.
 - The answers travel back: the front row says 1, the next says 2, and so on, until the back row hears n.
-:::
-
-## (Bonus Slide) For the lab: the dark movie theatre, in code {style="font-size: 0.75em;"}
-
-```{.python}
-def which_row(person):
-    if person.in_front is None:               # base case: nobody in front, so row 1
-        return 1
-    return 1 + which_row(person.in_front)     # same question, one row closer to the screen
-```
-
-::: {.incremental}
-- Each person is one call. Time: one question per row, $O(n)$. Space: up to $n$ hands up at once, $O(n)$.
-- Round 2, break the base case: the front row answers 0 instead of 1. What row does the back row hear?
-- Round 3, no base case: the front row taps the back row instead of answering. What happens?
-- Round 4, two people in front: sit in a triangle. Everyone asks the **two** people diagonally in front: "how many people are in front of you?", and answers 1 + both answers. Is the total right?
-:::
-
-::: {.notes}
-- Round 2: n − 1. Everyone else still adds 1, but the front row forgot to count itself.
-- Round 3: the question goes round and round, and nobody ever answers: a RecursionError. Stop it after one lap.
-- Round 4: too big. The people in the middle get asked by two people behind them, so they are counted twice. They have two parents, so this is not a tree. Back to "Draw the questions": a tree has exactly one path to each node.
 :::
 
 ## (Bonus Slide) For the lab: be the call stack {style="font-size: 0.75em;"}
