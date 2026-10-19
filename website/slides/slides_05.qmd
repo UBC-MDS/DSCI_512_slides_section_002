@@ -1707,15 +1707,13 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 
 ## Today's cheat sheet {style="font-size: 0.65em;"}
 
-| function | calls per step | how deep | time | space (call stack) |
+| function | how deep | time | space (call stack) |
 |---|---|---|---|---|
-| `f(n)`: count down to 0 | 1 | $n$ | $O(n)$ | $O(n)$ |
-| `play`: one path down a tree | 1 | the height | $O(\text{height})$ | $O(\text{height})$ |
-| `count_leaves`: tree with $V$ nodes | one per child | the height | $O(V)$ | $O(\text{height})$ |
-| `binary_search` with slicing | 1 | $\log n$ | $O(n)$ | $O(n)$ |
-| `binary_search` with `low`, `high` | 1 | $\log n$ | $O(\log n)$ | $O(\log n)$ |
-| `contains`: binary tree | 2 | the height | $O(n)$ | $O(\text{height})$ |
-| `bst_contains`: BST | 1 | the height | $O(\text{height})$ | $O(\text{height})$ |
+| `count_leaves`: tree with $V$ nodes | the height | $O(V)$ | $O(\text{height})$ |
+| `binary_search` with slicing | $\log n$ | $O(n)$ | $O(n)$ |
+| `binary_search` with `low`, `high` | $\log n$ | $O(\log n)$ | $O(\log n)$ |
+| `contains`: binary tree | the height | $O(n)$ | $O(\text{height})$ |
+| `bst_contains`: BST | the height | $O(\text{height})$ | $O(\text{height})$ |
 
 | data structure | search | insert | notes |
 |---|---|---|---|
