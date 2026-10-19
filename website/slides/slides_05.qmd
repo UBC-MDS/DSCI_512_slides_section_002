@@ -1705,22 +1705,6 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 - Deleting from a BST is trickier, and we skip it.
 :::
 
-## Today's cheat sheet {style="font-size: 0.65em;"}
-
-| function | how deep | time | space (call stack) |
-|---|---|---|---|---|
-| `count_leaves`: tree with $V$ nodes | the height | $O(V)$ | $O(\text{height})$ |
-| `binary_search` with slicing | $\log n$ | $O(n)$ | $O(n)$ |
-| `binary_search` with `low`, `high` | $\log n$ | $O(\log n)$ | $O(\log n)$ |
-| `contains`: binary tree | the height | $O(n)$ | $O(\text{height})$ |
-| `bst_contains`: BST | the height | $O(\text{height})$ | $O(\text{height})$ |
-
-| data structure | search | insert | notes |
-|---|---|---|---|
-| binary tree | $O(n)$ | depends | no rule, so we may check every node |
-| BST, balanced | $O(\log n)$ | $O(\log n)$ | keeps items sorted, keys need `<` |
-| BST, inserted in sorted order | $O(n)$ | $O(n)$ | a stick, no better than a list |
-
 ## Today's takeaways {style="font-size: 0.8em;"}
 
 ::: {.incremental}
