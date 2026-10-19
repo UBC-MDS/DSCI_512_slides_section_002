@@ -556,6 +556,13 @@ root.print_tree()
 
 # A function that calls itself {style="font-size: 0.8em;"}
 
+
+![](images/recursion_spider_man.png){width="90%" fig-align="center"}
+
+::: footer
+Meme template: Spider-Man (1967) pointing scene; Credit to [Medium post](https://javascript.plainenglish.io/algorithm-time-recursion-795161ba5d40)
+:::
+
 ::: {.notes}
 About 25 minutes for this section. Go slowly: this is the core of the lecture.
 :::
@@ -637,15 +644,6 @@ f()
 ```
 :::
 
-::: {.fragment}
-Once you know `g()` returns 1, forget how. To understand `f`, you only need **what** `g` returns.
-:::
-
-::: {.notes}
-- On arrival: `h` returns 0. Click 1: `g`. Click 2: `f`. Click 3: all three. Click 4: `f()` and its output.
-- Ask for a prediction before click 4: 2.
-- This "trust the answer" trick is what makes recursion easy to read later.
-:::
 
 ## Who finishes first? {style="font-size: 0.8em;"}
 
@@ -776,11 +774,6 @@ draw_stack(fgh_steps[fgh_step])
 `f` starts first but ends last: a **stack**, last in, first out (lecture 4).
 :::
 
-::: {.notes}
-- Orange: the call running now. Light blue: calls waiting for an answer. Blue: the call that just ended.
-- Each call gets its own `n`. f's n is still 5 when it carries on.
-- Python keeps this stack for every program you run.
-:::
 
 ## Same job, different names {style="font-size: 0.75em;"}
 
@@ -813,10 +806,6 @@ for n in range(4):
 `f`, `g` and `h` do the **same** job. Should we write `i`, `j`, `k`, ... forever?
 :::
 
-::: {.notes}
-- f(0), f(1), f(2) work. f(3) needs i, which doesn't exist: NameError.
-- All three do the same thing: ask the next one, add 1.
-:::
 
 ## A function that calls itself {style="font-size: 0.8em;"}
 
@@ -844,13 +833,10 @@ f(3)
 :::
 ::::
 
-::: {.notes}
-- Think of each call as a separate copy of f with its own n, just like f, g and h were.
-:::
-
 ::: footer
 Meme template: [Jake Clark](https://jake-clark.tumblr.com), via [imgflip](https://imgflip.com)
 :::
+
 
 ## Watch it run {style="font-size: 0.8em;"}
 
@@ -925,6 +911,16 @@ print("most calls allowed on the stack:", sys.getrecursionlimit())
 - In the animal game: imagine an answer that sent you back to the first question. The game asks the same questions forever and never guesses.
 - Like two mirrors facing each other: reflections of reflections, with no end.
 - Yes, that is where the website Stack Overflow got its name.
+:::
+
+## {background-image="images/recursion_minion.png" background-size="contain" background-position="center"}
+
+::: footer
+Meme template: Gru's plan, Despicable Me (2010); Credit to [Reddit post](https://www.reddit.com/r/ProgrammerHumor/comments/85a6n7/gru_tries_recursion/)
+:::
+
+::: {.notes}
+- No exit condition means no base case: the plan repeats itself, smaller and smaller, forever.
 :::
 
 ## iClicker: time and space of `f(n)` {style="font-size: 0.8em;"}
@@ -1313,6 +1309,32 @@ viewof copy_step = Inputs.button([
 - Like photocopying half the field guide before handing it to an assistant, instead of saying "look at pages 9 to 16".
 - Recursion makes code shorter, but you still have to count what each line costs.
 - The fixed version is a bonus slide.
+:::
+
+## Why is $\frac{n}{2} + \frac{n}{4} + \dots$ less than $n$? {style="font-size: 0.75em;"}
+
+:::: {.columns}
+::: {.column width="48%"}
+![](images/recursion_hair_cut.png){height="520px" fig-align="center"}
+:::
+::: {.column width="52%"}
+::: {.incremental}
+- First cut: half the guinea pig, $\frac{1}{2}$.
+- Each cut after that: half of what is left, $\frac{1}{4}, \frac{1}{8}, \dots$
+- The shaved part adds up toward 1 whole guinea pig, but **never past it**!
+:::
+:::
+::::
+
+::: footer
+Comic: [JoeGP](http://www.joegp.com)
+:::
+
+::: {.notes}
+- Read the comic first. Ask: how much of the pig is shaved after 2 cuts? 3 cuts? (3/4, 7/8.)
+- After k cuts the pig is 1 minus 1/2^k shaved: always a little hair left, so it never quite finishes. That is the joke.
+- A list has a whole number of items, so halving reaches 1 item and stops. For n = 16: 8 + 4 + 2 + 1 = 15 = n minus 1.
+- So all the copying together costs less than one full copy of the list: O(n).
 :::
 
 ## Recursion or a loop? {style="font-size: 0.75em;"}
