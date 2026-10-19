@@ -1857,7 +1857,7 @@ weights = [0.004, 0.1, 0.4, 0.6, 0.9, 1.1, 3, 4.5, 7, 20, 60, 90, 120, 600, 4000
 print(binary_search(weights, 90), binary_search(weights, 13))
 ```
 
-# Lab activity: the dark movie theatre {background-image="images/lec05_otter_theatre.png" background-size="contain" background-position="right" style="font-size: 0.9em;"}
+# Lab activity: the dark movie theatre {background-image="images/lec05_otter_theatre.png" background-size="cover" background-position="right" style="font-size: 0.9em;"}
 
 
 ## (Bonus Slide) For the lab: the dark movie theatre {style="font-size: 0.75em;"}
