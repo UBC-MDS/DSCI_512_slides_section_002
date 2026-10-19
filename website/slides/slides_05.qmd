@@ -415,7 +415,7 @@ for u in game_layout["nodes"]:
 ojs_define(word_views = word_views, word_choices = [d["id"] for d in game_layout["nodes"]])
 ```
 
-## Tree words {style="font-size: 0.7em;"}
+## Tree words {style="font-size: 0.65em;"}
 
 :::: {.columns}
 ::: {.column width="30%"}
@@ -490,7 +490,7 @@ print(G.number_of_nodes(), "nodes,", G.number_of_edges(), "edges")
 - Lecture 3: a complete graph has V(V − 1)/2 edges. A tree has V − 1. The two extremes of "connected".
 :::
 
-## Why trees? {style="font-size: 0.85em;"}
+## Why trees? 
 
 :::: {.columns}
 ::: {.column width="55%"}
