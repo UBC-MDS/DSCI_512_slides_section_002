@@ -305,11 +305,6 @@ viewof play_node = Inputs.button([
 }
 ```
 
-::: {.notes}
-- Ask the room each question and click their answer (iClicker yes/no works). Only the questions you asked appear.
-- Play two or three rounds with different animals. Each round grows a different branch from the same first question.
-- Ask: how would you draw all the questions at once? That is the next slide.
-:::
 
 ## Draw the questions {style="font-size: 0.8em;"}
 
