@@ -518,11 +518,13 @@ Root Folder
 - A balanced binary search tree finds an item in O(log n), like binary search in lecture 2.
 :::
 
-## A tree in Python {style="font-size: 0.75em;"}
+## A tree in Python {style="font-size: 0.7em;"}
 
 Each node stores its data and a list of its children.
 
-```{pyodide}
+```{python}
+#| echo: true
+#| code-line-numbers: "1-4|6-7|9-12|1-12"
 class Node:
     def __init__(self, data):
         self.data = data      # the value stored in this node
@@ -537,7 +539,9 @@ class Node:
             child.print_tree(level + 1)          # each child's subtree, one level deeper
 ```
 
-```{pyodide}
+::: {.fragment}
+```{python}
+#| echo: true
 nodes = {"In water?": Node("In water?")}    # text -> Node, starting with the first question
 for question, answers in game.items():
     for answer in answers:                   # the yes answer, then the no answer
@@ -547,15 +551,8 @@ for question, answers in game.items():
 root = nodes["In water?"]
 root.print_tree()
 ```
-
-::: {.fragment}
-Look at `print_tree`: it calls **itself**. Hold that thought.
 :::
 
-::: {.notes}
-- `networkx` treats a tree as just another graph. A `Node` class is the usual way to write one by hand.
-- It works because every subtree is a tree: printing a question is printing the question, then printing the game after each answer.
-:::
 
 # A function that calls itself {style="font-size: 0.8em;"}
 
@@ -575,7 +572,7 @@ def vee(x=0, y=0, angle=0, length=1):
         new_x, new_y = move_pen(x, y, new_angle, length)
         plt.plot([x, new_x], [y, new_y], "k")       # draw the branch
 
-        shape = random.choice(["square", "hexagon", "star", "vee", "vee"])
+        shape = random.choice(["square", "hexagon", "star"])
         if shape == "vee":
             vee(new_x, new_y, new_angle, length)    # another V: vee calls itself
         else:
@@ -583,7 +580,6 @@ def vee(x=0, y=0, angle=0, length=1):
 ```
 
 ```{pyodide}
-random.seed(0)                # try other seeds!
 plt.figure(figsize=(4, 4))
 vee()
 plt.axis("off")
@@ -591,11 +587,14 @@ plt.show()
 ```
 
 ::: {.notes}
+
+```{python}
+shape = random.choice(["square", "hexagon", "star", "vee"])
+
+shape = random.choice(["square", "hexagon", "star", "vee", "vee"])
+```
+
 - `move_pen` and `draw_shape` are small helpers from the lecture notes.
-- `vee` never draws the whole tree. It draws one V and hands the rest to `vee`.
-- Real trees grow like this: every branch is a smaller tree. Show a fern or a Romanesco broccoli if you have one.
-- Change the seed a few times live.
-- Credit: idea from Paul Goldenberg, shown to us by Dan Garcia.
 :::
 
 ## Question: what stops it? {style="font-size: 0.85em;"}
