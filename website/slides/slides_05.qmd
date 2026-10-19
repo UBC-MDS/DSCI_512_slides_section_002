@@ -1333,7 +1333,7 @@ A **binary tree**: every node has at most 2 children, `left` and `right`.
 
 :::: {.columns}
 ::: {.column width="42%"}
-![](images/binary_tree.jpg){width="100%"}
+![](images/binary_tree.svg){width="100%" fig-alt="Binary tree: 1 at the root, children 2 and 3, then 4 and 5 under 2, 6 and 7 under 3"}
 :::
 ::: {.column width="58%"}
 ```{pyodide}
@@ -1393,10 +1393,8 @@ A binary tree has $n$ nodes. What is the worst-case time complexity of `contains
 
 A **binary search tree** (BST) follows one rule at every node:
 
-::: {.incremental}
 - everything in the left subtree is smaller, and
 - everything in the right subtree is bigger.
-:::
 
 ![](images/binary_search_tree.jpg){width="72%" fig-align="center"}
 
@@ -1412,7 +1410,7 @@ Check node 3 on the right: 1 below it on the left is smaller. 6, 4 and 7 on the 
 
 ## Search a BST {style="font-size: 0.75em;"}
 
-Binary search again: lighter, go left. Heavier, go right. Never look at the other side.
+Binary search again: if it's lighter, go left. If it's heavier, go right. 
 
 ```{pyodide}
 bst = BinaryTree(3,    # weights in kg: salmon at the root
