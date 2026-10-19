@@ -15,6 +15,10 @@
 .reveal .ojs-readout .match  { color: #eb6834; font-weight: bold; }
 .reveal .ojs-readout .cube   { color: #4a3aa7; font-weight: bold; }
 
+/* Fact list next to an interactive chart, one term per bullet ("Tree words", lecture 5) */
+.reveal ul.word-facts { font-size: 0.75em; margin: 0.4em 0 0 1em; }
+.reveal ul.word-facts li { margin: 0.25em 0; }
+
 /* "Linear search" strip: one box per account ID in the list */
 .reveal .scan-row { display: flex; gap: 6px; margin: 0.4em 0; }
 .reveal .scan-box {

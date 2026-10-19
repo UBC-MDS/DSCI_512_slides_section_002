@@ -429,18 +429,21 @@ for u in game_layout["nodes"]:
     if u in parent_of:
         roles[parent_of[u]] = "you"
     roles[u] = "pick"
-    facts = ["the root, no parent" if u == top else f"parent {parent_of[u]}",
-             f"children {names(kids)}" if kids else "no children, so a leaf: an animal",
-             "subtree: the whole tree" if u == top
-             else f"subtree of {len(sub)} nodes with {len(sub_animals)} animals" if kids else f"subtree just {u}",
-             f"depth {game_depth[u]}" + ("" if u == top else f": {game_depth[u]} question{'s' if game_depth[u] > 1 else ''} to get here")]
+    depth = game_depth[u]
+    facts = [["Parent", "none, this is the root" if u == top else parent_of[u]],
+             ["Children", names(kids) if kids else "none, so it is a leaf: an animal"],
+             ["Subtree", "the whole tree" if u == top
+              else f"{len(sub)} nodes, {len(sub_animals)} animals" if kids else f"just {u}"],
+             ["Depth", f"{depth}" + ("" if u == top else f", {depth} question{'s' if depth > 1 else ''} to get here")]]
     word_views[u] = {"node_roles": roles, "edge_roles": {c: "friend" for c in sub if c != u},
-                     "say": f"{u}: " + ", ".join(facts) + "."}
+                     "facts": [{"term": t, "text": x} for t, x in facts]}
 ojs_define(word_views = word_views, word_choices = [d["id"] for d in game_layout["nodes"]])
 ```
 
 ## Tree words {style="font-size: 0.75em;"}
 
+:::: {.columns}
+::: {.column width="30%"}
 ```{ojs}
 //| echo: false
 viewof word_pick = Inputs.select(word_choices, {value: "Wears a mask?", label: "node"})
@@ -448,20 +451,28 @@ viewof word_pick = Inputs.select(word_choices, {value: "Wears a mask?", label: "
 
 ```{ojs}
 //| echo: false
-{
-  // Print and draw only: every fact and colour was worked out in Python (word_views).
-  const s = word_views[word_pick];
-  return html`<div class="ojs-readout">${s.say}</div>${draw_tree(game_layout, s, {height: 380})}`;
-}
+// Print only: every fact was worked out in Python (word_views).
+html`<ul class="word-facts">${word_views[word_pick].facts.map(f =>
+  html`<li><b>${f.term}</b>: ${f.text}</li>`)}</ul>`
 ```
+:::
+::: {.column width="70%"}
+```{ojs}
+//| echo: false
+// Draw only: the colours were worked out in Python (word_views).
+draw_tree(game_layout, word_views[word_pick], {width: 760, height: 360})
+```
+:::
+::::
 
 ::: {.incremental}
-- Root: the top node, with no parent. The first question.
-- Parent: the node directly above (dark). Children: the nodes directly below.
-- Leaf: a node with no children. Here, an animal: the game stops.
-- Subtree: a node plus everything below it (blue). Every subtree is a **tree**.
-- Height: edges on the longest path from the root down to a leaf. Here: `{python} game_height`.
-- Balanced: at every node, the subtrees have about the same height.
+- **Root**: the top node, with no parent. The first question.
+- **Parent**: the node directly above (dark).
+- **Children**: the nodes directly below.
+- **Leaf**: a node with no children. Here, an animal: the game stops.
+- **Subtree**: a node plus everything below it (blue). Every subtree is a tree.
+- **Height**: edges on the longest path from the root down to a leaf. Here: `{python} game_height`.
+- **Balanced**: at every node, the subtrees have about the same height.
 :::
 
 ::: {.notes}
