@@ -1953,7 +1953,8 @@ $$
 \begin{aligned}
 2S &= 16 + 8 + 4 + 2 \\
 S &= \phantom{16 + {}} 8 + 4 + 2 + 1 \\
-2S - S &= 16 \phantom{{} + 8 + 4 + 2} - 1
+2S - S &= 16 \phantom{{} + 8 + 4 + 2} - 1 && \text{8, 4 and 2 cancel} \\
+S &= 15 && \text{since } 2S - S = S
 \end{aligned}
 $$
 :::
@@ -1965,7 +1966,8 @@ $$
 \begin{aligned}
 2S &= n + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 \\
 S &= \phantom{n + {}} \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 + 1 \\
-S &= n - 1
+2S - S &= n \phantom{{} + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2} - 1 && \text{the middle terms cancel} \\
+S &= n - 1 && \text{since } 2S - S = S
 \end{aligned}
 $$
 :::
