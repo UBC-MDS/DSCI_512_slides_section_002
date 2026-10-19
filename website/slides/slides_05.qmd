@@ -207,7 +207,9 @@ bst = BinaryTree(3,
 
 Pick one and keep it secret:
 
-orca, crab, salmon, crow, seagull, black bear, raccoon, squirrel, banana slug
+orca, crab, salmon, crow, seagull, black bear, raccoon, 
+
+squirrel, banana slug
 
 ::: {.fragment}
 I'll guess it with a few yes/no questions.
