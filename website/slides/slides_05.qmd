@@ -592,6 +592,8 @@ plt.show()
 shape = random.choice(["square", "hexagon", "star", "vee"])
 
 shape = random.choice(["square", "hexagon", "star", "vee", "vee"])
+
+shape = random.choice(["vee", "vee"])
 ```
 
 - `move_pen` and `draw_shape` are small helpers from the lecture notes.
