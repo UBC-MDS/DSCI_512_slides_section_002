@@ -31,7 +31,9 @@ title-slide-attributes:
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (85 min): trees 15, recursion 25, recursion on trees 10, binary search 5, binary search trees 25. Group activities are bonus slides for the lab."
 ---
 
-## Learning objectives {style="font-size: 0.85em;"}
+
+# Think of a Vancouver animal {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+
 
 ```{python}
 #| echo: false
@@ -202,17 +204,6 @@ bst = BinaryTree(3,
 ```
 
 
-::: {.incremental}
-- Use the tree words: root, parent, child, leaf, subtree, height.
-- Explain recursion: a base case and a recursive step.
-- Explain the call stack, and why deep recursion raises a `RecursionError`.
-- Trace a recursive function by hand.
-- Write a recursive function, including one that walks a tree.
-- Compare recursion and loops, and estimate their time and space.
-- Search and insert in a binary search tree, and explain when it is $O(\log n)$ or $O(n)$.
-:::
-
-# Think of a Vancouver animal {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
 Pick one and keep it secret:
 
