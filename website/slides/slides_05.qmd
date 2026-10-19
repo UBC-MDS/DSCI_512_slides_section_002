@@ -978,12 +978,6 @@ play(root, ["no", "no", "no", "yes"])      # thinking of a raccoon
 One call per question, straight down **one** path. At most `{python} game_height` questions.
 :::
 
-::: {.notes}
-- Try other answers live. Which animal is `["yes", "no", "no"]`? Salmon.
-- Each call plays a smaller game: the subtree after one answer.
-- Remember this shape, one call per level. Searching a BST later today works exactly the same way.
-:::
-
 ```{python}
 #| echo: false
 # Hidden: the "how many animals" step-through. An instrumented count_leaves walks the
@@ -1053,11 +1047,7 @@ viewof count_step = Inputs.button([
 }
 ```
 
-::: {.notes}
-- Orange: asking or answering now. Light blue: waiting for answers. Blue: has answered, with its number of animals.
-- The call stack is the chain of questions waiting, from the first question down to the node asked now.
-- Unlike `play`, this asks **both** sides, so it visits every node. Depth-first, like DFS in lecture 4.
-:::
+
 
 ## Count it in code {style="font-size: 0.8em;"}
 
@@ -1100,11 +1090,6 @@ def height(node):
 ```
 :::
 
-::: {.notes}
-- Give them 3 minutes in pairs.
-- In water? → Can fly? → Bigger than you? → Wears a mask? → Bushy tail? → squirrel: 5 edges.
-:::
-
 ## Question: 20 questions? {style="font-size: 0.8em;"}
 
 Every question splits the animals into two groups. With 20 questions, how many animals can a game tell apart, at most?
@@ -1121,10 +1106,6 @@ Flip it: $n$ animals need only about $\log_2 n$ questions, **if** the tree is ba
 Our `{python} n_animals` animals: `{python} balanced_questions` questions would do. Our tree asks up to `{python} game_height`.
 :::
 
-::: {.notes}
-- Halving again and again is binary search. That is next.
-- Akinator plays with a much bigger tree, and it guesses well when its questions split the candidates about in half.
-:::
 
 # Binary search, revisited {style="font-size: 0.8em;"}
 
@@ -1202,10 +1183,6 @@ assert not binary_search(weights, 13)      # no 13 kg animal in the guide
 assert not binary_search([], 5)            # empty list
 print("all tests passed")
 ```
-
-::: {.notes}
-- Weights are rough adult averages. Close enough for a field guide.
-:::
 
 ## Question: is it $O(\log n)$? {style="font-size: 0.85em;"}
 
@@ -1304,14 +1281,7 @@ viewof copy_step = Inputs.button([
 - The fix: pass `low` and `high` instead of a copy, like the loop. Then $O(\log n)$.
 :::
 
-::: {.notes}
-- Orange: the middle weight of each call.
-- Like photocopying half the field guide before handing it to an assistant, instead of saying "look at pages 9 to 16".
-- Recursion makes code shorter, but you still have to count what each line costs.
-- The fixed version is a bonus slide.
-:::
-
-## Why is $\frac{n}{2} + \frac{n}{4} + \dots$ less than $n$? {style="font-size: 0.75em;"}
+## Why is $\frac{n}{2} + \frac{n}{4} + \dots$ close to but less than $n$? {style="font-size: 0.95em;"}
 
 :::: {.columns}
 ::: {.column width="48%"}
@@ -1328,13 +1298,6 @@ viewof copy_step = Inputs.button([
 
 ::: footer
 Comic: [JoeGP](http://www.joegp.com)
-:::
-
-::: {.notes}
-- Read the comic first. Ask: how much of the pig is shaved after 2 cuts? 3 cuts? (3/4, 7/8.)
-- After k cuts the pig is 1 minus 1/2^k shaved: always a little hair left, so it never quite finishes. That is the joke.
-- A list has a whole number of items, so halving reaches 1 item and stops. For n = 16: 8 + 4 + 2 + 1 = 15 = n minus 1.
-- So all the copying together costs less than one full copy of the list: O(n).
 :::
 
 ## Recursion or a loop? {style="font-size: 0.75em;"}
@@ -1399,12 +1362,9 @@ print(tree.left.right.item)   # 2's right child
 :::
 
 ::: {.fragment}
-The animal game was one all along: left is yes, right is no.
+The guess an animal game was a binary tree too!
 :::
 
-::: {.notes}
-- Our game `Node` had a list of children. A binary tree node has exactly two slots, and either one can be `None`.
-:::
 
 ## Is it in the tree? {style="font-size: 0.8em;"}
 
@@ -2037,4 +1997,47 @@ for n in range(9):
 ::: {.incremental}
 - `f(3)`: is `f(2) > f(1)`? No, $1 = 1$. So `f(0) + 1 = 2`.
 - `f(4)`: is `f(3) > f(2)`? Yes, $2 > 1$. So `f(2) - 1 = 0`.
+:::
+
+## (Bonus Slide) Why do the copies cost $O(n)$? {style="font-size: 0.75em;"}
+
+Search 16 weights. How many weights get copied in total?
+
+::: {.fragment}
+Each call copies half of what it got: $S = 8 + 4 + 2 + 1 = 15$. One less than 16.
+:::
+
+::: {.fragment}
+Why one less? Double every term, then take $S$ away:
+
+$$
+\begin{aligned}
+2S &= 16 + 8 + 4 + 2 \\
+S &= \phantom{16 + {}} 8 + 4 + 2 + 1 \\
+2S - S &= 16 \phantom{{} + 8 + 4 + 2} - 1
+\end{aligned}
+$$
+:::
+
+::: {.fragment}
+The same steps for any $n$:
+
+$$
+\begin{aligned}
+2S &= n + \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 \\
+S &= \phantom{n + {}} \tfrac{n}{2} + \tfrac{n}{4} + \dots + 2 + 1 \\
+S &= n - 1
+\end{aligned}
+$$
+:::
+
+::: {.fragment}
+- $S = n - 1$: less than $n$, so the copies cost $O(n)$. The first copy alone is $\frac{n}{2}$, so it is not less than that either.
+- Without copies, each call is $O(1)$ and there are about $\log_2 n$ calls: $O(\log n)$. ✅
+:::
+
+::: {.notes}
+- Every term in the middle shows up in both 2S and S, so it cancels. Only the biggest term of 2S (n) and the smallest term of S (1) are left.
+- Same idea as the guinea pig: the halves add up to just under one whole.
+- This assumes n is a power of 2 so every half is a whole number. For other n, the halves are rounded, and the total is still less than n.
 :::
