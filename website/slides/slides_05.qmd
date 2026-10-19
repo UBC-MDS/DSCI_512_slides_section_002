@@ -262,9 +262,6 @@ def answers_on(path):
 
 raccoon_path = nx.shortest_path(game_graph, top, "raccoon")
 one_path = nx.shortest_path(game_graph, "crow", "salmon")
-loop = nx.shortest_path(game_graph, top, "Bushy tail?")   # down to Bushy tail?, then back up
-extra_line = {"x1": game_pos["Bushy tail?"][0], "y1": game_pos["Bushy tail?"][1],
-              "x2": game_pos[top][0], "y2": game_pos[top][1]}
 
 draw_steps = [
     {**game_roles(show_edges=False),
@@ -277,14 +274,64 @@ draw_steps = [
             f"{' → '.join(raccoon_path)}. One path from the top."},
     {**game_roles({u: "path" for u in one_path}, {c: "path" for c in edge_children(one_path)}),
      "say": f"From crow to salmon there is exactly one path: {' → '.join(one_path)}."},
-    {**game_roles({u: "path" for u in loop}, {c: "path" for c in edge_children(loop)}, extra=[extra_line]),
-     "say": f"What if one answer to Bushy tail? sent you back to the first question? {' → '.join(loop + [top])} "
-            "goes round in a loop: a cycle. The game could ask forever."},
 ]
 for k, step in enumerate(draw_steps):
     step["count"] = f"Step {k} of {len(draw_steps) - 1}"
 ojs_define(draw_steps = draw_steps)
+
+# Hidden: the "play the game" slide. One state per node: the path from the top to it is
+# shown, everything else is hidden. Yes, No and Back are lookups of the next node.
+game_play = {}
+for node in game_graph.nodes:
+    path = nx.shortest_path(game_graph, top, node)
+    answers = answers_on(path)
+    shown = {u: "path" for u in path}
+    shown[node] = "now"
+    edges = {c: "path" for c in edge_children(path)}
+    roles = game_roles({u: shown.get(u, "hidden") for u in game_graph.nodes},
+                       {c: edges.get(c, "hidden") for c in game_graph.nodes if c != top})
+    if node in game:
+        say = f"Question {len(path)}: {node}"
+    else:
+        article = "an" if node[0] in "aeiou" else "a"
+        say = (f"Is it {article} {node}? You answered {', '.join(answers)}: "
+               f"{len(answers)} questions, one path from the top.")
+    game_play[node] = {**roles, "say": say,
+                       "yes": game[node][0] if node in game else node,
+                       "no": game[node][1] if node in game else node,
+                       "back": parent_of.get(node, node)}
+ojs_define(game_play = game_play, game_top = top)
 ```
+
+## Play the game {style="font-size: 0.8em;"}
+
+Think of an animal. Answer each question and watch the questions grow.
+
+```{ojs}
+//| echo: false
+viewof play_node = Inputs.button([
+  ["Yes", id => game_play[id].yes],
+  ["No", id => game_play[id].no],
+  ["Back", id => game_play[id].back],
+  ["Start over", () => game_top]
+], {value: game_top})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Print and draw only: the path, colours and sentence come from Python (game_play).
+  const s = game_play[play_node];
+  return html`<div class="ojs-readout">${s.say}</div>
+    ${draw_tree(game_layout, s, {height: 400})}`;
+}
+```
+
+::: {.notes}
+- Ask the room each question and click their answer (iClicker yes/no works). Only the questions you asked appear.
+- Play two or three rounds with different animals. Each round grows a different branch from the same first question.
+- Ask: how would you draw all the questions at once? That is the next slide.
+:::
 
 ## Draw the questions {style="font-size: 0.8em;"}
 
@@ -350,7 +397,7 @@ Connected, with no cycles: exactly one path between any two nodes. That is a **t
 ::: {.notes}
 - Step 2: every animal has one path from the top. That path is the list of answers you give.
 - Step 3: ask them to find another path from crow to salmon. There is none.
-- Step 4: a cycle breaks it. In a tree, every node has exactly one parent.
+- No cycles: no answer ever sends you back up to an earlier question. In a tree, every node has exactly one parent.
 - Lecture 4: the edges BFS walked along also formed a tree.
 :::
 
@@ -882,7 +929,7 @@ print("most calls allowed on the stack:", sys.getrecursionlimit())
 :::
 
 ::: {.notes}
-- In the animal game: the cycle from "Draw the questions". The game asks the same questions forever and never guesses.
+- In the animal game: imagine an answer that sent you back to the first question. The game asks the same questions forever and never guesses.
 - Like two mirrors facing each other: reflections of reflections, with no end.
 - Yes, that is where the website Stack Overflow got its name.
 :::
