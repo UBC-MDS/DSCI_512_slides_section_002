@@ -494,10 +494,8 @@ print(G.number_of_nodes(), "nodes,", G.number_of_edges(), "edges")
 ::: {.column width="55%"}
 ::: {.incremental}
 - File systems: folders inside folders.
-- Web pages and JSON: tags inside tags, dicts inside lists.
 - Comment threads: replies to replies.
-- Machine learning: our animal game is a **decision tree** (DSCI 571, 573).
-- Fast search: binary search trees (later today), the B-trees inside databases.
+- Machine learning: our animal game is a **decision tree** (DSCI 571 😃).
 :::
 :::
 ::: {.column width="45%"}
