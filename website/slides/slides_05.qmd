@@ -31,6 +31,9 @@ title-slide-attributes:
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (85 min): trees 15, recursion 25, recursion on trees 10, binary search 5, binary search trees 25. Group activities are bonus slides for the lab."
 ---
 
+# Quiz 1 this week
+
+HIGHLY recommend you go through the practice quiz 1!
 
 # Think of a Vancouver animal {background-image="images/lec05_animal_game.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
 
@@ -1717,6 +1720,14 @@ viewof speed_k = Inputs.range([2, 20], {value: 10, step: 1, label: "levels in a 
 :::
 
 # Questions?
+
+
+<center>![](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif){width="600"}</center>
+
+::: footer
+[GIPHY](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif)
+:::
+
 
 ## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
 
