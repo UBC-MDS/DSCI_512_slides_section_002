@@ -1549,7 +1549,13 @@ The resizes get rarer as the list grows. Blue line: the average stays small. Tha
 
 # Questions?
 
-## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
+<center>![](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif){width="600"}</center>
+
+::: footer
+[GIPHY](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif)
+:::
+
+
 
 ## (Bonus Slide) Why does doubling cost less than $2n$? {style="font-size: 0.75em;"}
 
@@ -1576,32 +1582,4 @@ $$
 ::: {.notes}
 - Lecture 5's bonus: halving gave n/2 + n/4 + ... + 1 = n − 1. Doubling is the same sum read the other way, plus the last n.
 - Python grows the list by about 1.125 times, not 2. The total is still a fixed multiple of n, so still amortized O(1).
-:::
-
-## (Bonus Slide) For the lab: count the boxes {style="font-size: 0.8em;"}
-
-Write `count(box)`: how many boxes are there, from `box` inwards? Follow the shape of the data.
-
-Hint: how many boxes if `box.next` is `None`? If you know how many are inside, how many are there in total?
-
-```{pyodide}
-def count(box):
-    ...
-
-box = TreasureBox("$5").append_outer("$100").append_outer("$20")
-print(count(box))   # should print 3
-```
-
-::: {.fragment}
-```{.python}
-def count(box):
-    if box.next is None:          # base case: the innermost box
-        return 1
-    return 1 + count(box.next)    # this box, plus every box inside it
-```
-:::
-
-::: {.notes}
-- Same shape as count_leaves from lecture 5: answer for the smallest piece, then add one level.
-- Ask: time and space? O(n) and O(n): n calls, all waiting on the stack at the innermost box.
 :::
