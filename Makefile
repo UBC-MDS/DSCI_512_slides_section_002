@@ -4,10 +4,10 @@
 .PHONY: images images-index render slide
 
 images:  ## generate every missing image in the lecture 2 prompt CSV
-	uv run --group images python scripts/generate_images.py --csv website/slides/lec02_image_prompts.csv
+	uv run --group images python scripts/generate_images.py --csv website/slides/lec06_image_prompts.csv
 
 images-index:  ## regenerate specific CSV rows, e.g. make images-index INDEX=3 or INDEX=1,4-6
-	uv run --group images python scripts/generate_images.py --csv website/slides/lec02_image_prompts.csv --index $(INDEX) --overwrite
+	uv run --group images python scripts/generate_images.py --csv website/slides/lec06_image_prompts.csv --index $(INDEX) --overwrite
 
 render:  ## render one deck, e.g. make render DECK=slides_02
 	cd website && quarto render slides/$(DECK).qmd
