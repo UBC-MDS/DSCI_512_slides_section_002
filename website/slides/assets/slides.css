@@ -186,3 +186,6 @@
 .reveal .ll-arrow { font-family: var(--r-code-font, monospace); font-size: 18px; color: #8a8880; }
 .reveal .ds-row.ll-chain .ds-box { min-width: 64px; }
 .reveal .ll-result { font-weight: bold; color: #2a78d6; min-height: 1.4em; }
+
+/* Lecture 6: a map and a tree side by side (k-d tree slides) */
+.reveal .kd-wrap { display: flex; gap: 10px; justify-content: center; align-items: center; }
