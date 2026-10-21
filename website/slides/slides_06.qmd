@@ -176,19 +176,13 @@ kdt = KDTree(X)
 ![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
 
 ::: {.fragment}
-The same spiral shows up in lots of art work, in sunflower, in the shell of sea snails. What is this magic? Can we re-create it in python? 🤩
+The same spiral shows up in Hokusai's Great Wave, Mona Lisa, in sunflower, in nautilus shell... What is this? Can we re-create it in python? 🤩
 :::
 
 ::: footer
 Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-sequence-when-maths-arts-collide/) (Great Wave, Mona Lisa), [Cleveland Design](https://clevelanddesign.com/insights/the-nature-of-design-the-fibonacci-sequence-and-the-golden-ratio/) (sunflower), [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/) (nautilus)
 :::
 
-::: {.notes}
-About 17 minutes for Fibonacci.
-- Take guesses from the room first. Hokusai's Great Wave, the Mona Lisa, a sunflower head, a nautilus shell cut in half.
-- Today: draw the spiral with code, store a goose hunt in code, and find out how Spotify picks the next song while we code.
-- Caveat for the curious: art historians debate whether painters used it on purpose, and the EarthSky article shows the nautilus is a spiral that is close to, but not exactly, this one.
-:::
 
 ## Today's plan {background-image="images/lec06_print_shop.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
