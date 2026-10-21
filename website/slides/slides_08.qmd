@@ -6,6 +6,7 @@ format:
     include-in-header:
       - text: |
           <script src="assets/helper.js"></script>
+          <script>window.MathJax = {"HTML-CSS": {availableFonts: [], preferredFont: null, webFont: "TeX"}};</script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
     chalkboard: {buttons: true}
