@@ -990,7 +990,7 @@ ojs_define(songs = [{"id": i, "x": float(x), "y": float(y)} for i, (x, y) in enu
 
 :::: {.columns}
 ::: {.column width="45%"}
-Spotify measured each song with 2 characteristics: $x$ (energy: calm to intense) and $y$ (danceability).
+Spotify measured each song with k characteristics, and we use 2 for now: $x$ (energy: calm to intense) and $y$ (danceability).
 
 The distance between 2 songs $a$ and $b$:
 
