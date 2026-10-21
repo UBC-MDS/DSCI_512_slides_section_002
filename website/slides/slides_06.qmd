@@ -774,7 +774,7 @@ ojs_define(git_view = git_steps)
 ```
 
 
-## Question: what does it return? {style="font-size: 0.8em;"}
+## Question: what does it return? {style="font-size: 0.7em;"}
 
 **Without running the code**, what does `head.get(3)` return?
 
