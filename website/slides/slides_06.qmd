@@ -359,10 +359,6 @@ viewof spiral_step = Inputs.button([
 }
 ```
 
-::: {.fragment}
-Long side ÷ short side: `{python} golden_ratios`, ... It settles at `{python} golden`, the **golden ratio**.
-:::
-
 ::: footer
 Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/)
 :::
