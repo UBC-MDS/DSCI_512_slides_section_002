@@ -841,13 +841,6 @@ viewof node_step = Inputs.button([
 }
 ```
 
-::: {.notes}
-- Orange: the node working right now. Light blue: nodes already visited, their calls waiting. Blue: the new node.
-- push_front is one step. append and get follow the links one by one.
-- "goose hunt": append walks to the last clue first. get(2) walks to the third clue. get(5) runs off the end and returns None.
-- "the question" replays the question on the next slide: let them predict first.
-:::
-
 
 ## Why is this "recursive"? {style="font-size: 0.8em;"}
 
@@ -855,18 +848,11 @@ Look at what a `Node` holds:
 
 ::: {.incremental}
 - A `Node` is one item, plus another `Node` (or `None`).
-- So a linked list is its first node, plus a **smaller** linked list.
-- A tree (lecture 5) is one node, plus children that are trees.
+- So a linked list is its first node, plus a **smaller linked list**.
+- A tree (lecture 5) is one root node, plus children that are **smaller trees**.
 - The functions follow the same shape. Base case: the last node, or `i == 0`. Recursive step: hand the job to `self.next`.
 :::
 
-::: {.fragment}
-Recursive data, recursive functions. That's today's main idea.
-:::
-
-::: {.notes}
-- Draw it: cover the first node with your hand. What is left is still a linked list, one node shorter.
-:::
 
 ## Question: linked list or `list`? {style="font-size: 0.75em;"}
 
