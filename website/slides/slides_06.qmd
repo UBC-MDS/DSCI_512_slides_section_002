@@ -388,6 +388,8 @@ f(3)
 write f(1), f(2) f(3)
 
 write the tree branching out, and f(5)
+
+
 :::
 
 
@@ -513,21 +515,24 @@ Who calls whom is a **tree**: the first call is the root, the base cases are the
 :::
 
 ::: {.notes}
+
+!! write n = 1, n = 2, function call = 1
+n = 3, function call = 3
+n = 4, function call = 5
+n = 5, function call = 9
+...
+
+
 - That is DFS order (lecture 4), and the call stack is DFS's stack.
 - Point at the repeats: f(3) is worked out twice. That is the waste.
+
+
 :::
 
 
-## Fibonacci sequence {style="font-size: 0.8em;"}
+## Fibonacci sequence {style="font-size: 0.7em;"}
 
 ```{pyodide}
-def f(n):
-    """The side of square n in the spiral."""
-    if n == 1 or n == 2:
-        return 1                     # squares 1 and 2: side 1
-    else:
-        return f(n - 1) + f(n - 2)   # two recursive calls
-
 print([f(n) for n in range(1, 11)])
 ```
 
@@ -536,8 +541,14 @@ print([f(n) for n in range(1, 11)])
 - Two base cases, because each square needs the two squares before it.
 :::
 
-::: {.callout-note}
+::: {.fragment}
 💡 Fun Fact: Leonardo of Pisa (known as Fibonacci) wrote these numbers down in 1202 as a puzzle, which is about breeding rabbits 🐇 🐇!
+
+<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWxsZXN1NTJyaXYwejNsbDEwNHlocjA3cWdqemRibnVuZ3B0YTBzMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oz8xLZ1qiYR43jYE8/giphy.gif" alt="rabbit_dance" style="width: 50%; height: auto;">
+:::
+
+::: footer
+GIF from [Giphy](https://giphy.com/gifs/3oz8xLZ1qiYR43jYE8)
 :::
 
 
@@ -559,7 +570,7 @@ calls_view = {"rows": ([{"n": n, "calls": calls[n], "kind": fib_kind} for n in c
 ojs_define(calls_view = calls_view)
 ```
 
-## How fast is it? {style="font-size: 0.75em;"}
+## How fast is the growth of Fibonacci? {style="font-size: 0.75em;"}
 
 ```{pyodide}
 def count_calls(n):
@@ -601,12 +612,6 @@ viewof calls_n = Inputs.range([3, 30], {value: 10, step: 1, label: "n"})
 2 calls per step, about $n$ levels deep: $O(2^n)$. Roughly, $k$ calls per step and $n$ levels: $O(k^n)$.
 :::
 
-::: {.notes}
-- Slide n up: the blue line stays flat on the floor.
-- From 20 to 30, about 120 times more calls.
-- Precisely it grows like 1.6ⁿ (the golden ratio again), but O(2ⁿ) is a fine upper bound.
-- Dynamic programming (lecture 7) makes this fast by remembering answers.
-:::
 
 ## iClicker: space of Fibonacci {style="font-size: 0.8em;"}
 
@@ -630,17 +635,11 @@ At MDS orientation, each clue told you where to find the next one.
 
 ::: {.incremental}
 - Can you run straight to clue 4?
-- The organisers add a new clue between clue 2 and clue 3. Which clues do they rewrite?
 - How do you know you are done?
 :::
 
 ::: {.notes}
-About 18 minutes for linked lists.
-- Ask who found the goose, and which clue was the hardest.
 - Clue 4: no. You only learn where clue 4 is by reading clue 3. To reach clue i, you follow i clues.
-- New clue: rewrite only clue 2, so it sends you to the new clue, and the new clue sends you to clue 3. No other clue changes.
-- Done: the last clue says "the end".
-- Keep these three answers in mind: they come back as code on the next slides.
 :::
 
 ## A clue is a node {style="font-size: 0.8em;"}
