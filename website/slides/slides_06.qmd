@@ -25,7 +25,7 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-background-image: images/lec06_title_spiral.png
+  data-background-image: images/lec06_title_wave_shell.png
   data-background-size: cover
   data-background-position: right bottom
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
