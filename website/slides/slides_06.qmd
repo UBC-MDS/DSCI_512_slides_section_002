@@ -1084,7 +1084,6 @@ Lecture 5: a BST throws away half the animals at each step. Lighter? Go left.
 A song has **two** numbers. Can we still throw away half at each step?
 
 ::: {.notes}
-About 17 minutes for k-d trees.
 - "Is this song smaller?" makes no sense for a point. But "is its x smaller?" does.
 :::
 
@@ -1357,12 +1356,6 @@ viewof kd_bstep = Inputs.button([
 Every split is a node in a **binary tree**. A BST asks "lighter?". A $k$-d tree asks "$x$ smaller?", then "$y$ smaller?".
 :::
 
-::: {.notes}
-- Each click is one call of the recursive build: sort the box on its coordinate, cut at the median, then build the lower half completely before the upper half. Same order as the Fibonacci call tree.
-- The row at the bottom is the box's songs, sorted on this level's coordinate. The orange one is the median: it goes to the upper half, like points[mid:] in the code on the next slide.
-- On the tree: orange is the split being made. Its two children have the same colours as the halves on the map: blue for the lower half, light blue for the upper half, with how many songs each holds. Grey: splits already made, and groups still waiting.
-- Press Finish to see all the boxes.
-:::
 
 ## The `KDTree` class {style="font-size: 0.7em;"}
 
