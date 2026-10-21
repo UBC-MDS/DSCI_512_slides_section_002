@@ -1422,11 +1422,6 @@ viewof kd_step = Inputs.button([
 Often close enough: the second most similar song is still a fine next song. But not always the closest.
 :::
 
-::: {.notes}
-- Light blue: the box we are still searching. Orange line: the question we are asking. On the tree: the path walked so far.
-- Orange ring: the tree's answer. Green ring: the song that truly sounds most alike.
-- The last step is the key picture: the circle crosses a line, so a closer song could be on the other side. Next slide uses exactly that test.
-:::
 
 ## How scikit-learn fixes it {style="font-size: 0.75em;"}
 
@@ -1474,14 +1469,6 @@ html`<div class="ojs-readout"><span class="sq-count">${exact_steps[exact_step].c
 ```
 :::
 ::::
-
-::: {.notes}
-- Orange dot: the closest song so far, and the circle has that radius. Light blue: songs we measured. Grey: never measured.
-- Light blue box: the side we look at. Grey box with a dashed line: the side we skip.
-- The rule is the same at every line: is the line closer than the best song so far?
-- scikit-learn measures the distance to a whole box, not just to its line. Same idea, and it skips even more.
-- Here: `{python} n_checked` distances instead of 20. With millions of songs, most boxes are far outside the circle, so the saving is huge. scikit-learn does this for us.
-:::
 
 ## The exact answer {style="font-size: 0.75em;"}
 
