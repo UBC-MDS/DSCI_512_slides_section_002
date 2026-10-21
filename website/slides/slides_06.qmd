@@ -878,15 +878,12 @@ A linked list has $n$ nodes. What is the time complexity of each?
 - `deque` (lecture 4) is built from linked blocks: fast at both ends.
 :::
 
-## What happens here? {style="font-size: 0.8em;"}
+## What would happen if we ran this? {style="font-size: 0.8em;"}
 
 ```{pyodide}
 head = Node(0)
-try:
-    for i in range(1, 5000):
-        head.append(i)
-except RecursionError as error:
-    print(f"RecursionError after {i} nodes:", error)
+for i in range(1, 5000):
+    head.append(i)
 ```
 
 ::: {.fragment}
@@ -903,10 +900,6 @@ def append(self, item):
 ```
 
 Recursion is a natural way to **think** about recursive data. A loop is sometimes safer to **write** in Python.
-:::
-
-::: {.notes}
-- 5,000 nodes is tiny for real data, so real linked list code walks with a loop.
 :::
 
 ## Where are linked lists used? {style="font-size: 0.75em;"}
