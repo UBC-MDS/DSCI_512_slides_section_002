@@ -192,11 +192,13 @@ About 17 minutes for Fibonacci.
 
 ## Today's plan {background-image="images/lec06_print_shop.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
+::: {style="max-width: 80%;"}
 | what we build | the question it answers |
 |---|---|
 | a recursive function: Fibonacci | How do we draw this spiral with code? |
 | a recursive data structure: the linked list | How do we store a goose hunt in code? |
 | a recursive data structure that splits in two: the $k$-d tree | What should Spotify play next? |
+:::
 
 ::: {.notes}
 - One minute, just the roadmap. Don't explain the terms yet: each one starts with its question.
