@@ -25,10 +25,10 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-background-image: images/lec06_print_shop.png
+  data-background-image: images/lec06_title_spiral.png
   data-background-size: cover
   data-background-position: right bottom
-  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Story: draw it, save it, play it. We draw the Fibonacci spiral with code, save that code with git (a linked list), and while we code, Spotify picks the next song (a k-d tree).<br>Time plan (70 min): Fibonacci 17, linked lists 18, nearest neighbours 8, k-d trees 17, amortization 10. Bonus slides are for the lab."
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
 ---
 
 ## What do these four have in common? {style="font-size: 0.8em;"}
@@ -186,38 +186,200 @@ Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-seq
 ::: {.notes}
 About 17 minutes for Fibonacci.
 - Take guesses from the room first. Hokusai's Great Wave, the Mona Lisa, a sunflower head, a nautilus shell cut in half.
-- Today's story: draw the spiral with code, save that code with git, and find out how Spotify picks the next song while we code.
+- Today: draw the spiral with code, store a goose hunt in code, and find out how Spotify picks the next song while we code.
 - Caveat for the curious: art historians debate whether painters used it on purpose, and the EarthSky article shows the nautilus is a spiral that is close to, but not exactly, this one.
 :::
 
-## Zoom into the sunflower {style="font-size: 0.8em;"}
+## Today's plan {style="font-size: 0.8em;"}
 
-:::: {.columns}
-::: {.column width="55%"}
-![](images/nature1.png){width="100%"}
-:::
-::: {.column width="45%"}
-The spiral sits on squares.
+| what we build | the question it answers |
+|---|---|
+| a recursive function: Fibonacci | How do we draw this spiral with code? |
+| a recursive data structure: the linked list | How do we store a goose hunt in code? |
+| a recursive data structure that splits in two: the $k$-d tree | What should Spotify play next? |
 
-::: {.incremental}
-- Their sides: 1, 1, 2, 3, 5, 8, 13.
-- What is the side of the next square?
+::: {.notes}
+- One minute, just the roadmap. Don't explain the terms yet: each one starts with its question.
+- The thread for the whole lecture: a function that calls a smaller copy of itself, a list that holds a smaller list, a tree that holds smaller trees.
+- The k-d tree is a data structure, not an ML model. The model is k-nearest neighbours; the k-d tree is how k-NN finds the neighbours fast (scikit-learn: KNeighborsClassifier(algorithm="kd_tree")).
+- "Paying up front" is amortization, at the end: building the k-d tree, and why list.append is fast.
 :::
+
+```{python}
+#| echo: false
+# Hidden: the "Draw the spiral" slide. Square 1 sits at (0, 0); each new square goes on the next
+# side of the drawing, in turn: right, above, left, below, and its side is f (same code as the
+# visible cell on the next slide). One quarter circle per square makes the spiral. With the shell
+# switched on, the photo nature2.png goes behind the drawing with the eye of the spiral on the eye
+# of the shell. Every square, arc point, label, image position and sentence is worked out here,
+# OJS only draws.
+def f(n):
+    if n == 1 or n == 2:
+        return 1
+    else:
+        return f(n - 1) + f(n - 2)
+
+
+def place_squares(n):
+    """Corner (x, y) and side of squares 1 to n."""
+    squares = [(0, 0, 1)]
+    left, bottom, right, top = 0, 0, 1, 1
+    for i in range(2, n + 1):
+        s = f(i)
+        if i % 4 == 2:
+            x, y = right, bottom
+        elif i % 4 == 3:
+            x, y = left, top
+        elif i % 4 == 0:
+            x, y = left - s, bottom
+        else:
+            x, y = left, bottom - s
+        squares.append((x, y, s))
+        left, bottom = min(left, x), min(bottom, y)
+        right, top = max(right, x + s), max(top, y + s)
+    return squares
+
+
+spiral_max = 10
+spiral_w, spiral_h, spiral_margin = 820, 360, 10
+inner_w, inner_h = spiral_w - 2 * spiral_margin, spiral_h - 2 * spiral_margin
+inner_aspect = inner_h / inner_w
+where_words = {"right": "to the right of", "above": "above", "left": "to the left of", "below": "below"}
+squares, arc = [], []
+minx = miny = maxx = maxy = 0
+for i, (x, y, s) in enumerate(place_squares(spiral_max), start=1):
+    side = ["left", "below", "right", "above"][i % 4]   # square 1 counts as "below"
+    minx, miny, maxx, maxy = min(minx, x), min(miny, y), max(maxx, x + s), max(maxy, y + s)
+    # The quarter circle: its centre is one corner of the square, and it joins the two corners
+    # next to that one, so each arc starts where the last one ended.
+    cx, cy, start = {"below": (x + s, y + s, 180), "right": (x, y + s, 270),
+                     "above": (x, y, 0), "left": (x + s, y, 90)}[side]
+    angles = np.radians(np.linspace(start, start + 90, 13))
+    arc += [{"x": round(float(cx + s * np.cos(a)), 3), "y": round(float(cy + s * np.sin(a)), 3)}
+            for a in angles]
+    squares.append({"x1": x, "x2": x + s, "y1": y, "y2": y + s, "side": s, "where": side,
+                    "box": (minx, miny, maxx, maxy), "arc_end": len(arc)})
+
+# The eye of the spiral: the point the arcs wind into. Square k + 1's arc is square k's arc
+# turned a quarter and stretched, so the eye is the point that this turn leaves in place
+# (complex numbers: z -> a z + b, eye = b / (1 - a)).
+p = [complex(arc[13 * k]["x"], arc[13 * k]["y"]) for k in [7, 8, 9]]
+a_turn = (p[2] - p[1]) / (p[1] - p[0])
+spiral_eye = (p[1] - a_turn * p[0]) / (1 - a_turn)
+
+# The shell photo: 1054 x 818 pixels, eye of the shell at pixel (653, 537). Chosen by eye so the
+# inner coils line up: 6 photo pixels per unit of square side, no rotation.
+photo_w, photo_h, photo_eye_x, photo_eye_y, photo_px_per_unit = 1054, 818, 653, 537, 6
+photo_cx = spiral_eye.real + (photo_w / 2 - photo_eye_x) / photo_px_per_unit
+photo_cy = spiral_eye.imag - (photo_h / 2 - photo_eye_y) / photo_px_per_unit   # photo y points down
+photo_box = (photo_cx - photo_w / 2 / photo_px_per_unit, photo_cy - photo_h / 2 / photo_px_per_unit,
+             photo_cx + photo_w / 2 / photo_px_per_unit, photo_cy + photo_h / 2 / photo_px_per_unit)
+
+
+def frame(box, pad_share):
+    """Axis domains around box, with the same scale on both axes."""
+    bx0, by0, bx1, by1 = box
+    w, h = bx1 - bx0, by1 - by0
+    pad = pad_share * max(w, h)
+    w_show = max(w + 2 * pad, (h + 2 * pad) / inner_aspect)
+    h_show = w_show * inner_aspect
+    xc, yc = (bx0 + bx1) / 2, (by0 + by1) / 2
+    return w_show, [xc - w_show / 2, xc + w_show / 2], [yc - h_show / 2, yc + h_show / 2]
+
+
+def square_labels(n, w_show):
+    """Side labels, only on squares big enough to hold one."""
+    return [{"x": (q["x1"] + q["x2"]) / 2, "y": (q["y1"] + q["y2"]) / 2, "text": str(q["side"])}
+            for q in squares[:n] if q["side"] / w_show > 0.04]
+
+
+shell_say = ("Behind it: a real nautilus shell, with both centres on the same point. "
+             "The first turns match, then the spiral grows faster than the shell.")
+spiral_view = {}
+for n in range(1, spiral_max + 1):
+    w_show, x_domain, y_domain = frame(squares[n - 1]["box"], 0.06)
+    bx0, by0, bx1, by1 = squares[n - 1]["box"]
+    both = (min(bx0, photo_box[0]), min(by0, photo_box[1]), max(bx1, photo_box[2]), max(by1, photo_box[3]))
+    shell_w_show, shell_x_domain, shell_y_domain = frame(both, 0)
+    px = inner_w / shell_w_show   # screen pixels per unit
+    s = f(n)
+    if n == 1:
+        say = "Square 1: side 1."
+    elif n == 2:
+        say = "Square 2: side 1. It goes to the right of square 1."
+    else:
+        say = (f"Square {n}: side {f(n - 1)} + {f(n - 2)} = {s}, the two sides before it added. "
+               f"It goes {where_words[squares[n - 1]['where']]} the drawing.")
+    spiral_view[n] = {
+        "squares": [{**{k: q[k] for k in ["x1", "x2", "y1", "y2"]}, "role": "new" if k == n - 1 else "old"}
+                    for k, q in enumerate(squares[:n])],
+        "arc": arc[:squares[n - 1]["arc_end"]],
+        "plain": {"say": say, "labels": square_labels(n, w_show), "x_domain": x_domain, "y_domain": y_domain},
+        "shell": {"say": f"{say} {shell_say}", "labels": square_labels(n, shell_w_show),
+                  "x_domain": shell_x_domain, "y_domain": shell_y_domain,
+                  "photo": [{"x": round(photo_cx, 3), "y": round(photo_cy, 3),
+                             "width": round(photo_w / photo_px_per_unit * px, 1),
+                             "height": round(photo_h / photo_px_per_unit * px, 1)}]},
+    }
+ojs_define(spiral_view = spiral_view)
+golden_ratios = ", ".join(f"{f(n + 1) / f(n):.3f}" for n in range(5, 10))
+golden = f"{(1 + 5 ** 0.5) / 2:.3f}"
+```
+
+## Draw the spiral {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof spiral_n = Inputs.range([1, 10], {value: 1, step: 1, label: "squares"})
+```
+
+```{ojs}
+//| echo: false
+viewof spiral_shell = Inputs.toggle({label: "shell behind", value: false})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every square, arc point, photo position and sentence was worked out in Python
+  // (spiral_view). Orange: the newest square. Grey: earlier squares. Blue: the spiral.
+  const v = spiral_view[spiral_n];
+  const view = spiral_shell ? v.shell : v.plain;
+  const fill = {new: "#fdeee6", old: "#f2f1ee"}, stroke = {new: "#eb6834", old: "#b8b6b0"};
+  return html`<div class="ojs-readout">${view.say}</div>${Plot.plot({
+    width: 820, height: 360, margin: 10,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: view.x_domain}, y: {axis: null, domain: view.y_domain},
+    marks: [
+      spiral_shell ? Plot.image(view.photo, {x: "x", y: "y", width: "width", height: "height",
+                                             src: () => "images/nature2.png", opacity: 0.85}) : null,
+      Plot.rect(v.squares, {x1: "x1", x2: "x2", y1: "y1", y2: "y2", fillOpacity: spiral_shell ? 0 : 1,
+                            fill: d => fill[d.role], stroke: d => stroke[d.role], strokeWidth: 2}),
+      Plot.line(v.arc, {x: "x", y: "y", stroke: "#2a78d6", strokeWidth: 4}),
+      Plot.text(view.labels, {x: "x", y: "y", text: "text", fontWeight: "bold",
+                              fill: spiral_shell ? "white" : "#52514e"})
+    ]
+  })}`;
+}
+```
 
 ::: {.fragment}
-21 = 8 + 13. Each side is the sum of the **two** sides before it.
+Long side ÷ short side: `{python} golden_ratios`, ... It settles at `{python} golden`, the **golden ratio**.
 :::
-:::
-::::
 
 ::: footer
-Image: [Cleveland Design](https://clevelanddesign.com/insights/the-nature-of-design-the-fibonacci-sequence-and-the-golden-ratio/)
+Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/)
 :::
 
 ::: {.notes}
-- Point at the numbers in the picture: start in the middle, 1 and 1, then 2, 3, 5, 8, 13.
-- Give them a moment for the next one before revealing 21.
-- These are the Fibonacci numbers. Leonardo of Pisa, known as Fibonacci, wrote them down in 1202 as a puzzle about breeding rabbits.
+- Slide from 1 to 10. Read the sides out loud: 1, 1, 2, 3, 5.
+- At square 6, stop and ask: what is the side of the next square? 8 = 3 + 5, the two sides before it added.
+- Each new square sits on the long side of the drawing so far, and that long side is exactly the two sides before it added.
+- The spiral is one quarter circle per square.
+- The golden ratio is the number the articles on the first slide talk about.
+- Last step, at 10 squares: switch on "shell behind". Same spiral, now with the shell from the first slide behind it, centres on the same point.
+- Ask: does it match? The inner coils and the bottom of the shell do. Then the spiral overshoots on the right.
+- Why: the Fibonacci spiral gets about 1.6 times wider every quarter turn (the golden ratio). Measured on this photo, the shell gets only about 1.3 times wider. Close, but not the same spiral.
 :::
 
 ## The rule in code {style="font-size: 0.8em;"}
@@ -241,120 +403,10 @@ print([f(n) for n in range(1, 11)])
 :::
 
 ::: {.notes}
+- Same rule as the drawing: each side is the two sides before it added.
 - Predict the printout before running: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55.
+- Leonardo of Pisa, known as Fibonacci, wrote these numbers down in 1202 as a puzzle about breeding rabbits.
 - f(30) takes a few seconds in the browser. Don't try f(35) live: it freezes the page.
-:::
-
-```{python}
-#| echo: false
-# Hidden: the "Draw the spiral with f" slide. The side of each square comes from f (same code
-# as the visible cell). Square 1 sits at (0, 0); each new square goes on the next side of the
-# drawing, in turn: right, above, left, below. One quarter circle per square makes the spiral.
-# Every square, arc point, label and sentence is worked out here, OJS only draws.
-def f(n):
-    if n == 1 or n == 2:
-        return 1
-    else:
-        return f(n - 1) + f(n - 2)
-
-
-spiral_max = 10
-spiral_w, spiral_h, spiral_margin = 820, 320, 10
-inner_aspect = (spiral_h - 2 * spiral_margin) / (spiral_w - 2 * spiral_margin)
-where_words = {"right": "to the right of", "above": "above", "left": "to the left of", "below": "below"}
-squares, arc = [], []
-minx = miny = maxx = maxy = 0
-for i in range(1, spiral_max + 1):
-    s = f(i)
-    side = ["left", "below", "right", "above"][i % 4]   # square 1 counts as "below"
-    if i == 1:
-        x, y = 0, 0
-    elif side == "right":
-        x, y = maxx, miny
-    elif side == "above":
-        x, y = minx, maxy
-    elif side == "left":
-        x, y = minx - s, miny
-    else:
-        x, y = minx, miny - s
-    minx, miny, maxx, maxy = min(minx, x), min(miny, y), max(maxx, x + s), max(maxy, y + s)
-    # The quarter circle: its centre is one corner of the square, and it joins the two corners
-    # next to that one, so each arc starts where the last one ended.
-    cx, cy, start = {"below": (x + s, y + s, 180), "right": (x, y + s, 270),
-                     "above": (x, y, 0), "left": (x + s, y, 90)}[side]
-    angles = np.radians(np.linspace(start, start + 90, 13))
-    arc += [{"x": round(float(cx + s * np.cos(a)), 3), "y": round(float(cy + s * np.sin(a)), 3)}
-            for a in angles]
-    squares.append({"x1": x, "x2": x + s, "y1": y, "y2": y + s, "side": s, "where": side,
-                    "box": (minx, miny, maxx, maxy), "arc_end": len(arc)})
-
-spiral_view = {}
-for n in range(1, spiral_max + 1):
-    bx0, by0, bx1, by1 = squares[n - 1]["box"]
-    w, h = bx1 - bx0, by1 - by0
-    pad = 0.06 * max(w, h)
-    w_show = max(w + 2 * pad, (h + 2 * pad) / inner_aspect)   # same scale on both axes
-    h_show = w_show * inner_aspect
-    xc, yc = (bx0 + bx1) / 2, (by0 + by1) / 2
-    s = f(n)
-    if n == 1:
-        say = "Square 1: side f(1) = 1. A base case."
-    elif n == 2:
-        say = "Square 2: side f(2) = 1. The other base case. It goes to the right of square 1."
-    else:
-        say = (f"Square {n}: side f({n}) = f({n - 1}) + f({n - 2}) = {f(n - 1)} + {f(n - 2)} = {s}. "
-               f"It goes {where_words[squares[n - 1]['where']]} the drawing.")
-    spiral_view[n] = {
-        "say": say,
-        "squares": [{**{k: q[k] for k in ["x1", "x2", "y1", "y2"]}, "role": "new" if k == n - 1 else "old"}
-                    for k, q in enumerate(squares[:n])],
-        "labels": [{"x": (q["x1"] + q["x2"]) / 2, "y": (q["y1"] + q["y2"]) / 2, "text": str(q["side"])}
-                   for q in squares[:n] if q["side"] / w_show > 0.04],
-        "arc": arc[:squares[n - 1]["arc_end"]],
-        "x_domain": [xc - w_show / 2, xc + w_show / 2],
-        "y_domain": [yc - h_show / 2, yc + h_show / 2],
-    }
-ojs_define(spiral_view = spiral_view)
-golden_ratios = ", ".join(f"{f(n + 1) / f(n):.3f}" for n in range(5, 10))
-golden = f"{(1 + 5 ** 0.5) / 2:.3f}"
-```
-
-## Draw the spiral with `f` {style="font-size: 0.75em;"}
-
-```{ojs}
-//| echo: false
-viewof spiral_n = Inputs.range([1, 10], {value: 1, step: 1, label: "squares"})
-```
-
-```{ojs}
-//| echo: false
-{
-  // Draw only: every square, arc point and sentence was worked out in Python (spiral_view).
-  // Orange: the newest square. Grey: earlier squares. Blue: the spiral.
-  const v = spiral_view[spiral_n];
-  const fill = {new: "#fdeee6", old: "#f2f1ee"}, stroke = {new: "#eb6834", old: "#b8b6b0"};
-  return html`<div class="ojs-readout">${v.say}</div>${Plot.plot({
-    width: 820, height: 320, margin: 10,
-    style: {fontSize: "16px", background: "transparent"},
-    x: {axis: null, domain: v.x_domain}, y: {axis: null, domain: v.y_domain},
-    marks: [
-      Plot.rect(v.squares, {x1: "x1", x2: "x2", y1: "y1", y2: "y2",
-                            fill: d => fill[d.role], stroke: d => stroke[d.role], strokeWidth: 2}),
-      Plot.line(v.arc, {x: "x", y: "y", stroke: "#2a78d6", strokeWidth: 4}),
-      Plot.text(v.labels, {x: "x", y: "y", text: "text", fontWeight: "bold", fill: "#52514e"})
-    ]
-  })}`;
-}
-```
-
-::: {.fragment}
-Long side ÷ short side: `{python} golden_ratios`, ... It settles at `{python} golden`, the **golden ratio**.
-:::
-
-::: {.notes}
-- Slide from 1 to 10. Each new square sits on the long side of the drawing so far, and that long side is exactly f(n − 1) + f(n − 2).
-- The spiral is one quarter circle per square.
-- The golden ratio is the number the articles on the first slide talk about.
 :::
 
 ```{python}
@@ -560,35 +612,35 @@ Fibonacci `f(n)` takes $O(2^n)$ time. What is its space complexity?
 - The longest path is about $n$ calls. For `f(5)` the stack was never taller than `{python} fib_deepest`.
 :::
 
-# How does git remember every version? {style="font-size: 0.8em;"}
+# Remember the goose hunt? {style="font-size: 0.8em;"}
 
-While drawing the spiral, we saved our code with git after every change:
+At MDS orientation, each clue told you where to find the next one.
 
-```{.text}
-$ git log --oneline
-9f3c2e1 draw spiral
-5b81d07 fix base case
-c04a6f8 add f
-1e2d9b3 first commit
-```
+<div class="ds-row center ll-chain"><span class="ll-arrow">start →</span><div class="ds-box">clue 1</div><span class="ll-arrow">→</span><div class="ds-box">clue 2</div><span class="ll-arrow">→</span><div class="ds-box">clue 3</div><span class="ll-arrow">→</span><div class="ds-box">clue 4</div><span class="ll-arrow">→ the end</span></div>
 
-::: {.fragment}
-You just broke the spiral. How does git find the version **before** `draw spiral`?
+::: {.incremental}
+- Can you run straight to clue 4?
+- The organisers add a new clue between clue 2 and clue 3. Which clues do they rewrite?
+- How do you know you are done?
 :::
 
 ::: {.notes}
 About 18 minutes for linked lists.
-- Take answers. Most students have never thought about it: git does not keep a numbered list of versions.
+- Ask who found the goose, and which clue was the hardest.
+- Clue 4: no. You only learn where clue 4 is by reading clue 3. To reach clue i, you follow i clues.
+- New clue: rewrite only clue 2, so it sends you to the new clue, and the new clue sends you to clue 3. No other clue changes.
+- Done: the last clue says "the end".
+- Keep these three answers in mind: they come back as code on the next slides.
 :::
 
-## One thing points to the next {style="font-size: 0.8em;"}
+## A clue is a node {style="font-size: 0.8em;"}
 
-<div class="ds-row center ll-chain"><span class="ll-arrow">HEAD →</span><div class="ds-box">draw spiral</div><span class="ll-arrow">→</span><div class="ds-box">fix base case</div><span class="ll-arrow">→</span><div class="ds-box">add f</div><span class="ll-arrow">→</span><div class="ds-box">first commit</div><span class="ll-arrow">→ None</span></div>
+<div class="ds-row center ll-chain"><span class="ll-arrow">head →</span><div class="ds-box">clue 1</div><span class="ll-arrow">→</span><div class="ds-box">clue 2</div><span class="ll-arrow">→</span><div class="ds-box">clue 3</div><span class="ll-arrow">→</span><div class="ds-box">clue 4</div><span class="ll-arrow">→ None</span></div>
 
 ::: {.incremental}
-- Each commit stores its changes, plus a link to its **parent**: the commit before it.
-- The first commit has no parent. Its link is `None`.
-- Git only keeps `HEAD`, the newest commit. To go back, follow the links one by one.
+- Each clue holds one message, plus where to find the next clue.
+- The last clue has no next clue. Its link is `None`: the end.
+- We only hold on to the first clue, the **head**. Every other clue is found by following the links.
 :::
 
 ::: {.fragment}
@@ -596,9 +648,8 @@ This is a **linked list**: each node holds one item and a link to the next node.
 :::
 
 ::: {.notes}
-- `git log` starts at HEAD and follows the parent links until it reaches None.
-- A blockchain is the same shape: each block stores the id (hash) of the block before it.
-- Python's deque (lecture 4) is built from linked blocks too.
+- Map it out: a clue is a node, "where to go next" is the link, "the end" is None.
+- The organisers only need to hand out clue 1. That is the head.
 :::
 
 ## The `Node` class {style="font-size: 0.65em;"}
@@ -606,8 +657,8 @@ This is a **linked list**: each node holds one item and a link to the next node.
 ```{.python code-line-numbers="|2-4|6-9|11-15|17-22"}
 class Node:
     def __init__(self, item):
-        self.item = item     # the data in this node, e.g. a commit message
-        self.next = None     # the next node (a commit's parent), or None
+        self.item = item     # the data in this node, e.g. a clue
+        self.next = None     # the next node, or None
 
     def push_front(self, item):
         new_node = Node(item)
@@ -629,12 +680,14 @@ class Node:
 ```
 
 ::: {.fragment}
-`git commit` is `push_front`. `HEAD~2` (two commits back) is `get(2)`.
+`push_front`: a new first clue. `append`: a new last clue. `get(i)`: walk to clue `i`, counting from 0.
 :::
 
 ::: {.notes}
 - We only ever hold on to the head. Every other node is reached by following `next`.
-- `append` adds at the far end, after the oldest node. Git never does that, but other linked lists do.
+- push_front hands out a new first clue that points to the old first clue. Nothing else changes.
+- append walks to the last clue, then links a new one after it. get walks i clues.
+- Inserting in the middle (the goose hunt question) works the same way: change one link. Not in our class, it is a lab exercise if you want one.
 :::
 
 ```{python}
@@ -690,20 +743,32 @@ def replay_nodes(script):
 
 
 node_scripts = {
-    "git history": [("new", "first commit"), ("front", "add f"), ("front", "fix base case"),
-                    ("front", "draw spiral"), ("get", 2), ("get", 5)],
+    "goose hunt": [("new", "library"), ("append", "pond"), ("front", "front desk"),
+                   ("get", 2), ("get", 5)],
     "the question": [("new", "A"), ("append", "B"), ("front", "C"), ("front", "D"),
                      ("append", "E"), ("get", 3)],
 }
 ojs_define(node_view = {"names": list(node_scripts),
                         "steps": {k: replay_nodes(v) for k, v in node_scripts.items()}})
+
+# The git wrap-up slide: three commits, then HEAD~2. Same replay, with the git command next to the
+# Node method it matches.
+git_script = [("new", "first commit"), ("front", "add f"), ("front", "draw spiral"), ("get", 2)]
+git_commands = {"new": 'git commit -m "{}"', "front": 'git commit -m "{}"', "get": "git checkout HEAD~{}"}
+node_code = {"new": 'head = Node("{}")', "front": 'head = head.push_front("{}")', "get": "head.get({})"}
+git_lines = {node_code[op].format(arg): f"{git_commands[op].format(arg)}   is   {node_code[op].format(arg)}"
+             for op, arg in git_script}
+git_steps = replay_nodes(git_script)
+for step in git_steps:
+    step["code"] = git_lines[step["code"]]
+ojs_define(git_view = git_steps)
 ```
 
 ## Watch the links {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
-viewof node_script = Inputs.radio(node_view.names, {value: "git history", label: "replay"})
+viewof node_script = Inputs.radio(node_view.names, {value: "goose hunt", label: "replay"})
 ```
 
 ```{ojs}
@@ -734,7 +799,7 @@ viewof node_step = Inputs.button([
 ::: {.notes}
 - Orange: the node working right now. Light blue: nodes already visited, their calls waiting. Blue: the new node.
 - push_front is one step. append and get follow the links one by one.
-- "git history": get(2) is HEAD~2. get(5) runs off the end and returns None.
+- "goose hunt": append walks to the last clue first. get(2) walks to the third clue. get(5) runs off the end and returns None.
 - "the question" replays the question on the next slide: let them predict first.
 :::
 
@@ -798,8 +863,8 @@ A linked list has $n$ nodes. What is the time complexity of each?
 :::
 
 ::: {.notes}
+- Back to the goose hunt: reaching clue i means reading i clues, so get(i) is O(i). Adding a new first clue is one new clue, so push_front is O(1).
 - Neither wins at everything. Linked lists are fast at the front, Python lists at the end and at jumping anywhere.
-- That is why git uses links: every commit is added at the front, and we mostly look at the last few.
 - `deque` (lecture 4) is built from linked blocks: fast at both ends.
 :::
 
@@ -831,7 +896,40 @@ Recursion is a natural way to **think** about recursive data. A loop is sometime
 :::
 
 ::: {.notes}
-- A repository with 5,000 commits is normal. Git walks its history with a loop, not recursion.
+- 5,000 nodes is tiny for real data, so real linked list code walks with a loop.
+:::
+
+## Where are linked lists used? {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof git_step = Inputs.range([1, git_view.length], {value: 1, step: 1, label: "step"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every node, highlight and sentence was worked out in Python (git_view).
+  const s = git_view[git_step - 1];
+  const chain = s.boxes.flatMap((b, i) => [
+    ...(i > 0 ? [html`<span class="ll-arrow">→</span>`] : []),
+    html`<div class="ds-box ${b.cls}">${b.label}</div>`]);
+  return html`<div class="ll-code">${s.code}</div>
+    <div class="ds-row center ll-chain"><span class="ll-arrow">HEAD →</span>${chain}<span class="ll-arrow">→ None</span></div>
+    <div class="ojs-readout ll-result">${s.result}</div>`;
+}
+```
+
+::: {.incremental}
+- Git: each commit links to its parent, the commit before it. `git commit` is `push_front`.
+- Blockchain: each block stores the id (hash) of the block before it.
+:::
+
+::: {.notes}
+- Slide through: three commits, then HEAD~2 walks two links back. Git only keeps HEAD, the newest commit.
+- git log starts at HEAD and follows the parent links until it reaches None.
+- Why links fit git: every commit is added at the front, and we mostly look at the last few. Both are cheap in a linked list.
+- Changing an old block in a blockchain changes its hash, which breaks the link from the next block. That is how tampering shows.
 :::
 
 # What should Spotify play next? {background-image="images/lec06_records.png" background-size="contain" background-position="right bottom" style="font-size: 0.8em;"}
@@ -1476,7 +1574,6 @@ Plot.plot({
 ::: {.incremental}
 - Sort once, then binary search many times (lecture 2).
 - Build a $k$-d tree of the songs once, then answer every listener fast.
-- Build a database index once, then look rows up fast (DSCI 513).
 :::
 
 ::: {.fragment}
@@ -1641,7 +1738,7 @@ The resizes get rarer as the list grows. Blue line: the average stays small. Tha
 
 ::: {.incremental}
 - More recursive calls per step can mean exponential time: Fibonacci is $O(2^n)$, but only $O(n)$ space.
-- A recursive data structure is defined in terms of itself: a node links to a node (git history), a tree holds trees.
+- A recursive data structure is defined in terms of itself: a node links to a node (goose hunt clues, git history), a tree holds trees.
 - Functions on it follow its shape. Base case: the smallest piece. Recursive step: hand the job to the next piece.
 - Brute-force nearest neighbours is $O(nk)$ per query. A $k$-d tree splits at medians and makes queries fast in few dimensions.
 - Amortization: pay once up front, or now and then, so that many operations are cheap on average.

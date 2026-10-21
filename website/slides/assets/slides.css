@@ -1,5 +1,5 @@
 /* Title slide heading, 85% of the theme default (2.5em) */
-.reveal #title-slide .title { font-size: 2.125em; }
+.reveal #title-slide .title { font-size: 2.0em; }
 
 /* Observable Inputs (sliders, checkboxes, toggles, radios) inside reveal slides */
 .reveal form[class*="oi-"] { font-size: 0.55em; align-items: center; margin: 0.2em 0; }
