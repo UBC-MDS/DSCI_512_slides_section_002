@@ -1562,7 +1562,7 @@ Plot.plot({
 - So which is better? It depends on how many queries you run. Next section.
 :::
 
-# Pay up front, save later {style="font-size: 0.8em;"}
+# Pay the cost upfront, which will save you time later {style="font-size: 0.8em;"}
 
 ::: {.incremental}
 - Sort once, then binary search many times (lecture 2).
@@ -1680,7 +1680,7 @@ for i in range(100):
         last_size = size
 ```
 
-## Every append, counted {style="font-size: 0.75em;"}
+## How python `list` expands {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
