@@ -1970,30 +1970,3 @@ for row in zip(*results.values()):
 for row in zip(*results.values()):
     print(f"n = {row[0]:>9,}:  build {row[1]:8.2f} ms   query {row[2]:6.3f} ms   brute force {row[3]:8.3f} ms")
 ```
-
-## (Bonus Slide) Why does doubling cost less than $2n$? {style="font-size: 0.75em;"}
-
-A list that doubles its room copies $1, 2, 4, \dots, n$ items over all its resizes. Call the total $S$.
-
-::: {.fragment}
-Same trick as lecture 5: double every term, then take $S$ away.
-
-$$
-\begin{aligned}
-2S &= \phantom{1 + {}} 2 + 4 + \dots + n + 2n \\
-S &= 1 + 2 + 4 + \dots + n \\
-2S - S &= 2n - 1 && \text{2, 4, ..., n cancel} \\
-S &= 2n - 1 && \text{since } 2S - S = S
-\end{aligned}
-$$
-:::
-
-::: {.fragment}
-- $S < 2n$: all the copying for $n$ appends is $O(n)$ in total.
-- Spread over $n$ appends, that is $O(1)$ each on average: **amortized** $O(1)$. ✅
-:::
-
-::: {.notes}
-- Lecture 5's bonus: halving gave n/2 + n/4 + ... + 1 = n − 1. Doubling is the same sum read the other way, plus the last n.
-- Python grows the list by about 1.125 times, not 2. The total is still a fixed multiple of n, so still amortized O(1).
-:::
