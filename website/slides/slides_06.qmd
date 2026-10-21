@@ -937,12 +937,12 @@ viewof git_step = Inputs.range([1, git_view.length], {value: 1, step: 1, label: 
 
 # What should Spotify play next? {background-image="images/lec06_otter_spotify.png" background-size="auto 80%" background-position="right bottom" style="font-size: 0.8em;"}
 
-While we coded the spiral, a song was playing. It just ended.
+Some musicians also use fibonacci sequence to create music (structure syllable counts), like Mozart's sonatas 🎹.
 
-Our playlist has 20 other songs. Which one sounds most like it?
+We are using Spotify to play Mozart's sonatas. Which one would Spotify suggest to play next? 🤔
 
 ::: {.fragment}
-Spotify answers this for millions of listeners.
+Spotify answers this for millions of listeners. 
 :::
 
 ::: footer
