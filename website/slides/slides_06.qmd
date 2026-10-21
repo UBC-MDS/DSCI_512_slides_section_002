@@ -25,7 +25,7 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-background-image: images/lec06_title_spiral.png
+  data-background-image: images/lec06_print_shop.png
   data-background-size: cover
   data-background-position: right bottom
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Story: draw it, save it, play it. We draw the Fibonacci spiral with code, save that code with git (a linked list), and while we code, Spotify picks the next song (a k-d tree).<br>Time plan (70 min): Fibonacci 17, linked lists 18, nearest neighbours 8, k-d trees 17, amortization 10. Bonus slides are for the lab."
