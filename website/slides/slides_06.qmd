@@ -90,6 +90,7 @@ def far(d):
 # The query is the song that just finished playing.
 rng = np.random.default_rng(1)
 X = rng.random((20, 2))
+X[19, 1] = 0.15    # move song 19 up a little, so the k-d tree walk finds the 2nd closest song
 query = np.array([0.5, 0.3])
 axis_name = ["x", "y"]
 
@@ -140,6 +141,7 @@ class Node:
 
 rng = np.random.default_rng(1)
 X = rng.random((20, 2))
+X[19, 1] = 0.15    # move song 19 up a little, so the k-d tree walk finds the 2nd closest song
 query = np.array([0.5, 0.3])
 
 
@@ -1059,6 +1061,7 @@ def nearest_neighbour(data, query):
 
 rng = np.random.default_rng(1)
 X = rng.random((20, 2))          # 20 songs: x = energy, y = danceability
+X[19, 1] = 0.15                  # move song 19 up a little (for the k-d tree later)
 query = np.array([0.5, 0.3])     # the song that just played
 nn = nearest_neighbour(X, query)
 print("song", nn, "at", X[nn])
