@@ -544,7 +544,7 @@ print([f(n) for n in range(1, 11)])
 ::: {.fragment}
 💡 Fun Fact: Leonardo of Pisa (known as Fibonacci) wrote these numbers down in 1202 as a puzzle, which is about breeding rabbits 🐇 🐇!
 
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWxsZXN1NTJyaXYwejNsbDEwNHlocjA3cWdqemRibnVuZ3B0YTBzMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oz8xLZ1qiYR43jYE8/giphy.gif" alt="rabbit_dance" style="width: 50%; height: auto;">
+<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWxsZXN1NTJyaXYwejNsbDEwNHlocjA3cWdqemRibnVuZ3B0YTBzMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oz8xLZ1qiYR43jYE8/giphy.gif" alt="rabbit_dance" style="display: block; margin: 0 auto; width: 30%; height: auto;">
 :::
 
 ::: footer
