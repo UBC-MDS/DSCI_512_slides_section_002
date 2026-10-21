@@ -1012,13 +1012,14 @@ html`<div class="ojs-readout">${nn_steps[nn_k].say}</div>`
 //| echo: false
 // Draw only: the songs, the song that just played and a square map (same scale on both axes, so
 // circles look round). Shared by the k-d tree slides too.
-map_plot = (marks, {width = 400} = {}) => Plot.plot({
+map_plot = (marks, {width = 400, star = true} = {}) => Plot.plot({
   width, height: width + 8, marginLeft: 50, marginRight: 18, marginBottom: 44, marginTop: 32,
   style: {fontSize: "16px", background: "transparent"},
   x: {label: "x: energy →", domain: [0, 1]}, y: {label: "↑ y: danceability", domain: [0, 1]},
   marks: [
     ...marks,
-    Plot.dot([played], {x: d => d[0], y: d => d[1], r: 9, fill: "#52514e", symbol: "star"})
+    // the song that just played; left off the build slide, where it plays no part
+    ...(star ? [Plot.dot([played], {x: d => d[0], y: d => d[1], r: 9, fill: "#52514e", symbol: "star"})] : [])
   ]
 })
 ```
@@ -1347,10 +1348,14 @@ viewof kd_bstep = Inputs.button([
       Plot.link(s.lines, {x1: "x1", y1: "y1", x2: "x2", y2: "y2", strokeWidth: d => d.now ? 3 : 1.5,
                           stroke: d => d.now ? "#eb6834" : "#8a8880"}),
       Plot.dot(rows, {x: "x", y: "y", r: 6, fill: d => fill[d.role]})
-    ], {width: 360})}${draw_tree(kd_view.layout, s, {width: 480, height: 300, r: 7})}</div>
+    ], {width: 360, star: false})}${draw_tree(kd_view.layout, s, {width: 480, height: 300, r: 7})}</div>
     <div class="ds-row bs-copy">${strip.length ? html`<span class="ds-caption">sorted by ${s.axis}:</span>` : ""}${strip}</div>`;
 }
 ```
+
+::: {.notes}
+Building ignores the song that just played: it only splits the playlist. The order follows the recursion in KDTree: split a box, then finish its whole lower half (left), then its upper half (right). That's why step 3 goes down the left side again.
+:::
 
 
 ## The `KDTree` class {style="font-size: 0.7em;"}
