@@ -246,7 +246,7 @@ spiral_max = 10
 spiral_w, spiral_h, spiral_margin = 820, 360, 10
 inner_w, inner_h = spiral_w - 2 * spiral_margin, spiral_h - 2 * spiral_margin
 inner_aspect = inner_h / inner_w
-where_words = {"right": "to the right of", "above": "above", "left": "to the left of", "below": "below"}
+where_words = {"right": "on the right", "above": "on top", "left": "on the left", "below": "underneath"}
 squares, arc = [], []
 minx = miny = maxx = maxy = 0
 for i, (x, y, s) in enumerate(place_squares(spiral_max), start=1):
@@ -295,9 +295,9 @@ def square_labels(n, w_show):
             for q in squares[:n] if q["side"] / w_show > 0.04]
 
 
-shell_say = ("Behind it: a real nautilus shell, with both centres on the same point. "
-             "The first turns match, then the spiral grows faster than the shell.")
-spiral_view = {}
+shell_say = ("Here is the same spiral on top of a real nautilus shell, with both centres on the same spot. "
+             "The inner turns match. Further out, our spiral grows faster than the shell.")
+spiral_view = []   # one entry per click: squares 1 to 10, then the shell
 for n in range(1, spiral_max + 1):
     w_show, x_domain, y_domain = frame(squares[n - 1]["box"], 0.06)
     bx0, by0, bx1, by1 = squares[n - 1]["box"]
@@ -306,23 +306,27 @@ for n in range(1, spiral_max + 1):
     px = inner_w / shell_w_show   # screen pixels per unit
     s = f(n)
     if n == 1:
-        say = "Square 1: side 1."
+        say = "Start with one small square. Each side is 1 long. The blue curve is a quarter circle inside it."
     elif n == 2:
-        say = "Square 2: side 1. It goes to the right of square 1."
+        say = "Add a second square on the right. Its sides are also 1 long. Its quarter circle carries the curve on."
     else:
-        say = (f"Square {n}: side {f(n - 1)} + {f(n - 2)} = {s}, the two sides before it added. "
-               f"It goes {where_words[squares[n - 1]['where']]} the drawing.")
-    spiral_view[n] = {
-        "squares": [{**{k: q[k] for k in ["x1", "x2", "y1", "y2"]}, "role": "new" if k == n - 1 else "old"}
-                    for k, q in enumerate(squares[:n])],
-        "arc": arc[:squares[n - 1]["arc_end"]],
-        "plain": {"say": say, "labels": square_labels(n, w_show), "x_domain": x_domain, "y_domain": y_domain},
-        "shell": {"say": f"{say} {shell_say}", "labels": square_labels(n, shell_w_show),
-                  "x_domain": shell_x_domain, "y_domain": shell_y_domain,
-                  "photo": [{"x": round(photo_cx, 3), "y": round(photo_cy, 3),
-                             "width": round(photo_w / photo_px_per_unit * px, 1),
-                             "height": round(photo_h / photo_px_per_unit * px, 1)}]},
-    }
+        say = (f"Square {n}: how long is each side? Add up the two squares before it: "
+               f"{f(n - 2)} + {f(n - 1)} = {s}. It goes {where_words[squares[n - 1]['where']]}, "
+               f"and it fits exactly.")
+    step = {"say": say,
+            "squares": [{**{k: q[k] for k in ["x1", "x2", "y1", "y2"]}, "role": "new" if k == n - 1 else "old"}
+                        for k, q in enumerate(squares[:n])],
+            "arc": arc[:squares[n - 1]["arc_end"]],
+            "labels": square_labels(n, w_show), "x_domain": x_domain, "y_domain": y_domain, "photo": []}
+    spiral_view.append(step)
+    if n == spiral_max:   # one more click: the same drawing with the shell behind it
+        spiral_view.append({**step, "say": shell_say, "labels": square_labels(n, shell_w_show),
+                            "x_domain": shell_x_domain, "y_domain": shell_y_domain,
+                            "photo": [{"x": round(photo_cx, 3), "y": round(photo_cy, 3),
+                                       "width": round(photo_w / photo_px_per_unit * px, 1),
+                                       "height": round(photo_h / photo_px_per_unit * px, 1)}]})
+for k, step in enumerate(spiral_view):
+    step["count"] = f"Step {k + 1} of {len(spiral_view)}"
 ojs_define(spiral_view = spiral_view)
 golden_ratios = ", ".join(f"{f(n + 1) / f(n):.3f}" for n in range(5, 10))
 golden = f"{(1 + 5 ** 0.5) / 2:.3f}"
@@ -332,12 +336,11 @@ golden = f"{(1 + 5 ** 0.5) / 2:.3f}"
 
 ```{ojs}
 //| echo: false
-viewof spiral_n = Inputs.range([1, 10], {value: 1, step: 1, label: "squares"})
-```
-
-```{ojs}
-//| echo: false
-viewof spiral_shell = Inputs.toggle({label: "shell behind", value: false})
+viewof spiral_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next", i => Math.min(i + 1, spiral_view.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
 ```
 
 ```{ojs}
@@ -345,21 +348,21 @@ viewof spiral_shell = Inputs.toggle({label: "shell behind", value: false})
 {
   // Draw only: every square, arc point, photo position and sentence was worked out in Python
   // (spiral_view). Orange: the newest square. Grey: earlier squares. Blue: the spiral.
-  const v = spiral_view[spiral_n];
-  const view = spiral_shell ? v.shell : v.plain;
+  const view = spiral_view[spiral_step];
+  const shell = view.photo.length > 0;
   const fill = {new: "#fdeee6", old: "#f2f1ee"}, stroke = {new: "#eb6834", old: "#b8b6b0"};
-  return html`<div class="ojs-readout">${view.say}</div>${Plot.plot({
+  return html`<div class="ojs-readout"><span class="sq-count">${view.count}</span> ${view.say}</div>${Plot.plot({
     width: 820, height: 360, margin: 10,
     style: {fontSize: "16px", background: "transparent"},
     x: {axis: null, domain: view.x_domain}, y: {axis: null, domain: view.y_domain},
     marks: [
-      spiral_shell ? Plot.image(view.photo, {x: "x", y: "y", width: "width", height: "height",
-                                             src: () => "images/nature2.png", opacity: 0.85}) : null,
-      Plot.rect(v.squares, {x1: "x1", x2: "x2", y1: "y1", y2: "y2", fillOpacity: spiral_shell ? 0 : 1,
-                            fill: d => fill[d.role], stroke: d => stroke[d.role], strokeWidth: 2}),
-      Plot.line(v.arc, {x: "x", y: "y", stroke: "#2a78d6", strokeWidth: 4}),
+      Plot.image(view.photo, {x: "x", y: "y", width: "width", height: "height",
+                              src: () => "images/nature2.png", opacity: 0.85}),
+      Plot.rect(view.squares, {x1: "x1", x2: "x2", y1: "y1", y2: "y2", fillOpacity: shell ? 0 : 1,
+                               fill: d => fill[d.role], stroke: d => stroke[d.role], strokeWidth: 2}),
+      Plot.line(view.arc, {x: "x", y: "y", stroke: "#2a78d6", strokeWidth: 4}),
       Plot.text(view.labels, {x: "x", y: "y", text: "text", fontWeight: "bold",
-                              fill: spiral_shell ? "white" : "#52514e"})
+                              fill: shell ? "white" : "#52514e"})
     ]
   })}`;
 }
@@ -374,12 +377,12 @@ Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacc
 :::
 
 ::: {.notes}
-- Slide from 1 to 10. Read the sides out loud: 1, 1, 2, 3, 5.
+- Click Next through squares 1 to 10. Read the side lengths out loud: 1, 1, 2, 3, 5.
 - At square 6, stop and ask: what is the side of the next square? 8 = 3 + 5, the two sides before it added.
 - Each new square sits on the long side of the drawing so far, and that long side is exactly the two sides before it added.
 - The spiral is one quarter circle per square.
 - The golden ratio is the number the articles on the first slide talk about.
-- Last step, at 10 squares: switch on "shell behind". Same spiral, now with the shell from the first slide behind it, centres on the same point.
+- The last click (step 11) puts the shell from the first slide behind the same spiral, centres on the same spot.
 - Ask: does it match? The inner coils and the bottom of the shell do. Then the spiral overshoots on the right.
 - Why: the Fibonacci spiral gets about 1.6 times wider every quarter turn (the golden ratio). Measured on this photo, the shell gets only about 1.3 times wider. Close, but not the same spiral.
 :::
@@ -435,18 +438,20 @@ def record_fib(n_top):
         caller = label[stack[-1]] if stack else None
         stack.append(me)
         times[n] = times.get(n, 0) + 1
-        start = f"{caller} calls f({n})." if caller else f"Call f({n})."
-        again = f" f({n}) again! Already worked out, but Python does it all over." if times[n] > 1 and n > 2 else ""
+        start = f"{caller} calls f({n})." if caller else f"We call f({n})."
+        again = (f" We already worked out f({n}) earlier, but Python doesn't remember, so it does all "
+                 "that work again." if times[n] > 1 and n > 2 else "")
         if n in (1, 2):
             value[me] = 1
-            snap(f"{start} f({n}) is a base case: it returns 1.")
+            snap(f"{start} f({n}) is a base case, so it returns 1 right away.")
             result = 1
         else:
-            snap(f"{start}{again} f({n}) needs f({n - 1}) + f({n - 2}), so it calls f({n - 1}) first.")
+            snap(f"{start}{again} To answer, f({n}) needs f({n - 1}) + f({n - 2}). "
+                 f"It asks f({n - 1}) first and waits.")
             a = f(n - 1)
             b = f(n - 2)
             result = value[me] = a + b
-            snap(f"f({n}) = f({n - 1}) + f({n - 2}) = {a} + {b} = {result}. It returns {result}.")
+            snap(f"f({n}) now has both answers: {a} + {b} = {result}. It hands {result} back.")
         stack.pop()
         return result
 
@@ -454,8 +459,10 @@ def record_fib(n_top):
     lay = tree_layout(children, "c0", pad=0.6)
     repeats = ", ".join(f"f({k}) {t} times" for k, t in sorted(times.items(), reverse=True) if t > 1)
     deepest = max(len(s["stack"]) for s in steps)
-    steps[-1]["say"] += f" {len(label)} calls in total: {repeats}. The stack was never taller than {deepest}."
-    out = [{"say": f"Call f({n_top}): the side of square {n_top}. Watch the calls grow into a tree.",
+    steps[-1]["say"] += (f" That took {len(label)} calls, with repeats: {repeats}. At most {deepest} calls "
+                         "were ever waiting at the same time.")
+    out = [{"say": f"We call f({n_top}) to find how long each side of square {n_top} is. "
+                   "Watch the calls grow into a tree.",
             "node_roles": {u: "hidden" for u in label}, "edge_roles": {}, "labels": {}, "boxes": []}]
     for s in steps:
         out.append({"say": s["say"], "labels": s["labels"],
@@ -546,7 +553,8 @@ calls_view = {"rows": ([{"n": n, "calls": calls[n], "kind": fib_kind} for n in c
                        + [{"n": n, "calls": n + 1, "kind": down_kind} for n in calls]),
               "kinds": [down_kind, fib_kind],
               "y_max": {n: calls[n] * 1.15 for n in calls},
-              "say": {n: f"n = {n}: Fibonacci makes {calls[n]:,} calls, counting down makes {n + 1}."
+              "say": {n: f"For n = {n}, Fibonacci makes {calls[n]:,} call{'s' if calls[n] > 1 else ''}. "
+                        f"Counting down makes only {n + 1}."
                       for n in calls}}
 ojs_define(calls_view = calls_view)
 ```
@@ -707,22 +715,23 @@ def replay_nodes(script):
     for op, arg in script:
         if op == "new":
             nodes = [arg]
-            snap(f'head = Node("{arg}")', f'One node holding "{arg}". Its next is None.', new=0)
+            snap(f'head = Node("{arg}")', f'Make one node that holds "{arg}". Nothing comes after it yet, '
+                                         "so its next is None.", new=0)
         elif op == "front":
             nodes.insert(0, arg)
             snap(f'head = head.push_front("{arg}")',
-                 f'A new node "{arg}" points to the old head, and becomes the new head. '
-                 "One step, no matter how long the list.", new=0)
+                 f'Make a new node "{arg}" and point it at the old first node. It becomes the new head. '
+                 "That is one step, however long the list is.", new=0)
         elif op == "append":
             code = f'head.append("{arg}")'
             for i, b in enumerate(nodes):
                 if i < len(nodes) - 1:
-                    snap(code, f'append on the "{b}" node: it has a next node, '
-                               "so hand the job to it.", cur=i, walked=i)
+                    snap(code, f'We are at "{b}". There is a node after it, so we pass the job '
+                               "along to that node.", cur=i, walked=i)
                 else:
                     nodes.append(arg)
-                    snap(code, f'The "{b}" node is the last one (next is None). Link a new node '
-                               f'"{arg}" after it. That is the base case. {i + 1} node{"s" if i else ""} visited.',
+                    snap(code, f'"{b}" is the last node, because its next is None. Link the new node '
+                               f'"{arg}" after it (the base case). We visited {i + 1} node{"s" if i else ""} to get here.',
                          cur=i, walked=i, new=i + 1)
                     break
         else:   # get
@@ -730,14 +739,16 @@ def replay_nodes(script):
             for i, b in enumerate(nodes):
                 left = arg - i
                 if left == 0:
-                    snap(code, f'get(0) on the "{b}" node: i is 0, so return "{b}". Base case.',
+                    snap(code, f'get(0) at "{b}": i is 0, so this is the node we want. Return "{b}" '
+                               "(the base case).",
                          cur=i, walked=i, result=f'returns "{b}"')
                     break
                 if i == len(nodes) - 1:
-                    snap(code, f'get({left}) on the "{b}" node: no next node, so return None. Base case.',
+                    snap(code, f'get({left}) at "{b}": there is no node after it, so return None '
+                               "(the other base case).",
                          cur=i, walked=i, result="returns None")
                     break
-                snap(code, f'get({left}) on the "{b}" node: i is not 0, so ask the next node '
+                snap(code, f'get({left}) at "{b}": i is not 0 yet, so move one node on and ask it '
                            f"for get({left - 1}).", cur=i, walked=i)
     for k, step in enumerate(steps):
         step["count"] = f"Step {k + 1} of {len(steps)}"
@@ -962,16 +973,19 @@ dist = np.sqrt(np.sum((X - query) ** 2, axis=1))
 nn_steps, best = [], None
 for k in range(len(X) + 1):
     if k == 0:
-        say = f"{len(X)} songs (grey), and the song that just played (dark star). Measure the distance to each one."
+        say = (f"Here are {len(X)} songs (grey) and the song that just played (dark star). "
+               "We measure how far each song is from it.")
     else:
         i = k - 1
         new_best = best is None or dist[i] < dist[best]
         if new_best:
             best = i
-        say = (f"Song {i}: {far(dist[i])} away. "
-               + ("New closest!" if new_best else f"Closest so far is still song {best} ({far(dist[best])})."))
+        say = (f"Song {i} is {far(dist[i])} away. "
+               + ("That's the closest so far!" if new_best
+                  else f"Song {best} is still the closest ({far(dist[best])} away)."))
         if k == len(X):
-            say += f" All {len(X)} checked: song {best} sounds the most alike. {len(X)} distances for {len(X)} songs."
+            say += (f" We checked all {len(X)} songs, so song {best} sounds the most alike. "
+                    f"That took {len(X)} distances for {len(X)} songs.")
     roles = ["checked" if j < k else "unchecked" for j in range(len(X))]
     lines = []
     if k > 0:
@@ -1180,7 +1194,7 @@ for k, u in enumerate(build_order + [None]):
             if c not in made:
                 roles[c] = "other"                 # a group of songs still waiting to be split
     if u is None:
-        say = (f"Done: every box holds one song, a leaf. {len(build_order)} splits made "
+        say = (f"Done: every box now holds just one song (a leaf). {len(build_order)} splits gave us "
                f"{len(X)} leaves.")
         song_roles, strip, box, axis = ["low"] * len(X), [], [], ""
     else:
@@ -1192,12 +1206,16 @@ for k, u in enumerate(build_order + [None]):
         roles[n["left"]], roles[n["right"]] = "done", "waiting"   # blue: lower half, light blue: upper
         for c in (n["left"], n["right"]):
             labels[c] = str(kd_nodes[c]["size"])
-        who = f"All {n['size']} songs" if u == kd_root else f"The {n['size']} songs in this box"
-        say = (f"{who}. Level {n['depth'] + 1}, so split on {axis}. Sort them by {axis}: the median is "
-               f"{n['split']:.2f} (orange). Lower half: {mid} (blue). Upper half: {n['size'] - mid}, "
-               "with the median.")
+        who = f"Start with all {n['size']} songs" if u == kd_root else f"This box has {n['size']} songs"
+        above = n["size"] - mid - 1
+        say = (f"{who}. On level {n['depth'] + 1} we split by {axis}. Sort the songs by {axis} and take the "
+               f"middle value, the median: {n['split']:.2f} (orange). "
+               + (f"The {mid} songs below it go" if mid > 1 else "The song below it goes")
+               + " in the lower half (blue). The median"
+               + (f" and the {above} song{'s' if above > 1 else ''} above it go" if above else " goes")
+               + " in the upper half.")
         if k == 0:
-            say += " Next, the lower half does the same, all the way down."
+            say += " Next, the lower half gets split the same way, and so on all the way down."
         song_roles = ["other"] * len(X)
         for j, i in enumerate(srt):
             song_roles[i] = "low" if j < mid else "median" if j == mid else "high"
@@ -1227,27 +1245,27 @@ while is_split(u):
     side = "left" if query[n["dim"]] < n["split"] else "right"
     axis = axis_name[n["dim"]]
     walk.append({"box": rect(n["box"]), "line": [n["line"]], "rings": [], "now": u,
-                 "say": (f"{question(u)} The song that just played has {axis} = {query[n['dim']]:.2f}: "
-                         f"{'yes, so go left' if side == 'left' else 'no, so go right'}.")})
+                 "say": (f"{question(u)} The song that just played has {axis} = {query[n['dim']]:.2f}, "
+                         f"{'so yes: go left' if side == 'left' else 'so no: go right'}.")})
     u = n[side]
 leaf, tree_pick = u, kd_nodes[u]["song"]
 true_pick = int(nearest_neighbour(X, query))
 ring = lambda p, role: {"x": float(X[p, 0]), "y": float(X[p, 1]), "role": role}
 walk.append({"box": rect(kd_nodes[leaf]["box"]), "line": [], "now": leaf, "rings": [ring(tree_pick, "tree")],
-             "say": f"A leaf: song {tree_pick}, {far(dist[tree_pick])} away. "
-                    f"Only {len(path)} questions, not {len(X)} distances."})
+             "say": f"We reach a leaf: song {tree_pick}, {far(dist[tree_pick])} away. "
+                    f"That took only {len(path)} questions instead of {len(X)} distances."})
 if tree_pick != true_pick:
     walk.append({"box": rect(root["box"]), "line": [root["line"]], "now": leaf,
                  "rings": [ring(tree_pick, "tree"), ring(true_pick, "true")],
-                 "say": f"But song {true_pick} is only {far(dist[true_pick])} away (green), just across "
-                        f"the first line. The walk picked a side and never looked back."})
+                 "say": f"But song {true_pick} is even closer, only {far(dist[true_pick])} away (green). "
+                        f"It sits just across the first line. The walk chose one side and never checked the other."})
     # Why it missed: the true answer is inside the circle through the walk's answer, across the root line.
     assert (query[root["dim"]] < root["split"]) != (X[true_pick, root["dim"]] < root["split"])
     walk.append({"box": rect(root["box"]), "line": [root["line"]], "now": leaf,
                  "rings": [ring(tree_pick, "tree"), ring(true_pick, "true")], "circle": circle(dist[tree_pick]),
-                 "say": f"Why? Any song closer than song {tree_pick} must be inside this circle. The circle "
-                        f"crosses the line {axis_name[root['dim']]} = {root['split']:.2f}, and song {true_pick} "
-                        f"is inside it, on the side the walk never visited."})
+                 "say": f"Why did we miss it? Any song closer than song {tree_pick} has to sit inside this "
+                        f"circle. The circle crosses the line {axis_name[root['dim']]} = {root['split']:.2f}, "
+                        f"and song {true_pick} is inside the circle, on the side we never visited."})
 for k, step in enumerate(walk):
     step.setdefault("circle", [])
     on_path = path[:path.index(step["now"]) + 1] if step["now"] in path else path + [leaf]
@@ -1282,32 +1300,34 @@ def search(u):
         checked.append(p)
         if best["song"] is None:
             best["song"] = p
-            snap(f"Walk down like before: song {p}, {far(dist[p])} away. Any closer song must "
-                 "be inside this circle.")
+            snap(f"First, walk down like before and reach song {p}, {far(dist[p])} away. "
+                 "Any closer song has to sit inside this circle.")
         elif dist[p] < dist[best["song"]]:
             best["song"] = p
-            snap(f"Over there: song {p}, {far(dist[p])} away. Closer! The circle shrinks.")
+            snap(f"On the other side: song {p}, {far(dist[p])} away. That's closer! The circle gets smaller.")
         else:
-            snap(f"Over there: song {p}, {far(dist[p])} away. Not closer.")
+            snap(f"On the other side: song {p}, {far(dist[p])} away. Not closer, so nothing changes.")
         return
     near, away = (n["left"], n["right"]) if query[n["dim"]] < n["split"] else (n["right"], n["left"])
     search(near)
     gap = abs(query[n["dim"]] - n["split"])
-    where = f"Back up to the line {axis_name[n['dim']]} = {n['split']:.2f}. It is {far(gap)} from the song that just played"
+    where = (f"Go back up to the line {axis_name[n['dim']]} = {n['split']:.2f}. "
+             f"It is {far(gap)} from the song that just played")
     count = kd_nodes[away]["size"]
     if gap < dist[best["song"]]:
-        snap(f"{where}, inside the circle: a closer song could be across it. Look there.",
+        snap(f"{where}, so the circle crosses it. A closer song could be on the other side, so we look there.",
              n["line"], "check", kd_nodes[away]["box"])
         search(away)
     else:
-        snap(f"{where}, outside the circle. Skip the {count} song{'s' if count > 1 else ''} across it.",
+        snap(f"{where}, so the circle doesn't reach it. Nothing on the other side can be closer, "
+             f"so we skip {'that song' if count == 1 else f'those {count} songs'}.",
              n["line"], "skip", kd_nodes[away]["box"])
 
 
 search(kd_root)
 assert best["song"] == true_pick
-snap(f"Done: song {true_pick}, {far(dist[true_pick])} away. The right answer, with "
-     f"{len(checked)} distances instead of {len(X)}.")
+snap(f"Done: song {true_pick}, {far(dist[true_pick])} away. That's the right answer, and we only "
+     f"measured {len(checked)} distances instead of {len(X)}.")
 for k, step in enumerate(exact_steps):
     step["count"] = f"Step {k + 1} of {len(exact_steps)}"
 n_checked = len(checked)
@@ -1601,9 +1621,9 @@ amort_rows = ([{"m": m, "ms": round(m * b_ms, 3), "what": brute_kind} for m in r
 amort_say = {}
 for m in range(m_max + 1):
     brute, tree = m * b_ms, B + m * q_ms
-    winner = "The tree wins." if tree < brute else "Brute force wins."
-    amort_say[m] = (f"{m} quer{'y' if m == 1 else 'ies'}: brute force {brute:.1f} ms, "
-                    f"tree {tree:.1f} ms (build {B:.1f} + {m} × {q_ms:.3f}). {winner}")
+    winner = "The tree is faster." if tree < brute else "Brute force is faster."
+    amort_say[m] = (f"{m} quer{'y' if m == 1 else 'ies'}: brute force takes {brute:.1f} ms. The tree takes "
+                    f"{tree:.1f} ms ({B:.1f} ms to build it, plus {m} × {q_ms:.3f} ms to ask). {winner}")
 ojs_define(amort_view = {"rows": amort_rows, "m_star": round(float(m_star), 2), "m_max": m_max,
                          "say": amort_say, "kinds": [brute_kind, tree_kind]})
 amort_text = f"about {m_star:.0f} queries"
@@ -1667,8 +1687,9 @@ for r in append_rows:
     r["average"] = running / r["n"]
 n_resize = sum(r["kind"].startswith("resize") for r in append_rows)
 ojs_define(append_view = {"rows": append_rows,
-                          "say": f"100 appends: {n_resize} resizes. Total work {total}, so about "
-                                 f"{total / 100:.1f} per append on average."})
+                          "say": f"100 appends, and the list ran out of room {n_resize} times. "
+                                 f"All the work adds up to {total}, so each append costs about "
+                                 f"{total / 100:.1f} on average."})
 ```
 
 ## Why `list.append` is fast {style="font-size: 0.7em;"}
@@ -1830,13 +1851,13 @@ for d in range(work_levels):
             boxes += 1
     running += level_work
     work_totals.append({"level": d + 1, "x": n_songs + 0.4, "text": f"work {level_work}"})
-    say = (f"Level {d + 1}: {boxes} box{'es' if boxes > 1 else ''} to split, holding {level_work} of the "
-           f"{n_songs} songs. Each box costs about its size, so this level costs about {level_work}. "
-           f"Total so far: {running}.")
+    say = (f"Level {d + 1}: {boxes} box{'es' if boxes > 1 else ''} to split, with {level_work} of the "
+           f"{n_songs} songs between them. Splitting a box costs about as much as the number of songs in it, "
+           f"so this level costs about {level_work}. Total so far: {running}.")
     if d == work_levels - 1:
         say += (f" No level costs more than n = {n_songs}, and there are {work_levels} levels, so the total "
-                f"is at most {n_songs} × {work_levels} = {n_songs * work_levels}. Since log₂ {n_songs} ≈ "
-                f"{np.log2(n_songs):.1f}, that is about n log₂ n.")
+                f"is at most {n_songs} × {work_levels} = {n_songs * work_levels}. log₂ {n_songs} is about "
+                f"{np.log2(n_songs):.1f}, so that is about n log₂ n.")
     work_say[d + 1] = say
 ojs_define(work_view = {"rows": work_rows, "totals": work_totals, "levels": work_levels,
                         "n": n_songs, "say": work_say})
@@ -1931,8 +1952,8 @@ xs = X[:, 0]
 target = len(xs) // 2
 pivot_rng = np.random.default_rng(0)
 in_play, k, work, rounds, found = list(range(len(xs))), target, 0, 0, False
-qs_steps = [{"say": f"Find the median of these {len(xs)} x values without sorting them: the "
-                    f"{ordinal(target + 1)} smallest, the same median the k-d tree's root splits at.",
+qs_steps = [{"say": f"We want the median of these {len(xs)} x values, without sorting them. That is the "
+                    f"{ordinal(target + 1)} smallest, the same median the k-d tree's first split uses.",
              "boxes": [{"label": f"{v:.2f}", "cls": ""} for v in xs]}]
 while not found:
     rounds += 1
@@ -1946,22 +1967,23 @@ while not found:
     cls.update({i: "wait" for i in larger})
     cls[pivot] = "end"
     r = len(smaller)
-    say = (f"Round {rounds}: pivot {xs[pivot]:.2f} (orange), picked at random from the {len(in_play)} in play. Compare the other "
-           f"{len(in_play) - 1} with it: {r} smaller (blue), {len(larger)} larger (light blue). So the pivot "
-           f"is the {ordinal(offset + r + 1)} smallest overall.")
+    say = (f"Round {rounds}: pick a random value from the {len(in_play)} still in play: {xs[pivot]:.2f} "
+           f"(orange), the pivot. Compare the other {len(in_play) - 1} with it: {r} {'is' if r == 1 else 'are'} "
+           f"smaller (blue) and {len(larger)} {'is' if len(larger) == 1 else 'are'} larger (light blue). "
+           f"So the pivot is the {ordinal(offset + r + 1)} smallest overall.")
     if k < r:
-        say += f" We want the {ordinal(target + 1)}: keep only the smaller ones."
+        say += f" We want the {ordinal(target + 1)}, so we keep only the smaller ones."
         in_play = smaller
     elif k > r:
-        say += f" We want the {ordinal(target + 1)}: keep only the larger ones."
+        say += f" We want the {ordinal(target + 1)}, so we keep only the larger ones."
         in_play, k = larger, k - r - 1
     else:
-        say += " That is the median. Done."
+        say += " That's the median, so we're done."
         found = True
     say += f" Comparisons so far: {work}."
     qs_steps.append({"say": say, "boxes": [{"label": f"{v:.2f}", "cls": cls[i]} for i, v in enumerate(xs)]})
 assert xs[pivot] == kd_nodes[kd_root]["split"]
-qs_steps[-1]["say"] += (f" Sorting all {len(xs)} values first would cost about n log₂ n ≈ "
+qs_steps[-1]["say"] += (f" Sorting all {len(xs)} values first would cost about n log₂ n, which is about "
                         f"{len(xs) * np.log2(len(xs)):.0f}.")
 for i, step in enumerate(qs_steps):
     step["count"] = f"Step {i + 1} of {len(qs_steps)}"
