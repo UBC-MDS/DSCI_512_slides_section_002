@@ -1352,10 +1352,6 @@ viewof kd_bstep = Inputs.button([
 }
 ```
 
-::: {.fragment}
-Every split is a node in a **binary tree**. A BST asks "lighter?". A $k$-d tree asks "$x$ smaller?", then "$y$ smaller?".
-:::
-
 
 ## The `KDTree` class {style="font-size: 0.7em;"}
 
