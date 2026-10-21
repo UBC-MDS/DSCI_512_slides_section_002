@@ -176,7 +176,7 @@ kdt = KDTree(X)
 ![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
 
 ::: {.fragment}
-The same spiral, in a art work, a sunflower, and a shell. Can we draw it with code?
+The same spiral shows up in lots of art work, in sunflower, in the shell of sea snails. What is this magic? Can we re-create it in python? 🤩
 :::
 
 ::: footer
