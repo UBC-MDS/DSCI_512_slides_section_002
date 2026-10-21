@@ -773,6 +773,44 @@ for step in git_steps:
 ojs_define(git_view = git_steps)
 ```
 
+
+## Question: what does it return? {style="font-size: 0.8em;"}
+
+**Without running the code**, what does `head.get(3)` return?
+
+```{.python}
+head = Node("A")
+head.append("B")
+head = head.push_front("C")
+head = head.push_front("D")
+head.append("E")
+
+head.get(3)
+```
+
+::: {.fragment}
+`"B"`. The list is D → C → A → B → E. Index 0 is D, so index 3 is B.
+:::
+
+::: {.fragment}
+How about this? 
+
+```{.python}
+head = Node("Library")
+head.append("Pond")
+head = head.push_front("Front Desk")
+head.get(2)
+
+head.get(5)
+```
+
+- What does it return?
+:::
+
+::: {.notes}
+- Draw the chain after each line. Then replay "the question" on the previous slide.
+:::
+
 ## Watch the links {style="font-size: 0.75em;"}
 
 ```{ojs}
@@ -812,27 +850,6 @@ viewof node_step = Inputs.button([
 - "the question" replays the question on the next slide: let them predict first.
 :::
 
-## Question: what does it return? {style="font-size: 0.8em;"}
-
-**Without running the code**, what does `head.get(3)` return?
-
-```{.python}
-head = Node("A")
-head.append("B")
-head = head.push_front("C")
-head = head.push_front("D")
-head.append("E")
-
-head.get(3)
-```
-
-::: {.fragment}
-`"B"`. The list is D → C → A → B → E. Index 0 is D, so index 3 is B.
-:::
-
-::: {.notes}
-- Draw the chain after each line. Then replay "the question" on the previous slide.
-:::
 
 ## Why is this "recursive"? {style="font-size: 0.8em;"}
 
