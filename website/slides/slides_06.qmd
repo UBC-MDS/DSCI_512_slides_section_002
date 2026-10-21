@@ -8,6 +8,7 @@ format:
       - text: |
           <script src="assets/unregister-coi-sw.js"></script>
           <script src="assets/helper.js"></script>
+          <script>window.MathJax = {"HTML-CSS": {availableFonts: [], preferredFont: null, webFont: "TeX"}};</script>
     slide-number: true
     logo: slides/images/mds-hex-sticker.png
     chalkboard: {buttons: true}
@@ -1062,7 +1063,7 @@ print("song", nn, "at", X[nn])
 
 ## iClicker: how fast is brute force? {style="font-size: 0.8em;"}
 
-$n$ points, each with $k$ numbers (dimensions). For our songs, $k = 2$. Time complexity of `nearest_neighbour`?
+$n$ points, each with $k$ numbers (dimensions). Time complexity of `nearest_neighbour`?
 
 - \(A) $O(n)$
 - \(B) $O(k)$
@@ -1071,7 +1072,7 @@ $n$ points, each with $k$ numbers (dimensions). For our songs, $k = 2$. Time com
 
 ::: {.fragment}
 - Answer: **D**. One distance per point, and each distance adds up $k$ squared differences.
-- Fine for 20 songs. Not for millions of songs and millions of listeners.
+- Fine for 20 songs. Not ok for millions of songs and millions of listeners.
 :::
 
 # Split the playlist {style="font-size: 0.8em;"}
