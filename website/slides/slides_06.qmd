@@ -693,7 +693,7 @@ class Node:
 - We only ever hold on to the head. Every other node is reached by following `next`.
 - push_front hands out a new first clue that points to the old first clue. Nothing else changes.
 - append walks to the last clue, then links a new one after it. get walks i clues.
-- Inserting in the middle (the goose hunt question) works the same way: change one link. Not in our class, it is a lab exercise if you want one.
+- Inserting in the middle (the goose hunt question) works the same way: change one link.
 :::
 
 ```{python}
