@@ -195,10 +195,7 @@ Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-seq
 :::
 
 ::: {.notes}
-- One minute, just the roadmap. Don't explain the terms yet: each one starts with its question.
-- The thread for the whole lecture: a function that calls a smaller copy of itself, a list that holds a smaller list, a tree that holds smaller trees.
-- The k-d tree is a data structure, not an ML model. The model is k-nearest neighbours; the k-d tree is how k-NN finds the neighbours fast (scikit-learn: KNeighborsClassifier(algorithm="kd_tree")).
-- "Paying up front" is amortization, at the end: building the k-d tree, and why list.append is fast.
+The thread for the whole lecture: a function that calls a smaller copy of itself, a list that holds a smaller list, a tree that holds smaller trees.
 :::
 
 ```{python}
