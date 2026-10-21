@@ -614,7 +614,7 @@ Fibonacci `f(n)` takes $O(2^n)$ time. What is its space complexity?
 - The longest path is about $n$ calls. For `f(5)` the stack was never taller than `{python} fib_deepest`.
 :::
 
-# Remember the goose hunt? {style="font-size: 0.8em;"}
+# Remember the goose hunt? {background-image="images/lec06_goose_hunt_otter.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 At MDS orientation, each clue told you where to find the next one.
 
