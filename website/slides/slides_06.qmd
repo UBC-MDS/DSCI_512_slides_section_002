@@ -190,7 +190,7 @@ About 17 minutes for Fibonacci.
 - Caveat for the curious: art historians debate whether painters used it on purpose, and the EarthSky article shows the nautilus is a spiral that is close to, but not exactly, this one.
 :::
 
-## Today's plan {style="font-size: 0.8em;"}
+## Today's plan {background-image="images/lec06_print_shop.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 | what we build | the question it answers |
 |---|---|
@@ -932,7 +932,7 @@ viewof git_step = Inputs.range([1, git_view.length], {value: 1, step: 1, label: 
 - Changing an old block in a blockchain changes its hash, which breaks the link from the next block. That is how tampering shows.
 :::
 
-# What should Spotify play next? {background-image="images/lec06_records.png" background-size="contain" background-position="right bottom" style="font-size: 0.8em;"}
+# What should Spotify play next? {background-image="images/lec06_otter_spotify.png" background-size="auto 80%" background-position="right bottom" style="font-size: 0.8em;"}
 
 While we coded the spiral, a song was playing. It just ended.
 
