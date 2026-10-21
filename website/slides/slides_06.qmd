@@ -368,14 +368,7 @@ Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacc
 :::
 
 ::: {.notes}
-- Click Next through squares 1 to 10. Read the side lengths out loud: 1, 1, 2, 3, 5.
-- At square 6, stop and ask: what is the side of the next square? 8 = 3 + 5, the two sides before it added.
-- Each new square sits on the long side of the drawing so far, and that long side is exactly the two sides before it added.
 - The spiral is one quarter circle per square.
-- The golden ratio is the number the articles on the first slide talk about.
-- The last click (step 11) puts the shell from the first slide behind the same spiral, centres on the same spot.
-- Ask: does it match? The inner coils and the bottom of the shell do. Then the spiral overshoots on the right.
-- Why: the Fibonacci spiral gets about 1.6 times wider every quarter turn (the golden ratio). Measured on this photo, the shell gets only about 1.3 times wider. Close, but not the same spiral.
 :::
 
 ## The rule in code {style="font-size: 0.8em;"}
