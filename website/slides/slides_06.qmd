@@ -527,7 +527,7 @@ n = 5, function call = 9
 ...
 
 
-- That is DFS order (lecture 4), and the call stack is DFS's stack.
+DFS order  --> call stack is DFS's stack.
 - Point at the repeats: f(3) is worked out twice. That is the waste.
 
 
@@ -605,10 +605,6 @@ viewof calls_n = Inputs.range([3, 30], {value: 10, step: 1, label: "n"})
 2 calls per step, about $n$ levels deep: $O(2^n)$. Roughly, $k$ calls per step and $n$ levels: $O(k^n)$.
 :::
 
-::: {.notes}
-Each call does a constant amount of work, so the number of calls is the run time. Drag n from 5 to 30 and point at the labels: every 5 more steps, the calls grow about 11 times: 109, then 1,219, then 13,529.
-:::
-
 
 ## iClicker: space of Fibonacci {style="font-size: 0.8em;"}
 
@@ -658,7 +654,7 @@ This is a **linked list**: each node holds one item and a link to the next node.
 :::
 
 ::: {.notes}
-- Map it out: a clue is a node, "where to go next" is the link, "the end" is None.
+- a clue is a node, "where to go next" is the link, "the end" is None.
 - The organisers only need to hand out clue 1. That is the head.
 :::
 
