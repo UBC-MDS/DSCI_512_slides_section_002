@@ -371,7 +371,7 @@ Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacc
 - The spiral is one quarter circle per square.
 :::
 
-## The rule in code {style="font-size: 0.8em;"}
+## Recreating the spiral with Python code {style="font-size: 0.8em;"}
 
 ```{pyodide}
 def f(n):
@@ -381,22 +381,15 @@ def f(n):
     else:
         return f(n - 1) + f(n - 2)   # two recursive calls
 
-print([f(n) for n in range(1, 11)])
+f(3)
 ```
 
-::: {.incremental}
-- These are the **Fibonacci** numbers: 1, 1, 2, 3, 5, 8, 13, ...
-- Two base cases, because each square needs the two squares before it.
-- Lecture 5 had one recursive call per step. This one has two.
-- A poster needs a bigger spiral. Try `f(30)`: why is it so slow?
+::: {.notes}
+write f(1), f(2) f(3)
+
+write the tree branching out, and f(5)
 :::
 
-::: {.notes}
-- Same rule as the drawing: each side is the two sides before it added.
-- Predict the printout before running: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55.
-- Leonardo of Pisa, known as Fibonacci, wrote these numbers down in 1202 as a puzzle about breeding rabbits.
-- f(30) takes a few seconds in the browser. Don't try f(35) live: it freezes the page.
-:::
 
 ```{python}
 #| echo: false
@@ -520,10 +513,33 @@ Who calls whom is a **tree**: the first call is the root, the base cases are the
 :::
 
 ::: {.notes}
-- Orange: running now. Light blue: waiting for an answer. Blue: returned, with its value.
-- Python finishes f(n − 1) completely before it starts f(n − 2): all the way down the left first. That is DFS order (lecture 4), and the call stack is DFS's stack.
+- That is DFS order (lecture 4), and the call stack is DFS's stack.
 - Point at the repeats: f(3) is worked out twice. That is the waste.
 :::
+
+
+## Fibonacci sequence {style="font-size: 0.8em;"}
+
+```{pyodide}
+def f(n):
+    """The side of square n in the spiral."""
+    if n == 1 or n == 2:
+        return 1                     # squares 1 and 2: side 1
+    else:
+        return f(n - 1) + f(n - 2)   # two recursive calls
+
+print([f(n) for n in range(1, 11)])
+```
+
+::: {.incremental}
+- These are the **Fibonacci** numbers: 1, 1, 2, 3, 5, 8, 13, ...
+- Two base cases, because each square needs the two squares before it.
+:::
+
+::: {.callout-note}
+💡 Fun Fact: Leonardo of Pisa (known as Fibonacci) wrote these numbers down in 1202 as a puzzle, which is about breeding rabbits 🐇 🐇!
+:::
+
 
 ```{python}
 #| echo: false
