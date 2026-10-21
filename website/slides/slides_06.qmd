@@ -1732,10 +1732,10 @@ The resizes get rarer as the list grows. Blue line: the average stays small. Tha
 
 ::: {.incremental}
 - More recursive calls per step can mean exponential time: Fibonacci is $O(2^n)$, but only $O(n)$ space.
-- A recursive data structure is defined in terms of itself: a node links to a node (goose hunt clues, git history), a tree holds trees.
-- Functions on it follow its shape. Base case: the smallest piece. Recursive step: hand the job to the next piece.
+- A recursive data structure is defined in terms of itself: a node links to a node, a tree holds trees.
+- Recursive functions: [1] Base case: the smallest piece. [2] Recursive step: hand the job to the next piece.
 - Brute-force nearest neighbours is $O(nk)$ per query. A $k$-d tree splits at medians and makes queries fast in few dimensions.
-- Amortization: pay once up front, or now and then, so that many operations are cheap on average.
+- Amortization: pay once up front, or once in a while, so that many operations are cheap on average.
 :::
 
 # Questions?
