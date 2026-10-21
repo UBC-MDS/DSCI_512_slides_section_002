@@ -189,9 +189,9 @@ Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-seq
 ::: {style="max-width: 80%;"}
 | what we build | the question it answers |
 |---|---|
-| a recursive function: Fibonacci | How do we draw this spiral with code? |
-| a recursive data structure: the linked list | How do we store a goose hunt in code? |
-| a recursive data structure that splits in two: the $k$-d tree | What should Spotify play next? |
+| a recursive function: Fibonacci (*a function that calls a smaller copy of itself*) | How do we draw this spiral with code? |
+| a recursive data structure: the linked list (*a list that holds a smaller list*) | How do we store a goose hunt in code? |
+| a recursive data structure that splits in two: the $k$-d tree (*a tree that holds smaller trees*) | What should Spotify play next? |
 :::
 
 ::: {.notes}
