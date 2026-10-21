@@ -193,7 +193,7 @@ Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-seq
 | what we build | the question it answers |
 |---|---|
 | a recursive function: Fibonacci (*a function that calls a smaller copy of itself*) | How do we draw this spiral with code? |
-| a recursive data structure: the linked list (*a list that holds a smaller list*) | How do we store a goose hunt in code? |
+| a recursive data structure: the linked list (*a list that holds a smaller list*) | How do we store a scavenger hunt in code? |
 | a recursive data structure that splits in two: the $k$-d tree (*a tree that holds smaller trees*) | What should Spotify play next? |
 :::
 
@@ -623,9 +623,8 @@ Fibonacci `f(n)` takes $O(2^n)$ time. What is its space complexity?
 - The longest path is about $n$ calls. For `f(5)` the stack was never taller than `{python} fib_deepest`.
 :::
 
-# Remember the goose hunt? {background-image="images/lec06_goose_hunt_otter.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
-
-At MDS orientation, each clue told you where to find the next one.
+# Scavenger Hunt! {background-image="images/lec06_goose_hunt_otter.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
+Have you played a scavenger hunt? It is like the Goose Hunt from MDS orientation, with one twist: at the start you only know the first clue. Solving each clue tells you where to find the next one.
 
 <div class="ds-row center ll-chain"><span class="ll-arrow">start →</span><div class="ds-box">clue 1</div><span class="ll-arrow">→</span><div class="ds-box">clue 2</div><span class="ll-arrow">→</span><div class="ds-box">clue 3</div><span class="ll-arrow">→</span><div class="ds-box">clue 4</div><span class="ll-arrow">→ the end</span></div>
 
@@ -692,12 +691,6 @@ class Node:
 `push_front`: a new first clue. `append`: a new last clue. `get(i)`: walk to clue `i`, counting from 0.
 :::
 
-::: {.notes}
-- We only ever hold on to the head. Every other node is reached by following `next`.
-- push_front hands out a new first clue that points to the old first clue. Nothing else changes.
-- append walks to the last clue, then links a new one after it. get walks i clues.
-- Inserting in the middle (the goose hunt question) works the same way: change one link.
-:::
 
 ```{python}
 #| echo: false
@@ -755,7 +748,7 @@ def replay_nodes(script):
 
 
 node_scripts = {
-    "goose hunt": [("new", "library"), ("append", "pond"), ("front", "front desk"),
+    "scavenger hunt": [("new", "library"), ("append", "pond"), ("front", "front desk"),
                    ("get", 2), ("get", 5)],
     "the question": [("new", "A"), ("append", "B"), ("front", "C"), ("front", "D"),
                      ("append", "E"), ("get", 3)],
@@ -816,7 +809,7 @@ head.get(3)
 
 ```{ojs}
 //| echo: false
-viewof node_script = Inputs.radio(node_view.names, {value: "goose hunt", label: "replay"})
+viewof node_script = Inputs.radio(node_view.names, {value: "scavenger hunt", label: "replay"})
 ```
 
 ```{ojs}
@@ -876,7 +869,7 @@ A linked list has $n$ nodes. What is the time complexity of each?
 :::
 
 ::: {.notes}
-- Back to the goose hunt: reaching clue i means reading i clues, so get(i) is O(i). Adding a new first clue is one new clue, so push_front is O(1).
+- Back to the scavenger hunt: reaching clue i means reading i clues, so get(i) is O(i). Adding a new first clue is one new clue, so push_front is O(1).
 - Neither wins at everything. Linked lists are fast at the front, Python lists at the end and at jumping anywhere.
 - `deque` (lecture 4) is built from linked blocks: fast at both ends.
 :::
