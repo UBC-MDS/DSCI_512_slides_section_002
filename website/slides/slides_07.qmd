@@ -456,7 +456,7 @@ viewof spiral_step = Inputs.button([
 ```
 
 ::: {.fragment}
-![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
+![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} 
 :::
 
 ::: footer
