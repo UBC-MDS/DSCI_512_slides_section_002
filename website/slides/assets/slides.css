@@ -67,6 +67,10 @@
 .reveal .ds-caption { font-size: 0.55em; color: #52514e; margin: 0.3em 0; text-align: center; }
 
 .reveal .ds-row.center { justify-content: center; }
+/* Memo table cells (lecture 7): orange = just written, blue = just read, grey = base case */
+.reveal table.memo-table td.end   { background: #eb6834; color: #ffffff; font-weight: bold; }
+.reveal table.memo-table td.found { background: #2a78d6; color: #ffffff; font-weight: bold; }
+.reveal table.memo-table td.base  { color: #8a8880; }
 
 /* Stack and queue step-throughs. Colour means the operation, nothing else:
    blue = add (the item that just went in), orange = remove (the item that just came out),
