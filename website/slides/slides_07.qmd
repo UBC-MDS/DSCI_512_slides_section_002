@@ -756,12 +756,15 @@ for n in [25, 30, 35]:
 #| echo: false
 # Hidden: the growth and projection on this slide. It uses `measured` from the visible cell above
 # and the call counts, so every number matches the times printed above.
-# Growth: the measured times jump 5 stairs at a time, so per 5 stairs is the average jump
-# (geometric mean of 25 -> 30 and 30 -> 35), and per stair is its 5th root.
-jump_5 = (measured[35] / measured[25]) ** (1 / 2)
-per_stair = f"{jump_5 ** (1 / 5):.1f}"
-growth_say = (f"Every 5 more stairs: about {jump_5:.0f} times the time. That is about "
-              f"{' × '.join([per_stair] * 5)}, so one more stair is about {per_stair} times the work.")
+# Growth: count calls instead of timing them, because call counts never change between runs.
+calls_jump = naive_calls(30) / naive_calls(25)   # about the same jump for every 5 more stairs
+per_stair = calls_jump ** (1 / 5)
+# The jumps in the printed times, worked out from the rounded numbers students can see.
+shown = {n: max(round(measured[n], 3), 0.001) for n in measured}
+time_jumps = (f"{shown[30]:.3f} / {shown[25]:.3f} ≈ {shown[30] / shown[25]:.1f} and "
+              f"{shown[35]:.3f} / {shown[30]:.3f} ≈ {shown[35] / shown[30]:.1f}")
+growth_say = (f"Every 5 more stairs makes about {calls_jump:.0f} times as many calls, "
+              f"so one more stair is about {per_stair:.1f} times the work.")
 per_call = measured[35] / naive_calls(35)
 
 
@@ -775,19 +778,16 @@ def how_long(s):
 
 age_of_universe = 13.8e9 * 365.25 * 24 * 3600   # seconds
 grind_zeros = math.floor(math.log10(naive_calls(2830)) + math.log10(per_call) - math.log10(age_of_universe))
+assert grind_zeros > 80   # more universe lifetimes than atoms in the universe (about 10^80)
 time_50 = how_long(per_call * naive_calls(50))
 time_100 = how_long(per_call * naive_calls(100))
 ```
 
 ::: {.incremental}
 - `{python} growth_say`
+- The times jump by roughly that much: `{python} time_jumps`. Timing wobbles because of which computer you run it from.
 - 50 stairs: `{python} time_50`. 100 stairs: `{python} time_100`.
-- 2,830 stairs: a 1 followed by `{python} grind_zeros` zeros, times the age of the universe.
-:::
-
-::: {.notes}
-- These times are measured when the slides are rendered, on my laptop.
-- Plain recursion would also crash on 2,830 stairs!
+- 2,830 stairs: it would never finish! Even if we start counting at the begining of the universe and count at the speed of light, it would not be close to done! 🤯
 :::
 
 # Write it down {background-image="images/lec07_otter_chalk.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
