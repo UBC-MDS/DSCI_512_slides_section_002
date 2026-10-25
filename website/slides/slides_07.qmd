@@ -31,10 +31,10 @@ title-slide-attributes:
 ## Housekeeping 🏠 {style="font-size: 0.8em;"}
 
 ::: {.incremental}
-- New: no more points taken off for the number of attempts.
+- New: no more points taken off for the number of attempts in live coding quizzes.
 - This week's coding quiz is about **recursion**.
 - Before the quiz, try the first 2 easy recursion coding questions in "Practice 5: Recursion, Trees, Linked Lists and k-d Trees" on PL.
-- Feeling a gap between lecture and lab is normal.
+- Feeling that lab is harder than lecture is normal.
 :::
 
 ::: {.notes}
@@ -284,6 +284,232 @@ viewof count_step = Inputs.button([
 ::: {.notes}
 - Click "Add a stair" up to 5 stairs. Let them call out each count before you click.
 - The rows are grouped on purpose (the ways that end in a 1-stair step come first). We use that on the next slides.
+:::
+
+```{python}
+#| echo: false
+# Hidden: the "Draw the spiral" slide. Square 1 sits at (0, 0); each new square goes on the next
+# side of the drawing, in turn: right, above, left, below, and its side is f (same code as the
+# visible cell on the next slide). One quarter circle per square makes the spiral. With the shell
+# switched on, the photo nature2.png goes behind the drawing with the eye of the spiral on the eye
+# of the shell. Every square, arc point, label, image position and sentence is worked out here,
+# OJS only draws.
+# Copied from lecture 6 for the recap. Wrapped in a function so its short names (n, s, p, ...)
+# stay out of the shared kernel.
+def build_spiral_view():
+    import numpy as np
+
+    def f(n):
+        if n == 1 or n == 2:
+            return 1
+        else:
+            return f(n - 1) + f(n - 2)
+
+
+    def place_squares(n):
+        """Corner (x, y) and side of squares 1 to n."""
+        squares = [(0, 0, 1)]
+        left, bottom, right, top = 0, 0, 1, 1
+        for i in range(2, n + 1):
+            s = f(i)
+            if i % 4 == 2:
+                x, y = right, bottom
+            elif i % 4 == 3:
+                x, y = left, top
+            elif i % 4 == 0:
+                x, y = left - s, bottom
+            else:
+                x, y = left, bottom - s
+            squares.append((x, y, s))
+            left, bottom = min(left, x), min(bottom, y)
+            right, top = max(right, x + s), max(top, y + s)
+        return squares
+
+
+    spiral_max = 10
+    spiral_w, spiral_h, spiral_margin = 820, 360, 10
+    inner_w, inner_h = spiral_w - 2 * spiral_margin, spiral_h - 2 * spiral_margin
+    inner_aspect = inner_h / inner_w
+    where_words = {"right": "on the right", "above": "on top", "left": "on the left", "below": "underneath"}
+    squares, arc = [], []
+    minx = miny = maxx = maxy = 0
+    for i, (x, y, s) in enumerate(place_squares(spiral_max), start=1):
+        side = ["left", "below", "right", "above"][i % 4]   # square 1 counts as "below"
+        minx, miny, maxx, maxy = min(minx, x), min(miny, y), max(maxx, x + s), max(maxy, y + s)
+        # The quarter circle: its centre is one corner of the square, and it joins the two corners
+        # next to that one, so each arc starts where the last one ended.
+        cx, cy, start = {"below": (x + s, y + s, 180), "right": (x, y + s, 270),
+                         "above": (x, y, 0), "left": (x + s, y, 90)}[side]
+        angles = np.radians(np.linspace(start, start + 90, 13))
+        arc += [{"x": round(float(cx + s * np.cos(a)), 3), "y": round(float(cy + s * np.sin(a)), 3)}
+                for a in angles]
+        squares.append({"x1": x, "x2": x + s, "y1": y, "y2": y + s, "side": s, "where": side,
+                        "box": (minx, miny, maxx, maxy), "arc_end": len(arc)})
+
+    # The eye of the spiral: the point the arcs wind into. Square k + 1's arc is square k's arc
+    # turned a quarter and stretched, so the eye is the point that this turn leaves in place
+    # (complex numbers: z -> a z + b, eye = b / (1 - a)).
+    p = [complex(arc[13 * k]["x"], arc[13 * k]["y"]) for k in [7, 8, 9]]
+    a_turn = (p[2] - p[1]) / (p[1] - p[0])
+    spiral_eye = (p[1] - a_turn * p[0]) / (1 - a_turn)
+
+    # The shell photo: 1054 x 818 pixels, eye of the shell at pixel (653, 537). Chosen by eye so the
+    # inner coils line up: 6 photo pixels per unit of square side, no rotation.
+    photo_w, photo_h, photo_eye_x, photo_eye_y, photo_px_per_unit = 1054, 818, 653, 537, 6
+    photo_cx = spiral_eye.real + (photo_w / 2 - photo_eye_x) / photo_px_per_unit
+    photo_cy = spiral_eye.imag - (photo_h / 2 - photo_eye_y) / photo_px_per_unit   # photo y points down
+    photo_box = (photo_cx - photo_w / 2 / photo_px_per_unit, photo_cy - photo_h / 2 / photo_px_per_unit,
+                 photo_cx + photo_w / 2 / photo_px_per_unit, photo_cy + photo_h / 2 / photo_px_per_unit)
+
+
+    def frame(box, pad_share):
+        """Axis domains around box, with the same scale on both axes."""
+        bx0, by0, bx1, by1 = box
+        w, h = bx1 - bx0, by1 - by0
+        pad = pad_share * max(w, h)
+        w_show = max(w + 2 * pad, (h + 2 * pad) / inner_aspect)
+        h_show = w_show * inner_aspect
+        xc, yc = (bx0 + bx1) / 2, (by0 + by1) / 2
+        return w_show, [xc - w_show / 2, xc + w_show / 2], [yc - h_show / 2, yc + h_show / 2]
+
+
+    def square_labels(n, w_show):
+        """Side labels, only on squares big enough to hold one."""
+        return [{"x": (q["x1"] + q["x2"]) / 2, "y": (q["y1"] + q["y2"]) / 2, "text": str(q["side"])}
+                for q in squares[:n] if q["side"] / w_show > 0.04]
+
+
+    shell_say = ("Here is the same spiral on top of a real nautilus shell, with both centres on the same spot. "
+                 "The inner turns match. Further out, our spiral grows faster than the shell.")
+    spiral_view = []   # one entry per click: squares 1 to 10, then the shell
+    for n in range(1, spiral_max + 1):
+        w_show, x_domain, y_domain = frame(squares[n - 1]["box"], 0.06)
+        bx0, by0, bx1, by1 = squares[n - 1]["box"]
+        both = (min(bx0, photo_box[0]), min(by0, photo_box[1]), max(bx1, photo_box[2]), max(by1, photo_box[3]))
+        shell_w_show, shell_x_domain, shell_y_domain = frame(both, 0)
+        px = inner_w / shell_w_show   # screen pixels per unit
+        s = f(n)
+        if n == 1:
+            say = "Start with one small square. Each side is length of 1 unit. The blue curve is a quarter circle inside it."
+        elif n == 2:
+            say = "Add a second square on the right. Its sides are also length of 1 unit. Its quarter circle carries the curve on."
+        else:
+            say = (f"Square {n}: how long is each side? Add up the two squares before it: "
+                   f"{f(n - 2)} + {f(n - 1)} = {s}. It goes {where_words[squares[n - 1]['where']]}, "
+                   f"and it fits exactly.")
+        step = {"say": say,
+                "squares": [{**{k: q[k] for k in ["x1", "x2", "y1", "y2"]}, "role": "new" if k == n - 1 else "old"}
+                            for k, q in enumerate(squares[:n])],
+                "arc": arc[:squares[n - 1]["arc_end"]],
+                "labels": square_labels(n, w_show), "x_domain": x_domain, "y_domain": y_domain, "photo": []}
+        spiral_view.append(step)
+        if n == spiral_max:   # one more click: the same drawing with the shell behind it
+            spiral_view.append({**step, "say": shell_say, "labels": square_labels(n, shell_w_show),
+                                "x_domain": shell_x_domain, "y_domain": shell_y_domain,
+                                "photo": [{"x": round(photo_cx, 3), "y": round(photo_cy, 3),
+                                           "width": round(photo_w / photo_px_per_unit * px, 1),
+                                           "height": round(photo_h / photo_px_per_unit * px, 1)}]})
+    for k, step in enumerate(spiral_view):
+        step["count"] = f"Step {k + 1} of {len(spiral_view)}"
+    golden_ratios = ", ".join(f"{f(n + 1) / f(n):.3f}" for n in range(5, 10))
+    golden = f"{(1 + 5 ** 0.5) / 2:.3f}"
+    return spiral_view, golden_ratios, golden
+
+
+spiral_view, golden_ratios, golden = build_spiral_view()
+ojs_define(spiral_view = spiral_view)
+```
+
+## Recap: draw the spiral {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof spiral_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next", i => Math.min(i + 1, spiral_view.length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every square, arc point, photo position and sentence was worked out in Python
+  // (spiral_view). Orange: the newest square. Grey: earlier squares. Blue: the spiral.
+  const view = spiral_view[spiral_step];
+  const shell = view.photo.length > 0;
+  const fill = {new: "#fdeee6", old: "#f2f1ee"}, stroke = {new: "#eb6834", old: "#b8b6b0"};
+  return html`<div class="ojs-readout"><span class="sq-count">${view.count}</span> ${view.say}</div>${Plot.plot({
+    width: 820, height: 360, margin: 10,
+    style: {fontSize: "16px", background: "transparent"},
+    x: {axis: null, domain: view.x_domain}, y: {axis: null, domain: view.y_domain},
+    marks: [
+      Plot.image(view.photo, {x: "x", y: "y", width: "width", height: "height",
+                              src: () => "images/nature2.png", opacity: 0.85}),
+      Plot.rect(view.squares, {x1: "x1", x2: "x2", y1: "y1", y2: "y2", fillOpacity: shell ? 0 : 1,
+                               fill: d => fill[d.role], stroke: d => stroke[d.role], strokeWidth: 2}),
+      Plot.line(view.arc, {x: "x", y: "y", stroke: "#2a78d6", strokeWidth: 4}),
+      Plot.text(view.labels, {x: "x", y: "y", text: "text", fontWeight: "bold",
+                              fill: shell ? "white" : "#52514e"})
+    ]
+  })}`;
+}
+```
+
+::: {.fragment}
+Long side ÷ short side: `{python} golden_ratios`, ... It settles at `{python} golden`, the **golden ratio**.
+:::
+
+::: footer
+Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/)
+:::
+
+::: {.notes}
+- Recap from lecture 6, for everyone who missed it because of the midterm.
+- Each new square: add the two sides before it. The spiral is one quarter circle per square.
+:::
+
+## Recap: Fibonacci from lecture 6 {style="font-size: 0.8em;"}
+
+```{pyodide}
+def f(n):
+    """The side of square n in the spiral."""
+    if n == 1 or n == 2:
+        return 1                     # squares 1 and 2: side 1
+    else:
+        return f(n - 1) + f(n - 2)   # two recursive calls
+
+print([f(n) for n in range(1, 11)])
+```
+
+::: {.incremental}
+- These are the **Fibonacci** numbers: 1, 1, 2, 3, 5, 8, 13, ...
+- Two base cases, because each square needs the two squares before it.
+- What is the Big O time complexity of `f(n)`?
+:::
+
+::: {.notes}
+- Many students missed lecture 6 because of the midterm, so take a minute here.
+- Let them think and call out answers before you say it.
+- Answer: $O(2^n)$. Each call makes 2 more calls, about $n$ levels deep. (More precisely about $1.6^n$, see the bonus slide. Still exponential.)
+- Space: $O(n)$, only the calls on the current path wait on the stack.
+- Keep this in mind: the staircase counts follow the same rule, so the same slowness is coming.
+:::
+
+## Fibonacci is everywhere {style="font-size: 0.8em;"}
+
+![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
+
+::: {.fragment}
+The same spiral shows up everywhere: Hokusai's Great Wave, the Mona Lisa, sunflowers, nautilus shells.
+:::
+
+::: {.notes}
+- Close the recap: the numbers we just counted on the stairs are the numbers behind all of these.
+:::
+
+::: footer
+Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-sequence-when-maths-arts-collide/) (Great Wave, Mona Lisa), [Cleveland Design](https://clevelanddesign.com/insights/the-nature-of-design-the-fibonacci-sequence-and-the-golden-ratio/) (sunflower), [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/) (nautilus)
 :::
 
 ## iClicker: 6 stairs {style="font-size: 0.8em;"}
