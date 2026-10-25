@@ -28,6 +28,20 @@ title-slide-attributes:
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (70 min): hook 5, count small staircases 14, why so slow 8, memoization 12, bottom-up 13, dynamic programming 7, template 7, wrap up 4."
 ---
 
+## Housekeeping 🏠 {style="font-size: 0.8em;"}
+
+::: {.incremental}
+- New: no more points taken off for the number of attempts.
+- This week's coding quiz is about **recursion**.
+- Before the quiz, try the first 2 easy recursion coding questions in "Practice 5: Recursion, Trees, Linked Lists and k-d Trees" on PL.
+- Feeling a gap between lecture and lab is normal.
+:::
+
+::: {.notes}
+- On the gap: there is a difference between thinking you learnt something in theory and implementing it yourself and applying it. The second one is when you actually learn.
+- So the moment the lab feels hard is not a sign that you are behind. It is the learning happening.
+:::
+
 # How many ways up the Grouse Grind? {background-image="images/lec07_title_grind.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ```{python}
@@ -203,10 +217,12 @@ for n in range(1, 6):
     paths = all_paths(n)
     arrows, dots, labels = hop_rows(paths)
     counts.append(len(paths))
-    say = (f"{n} stair{'s' if n > 1 else ''}: {len(paths)} way{'s' if len(paths) > 1 else ''}."
-           + (f" Counts so far: {', '.join(str(c) for c in counts)}." if n > 1 else ""))
+    say = f"{n} stair{'s' if n > 1 else ''}: {len(paths)} way{'s' if len(paths) > 1 else ''}."
+    # The table under the chart: one column per staircase counted so far.
+    tally = [{"stairs": k + 1, "ways": c} for k, c in enumerate(counts)]
     count_view.append({"arrows": arrows, "dots": dots, "labels": labels, "notes": [], "rules": [],
-                       "ticks": list(range(n + 1)), "say": say, "count": f"{n} of 5"})
+                       "ticks": list(range(n + 1)), "say": say, "count": f"{n} of 5",
+                       "tally": tally})
 ojs_define(count_view = count_view)
 ```
 
@@ -252,7 +268,12 @@ viewof count_step = Inputs.button([
   const v = count_view[count_step];
   return html`<div class="ojs-readout"><span class="sq-count">${v.count}</span> ${v.say}
     Stair 0 is the ground. <span class="notify">Blue</span>: climb 1 stair.
-    <span class="match">Orange</span>: climb 2 stairs.</div>${draw_hops(v)}`;
+    <span class="match">Orange</span>: climb 2 stairs.</div>${draw_hops(v)}
+    <div class="ojs-readout">Number of ways for every staircase we have counted so far:</div>
+    <table class="ojs-readout" style="width: auto;">
+      <tr><td>number of stairs</td>${v.tally.map(d => html`<td style="text-align: center;">${d.stairs}</td>`)}</tr>
+      <tr><td>number of ways to climb them</td>${v.tally.map(d => html`<td style="text-align: center;">${d.ways}</td>`)}</tr>
+    </table>`;
 }
 ```
 
