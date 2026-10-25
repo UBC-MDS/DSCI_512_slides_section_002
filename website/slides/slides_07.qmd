@@ -989,7 +989,7 @@ viewof calls_n = Inputs.range([2, 35], {value: 10, step: 1, label: "stairs n"})
 ```
 
 ::: {.notes}
-- Slide to 35: about 18 million calls against 67. The blue line looks flat, but it grows too: 2n - 3 calls.
+The blue line looks flat, but it grows too: 2n - 3 calls.
 :::
 
 ## iClicker: how fast is `climb_memo`? {style="font-size: 0.8em;"}
@@ -1006,7 +1006,7 @@ What is the time complexity of `climb_memo(n)`?
 - Space is $O(n)$ too: $n$ entries in the memo, and up to $n$ calls waiting on the stack.
 :::
 
-## Python can do it for you {style="font-size: 0.8em;"}
+## Python can do it for you {style="font-size: 0.7em;"}
 
 ```{pyodide}
 import functools
@@ -1030,10 +1030,6 @@ print(climb_cached.cache_info())
 - What do hits and misses mean? 
 :::
 
-::: {.notes}
-Ask: why 30 misses and 27 hits? 
-:::
-
 ```{python}
 #| echo: false
 # Hidden: the hits and misses quoted on the "Reading cache_info()" slide, counted by running
@@ -1054,7 +1050,7 @@ small_hits, small_misses = cache_counts(5)
 big_hits, big_misses = cache_counts(30)
 ```
 
-## Reading `cache_info()` {style="font-size: 0.8em;"}
+## Reading `cache_info()` for `climb(5)` {style="font-size: 0.8em;"}
 
 Same function on 5 stairs. It prints a line only when it has to work something out.
 
@@ -1076,15 +1072,6 @@ print(climb_loud.cache_info())
 - **Miss**: "I missed this in my memo!", the answer is not stored yet, so the function body runs. Each stair is worked out once: `{python} small_misses` misses.
 - **Hit**: the answer is already stored, so Python reads it and the body never runs. climb(4) asks climb(2), climb(5) asks climb(3): `{python} small_hits` hits.
 - `{python} small_misses + small_hits` calls in total, the same calls as in "Watch the memo".
-- 30 stairs: `{python} big_misses` misses, one per stair. Every stair from 4 to 30 reads one stored answer: `{python} big_hits` hits.
-:::
-
-::: {.notes}
-- Run it live. Count the printed lines with the class: 5 lines = 5 misses.
-- Walk down: climb(5) asks climb(4), which asks climb(3), which asks climb(2) and climb(1). All new, all misses.
-- On the way back up, each stair's second question is already stored: climb(4) asks climb(2), climb(5) asks climb(3). Those are the hits.
-- climb(3) gets no hit: its second question, climb(1), is asked for the first time.
-- Unlike our climb_memo, lru_cache also stores the base cases, so stairs 1 and 2 count as misses too.
 :::
 
 ## iClicker: call it again {style="font-size: 0.8em;"}
@@ -1106,10 +1093,6 @@ print(climb_cached.cache_info())
 ```
 :::
 
-::: {.notes}
-- The cache lives as long as the function does, across calls. That is why the second call is free.
-- Expect the question "why still 30 misses?": the counts never reset. climb_cached.cache_clear() empties the cache and resets both counts to 0.
-:::
 
 # Back to the Grind {style="font-size: 0.8em;"}
 
