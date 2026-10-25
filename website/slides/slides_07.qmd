@@ -457,19 +457,15 @@ viewof spiral_step = Inputs.button([
 ```
 
 ::: {.fragment}
-Long side ÷ short side: `{python} golden_ratios`, ... It settles at `{python} golden`, the **golden ratio**.
+![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
 :::
 
 ::: footer
-Shell photo: [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/)
+Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-sequence-when-maths-arts-collide/) (Great Wave, Mona Lisa), [Cleveland Design](https://clevelanddesign.com/insights/the-nature-of-design-the-fibonacci-sequence-and-the-golden-ratio/) (sunflower), [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/) (nautilus)
 :::
 
-::: {.notes}
-- Recap from lecture 6, for everyone who missed it because of the midterm.
-- Each new square: add the two sides before it. The spiral is one quarter circle per square.
-:::
 
-## Recap: Fibonacci from lecture 6 {style="font-size: 0.8em;"}
+## Recap: Fibonacci python code from lecture 6 {style="font-size: 0.8em;"}
 
 ```{pyodide}
 def f(n):
@@ -486,47 +482,6 @@ print([f(n) for n in range(1, 11)])
 - These are the **Fibonacci** numbers: 1, 1, 2, 3, 5, 8, 13, ...
 - Two base cases, because each square needs the two squares before it.
 - What is the Big O time complexity of `f(n)`?
-:::
-
-::: {.notes}
-- Many students missed lecture 6 because of the midterm, so take a minute here.
-- Let them think and call out answers before you say it.
-- Answer: $O(2^n)$. Each call makes 2 more calls, about $n$ levels deep. (More precisely about $1.6^n$, see the bonus slide. Still exponential.)
-- Space: $O(n)$, only the calls on the current path wait on the stack.
-- Keep this in mind: the staircase counts follow the same rule, so the same slowness is coming.
-:::
-
-## Fibonacci is everywhere {style="font-size: 0.8em;"}
-
-![](images/art1.png){height="215px"} ![](images/art2.png){height="215px"} ![](images/nature1.png){height="215px"} ![](images/nature2.png){height="215px"}
-
-::: {.fragment}
-The same spiral shows up everywhere: Hokusai's Great Wave, the Mona Lisa, sunflowers, nautilus shells.
-:::
-
-::: {.notes}
-- Close the recap: the numbers we just counted on the stairs are the numbers behind all of these.
-:::
-
-::: footer
-Images: [Artis Foundation](https://artisfoundation.org.uk/news/the-fibonacci-sequence-when-maths-arts-collide/) (Great Wave, Mona Lisa), [Cleveland Design](https://clevelanddesign.com/insights/the-nature-of-design-the-fibonacci-sequence-and-the-golden-ratio/) (sunflower), [EarthSky](https://earthsky.org/human-world/nautilus-shell-fibonacci-logarithmic-spiral-golden-spiral/) (nautilus)
-:::
-
-## iClicker: 6 stairs {style="font-size: 0.8em;"}
-
-Without listing them, how many ways are there to climb **6** stairs?
-
-- \(A) 10
-- \(B) 11
-- \(C) 13
-- \(D) 16
-
-::: {.fragment}
-- Answer: **C**. 5 + 8 = 13, if the pattern holds. Why does it hold?
-:::
-
-::: {.notes}
-- Most will guess C from the pattern. Ask: is a pattern a proof? Next slide shows why each number is the sum of the two before it.
 :::
 
 ```{python}
