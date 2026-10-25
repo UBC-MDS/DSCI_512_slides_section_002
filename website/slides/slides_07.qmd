@@ -185,20 +185,6 @@ How many different ways are there to climb 2,830 stairs, 1 or 2 at a time?
 The answer is D, and we print it on the "Climb the whole Grind" slide.
 :::
 
-## Today's plan {style="font-size: 0.8em;"}
-
-| what we build | the question it answers |
-|---|---|
-| count small staircases by hand | Is there a pattern? |
-| a recursive function | Why is it so slow? |
-| memoization: write each answer down | Can we stop doing the same work twice? |
-| a table, filled from the bottom up | Can we climb all 2,830 stairs? |
-| dynamic programming | Where else does this trick work? |
-
-::: {.notes}
-- One analogy for the whole lecture: chalk the number of ways on each stair.
-:::
-
 # Start small {style="font-size: 0.8em;"}
 
 2,830 stairs is too many to count by hand. What about 1 stair? 2 stairs? 5 stairs?
