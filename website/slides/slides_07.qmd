@@ -1311,23 +1311,6 @@ Both are $O(n)$ time. Top-down is often easier to write first: it is the recurre
 - Resizing an image without squashing faces (this week's lab).
 :::
 
-## iClicker: which one needs DP? {style="font-size: 0.8em;"}
-
-Which problem is a good fit for dynamic programming?
-
-- \(A) Find the largest number in a list
-- \(B) Binary search for a key in a sorted list
-- \(C) Count the paths from the top left to the bottom right of a grid, moving only right or down
-- \(D) Reverse a string
-
-::: {.fragment}
-- Answer: **C**. Last move: you arrived from the left or from above, so paths(r, c) = paths(r − 1, c) + paths(r, c − 1). The same cells are asked again and again.
-:::
-
-::: {.notes}
-- Draw a 3 by 3 grid on the notepad and fill in the counts, starting with 1s along the top row and left column.
-:::
-
 ## A recipe for DP problems {style="font-size: 0.55em;"}
 
 | step | ask yourself | climbing stairs |
@@ -1348,7 +1331,7 @@ Which problem is a good fit for dynamic programming?
 
 ## iClicker: 1, 2 or 3 stairs {style="font-size: 0.8em;"}
 
-Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the ways?
+Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the ways? What is the time complexity of this algorithm?
 
 - \(A) ways(n) = ways(n − 1) + ways(n − 2)
 - \(B) ways(n) = ways(n − 1) + ways(n − 2) + ways(n − 3)
@@ -1357,11 +1340,9 @@ Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the wa
 
 ::: {.fragment}
 - Answer: **B**. The first move is 1, 2 or 3 stairs. Base cases: ways(0) = 1, ways(1) = 1, ways(2) = 2.
+- Time complexity: $O(3^n)$. Each call makes 3 more calls, about $n$ levels deep.
 :::
 
-::: {.notes}
-- Same recipe, only step 3 and step 4 change. Try it in code on the bonus slide.
-:::
 
 ## Today's cheat sheet {style="font-size: 0.65em;"}
 
