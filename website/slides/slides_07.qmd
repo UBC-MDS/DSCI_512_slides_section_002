@@ -795,7 +795,7 @@ time_100 = how_long(per_call * naive_calls(100))
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
-- The first time you count how many unique ways to reach a stair, write that number down on that stair with a chalk.
+- The first time someone asks about a stair, count the unique ways to reach it and write that number on the stair with chalk.
 - Next time someone asks you how many unique ways to get to the next stair, read the chalk on the 2 previous stairs and add them up!
 - This is **memoization**: store each answer of a function, so it is only computed once.
 :::
@@ -1093,6 +1093,63 @@ print(climb_cached.cache_info())
 ```
 :::
 
+```{python}
+#| echo: false
+# Hidden: the misses quoted on the "A cache can forget" slide. The same cached climb on 25 stairs,
+# once for each maxsize in the table, so the text matches what the cell prints.
+def forget_counts(size, n=25):
+    @functools.lru_cache(maxsize=size)
+    def go(k):
+        if k == 1:
+            return 1
+        if k == 2:
+            return 2
+        return go(k - 1) + go(k - 2)
+
+    answer = go(n)
+    return f"{go.cache_info().misses:,}", answer
+
+
+forget_misses = {}
+for forget_size in [None, 3, 2, 1]:
+    forget_misses[forget_size], forget_answer = forget_counts(forget_size)
+```
+
+## A cache can forget {style="font-size: 0.75em;"}
+
+`maxsize=None` keeps every stair. What if the cache keeps only the last 2 answers?
+
+```{pyodide}
+@functools.lru_cache(maxsize=2)    # keep only the 2 answers used most recently
+def climb_forget(n):
+    if n == 1:
+        return 1
+    if n == 2:
+        return 2
+    return climb_forget(n - 1) + climb_forget(n - 2)
+
+print(climb_forget(25))
+print(climb_forget.cache_info())
+```
+
+::: {.fragment}
+| `maxsize` | misses | answer |
+|---|---|---|
+| `None` | `{python} forget_misses[None]` | `{python} forget_answer` ✅ |
+| `2` | `{python} forget_misses[2]` | `{python} forget_answer` ✅ |
+| `1` | `{python} forget_misses[1]` | `{python} forget_answer` ✅ |
+:::
+
+::: {.fragment}
+Forgetting never makes the answer wrong, only slower. A cache is **allowed** to forget.
+:::
+
+::: {.notes}
+- Live demo: change maxsize to 1, then 3. With 3 it is back to `{python} forget_misses[3]` misses: the recursion only ever reuses the last few stairs. Same reason climb_two can keep just two stairs later.
+- LRU throws away the answer used longest ago when the cache is full.
+- Contrast for later: the DP table never throws an entry away at random. climb_two forgets on purpose, because the loop's order says those stairs are never needed again.
+:::
+
 
 # Back to the Grind {style="font-size: 0.8em;"}
 
@@ -1134,7 +1191,7 @@ sys.setrecursionlimit(5000)
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
 - Top-down asks from the top stair and works its way down.
-- Instead, start on the ground and walk up. Chalk every stair on the way.
+- Instead, start on the ground and walk up. Chalk every stair on the way, before anyone asks.
 - When you reach a stair, the two stairs below it are already chalked: add them up.
 - This is **tabulation**, or bottom-up: fill a table from the smallest question up.
 :::
@@ -1276,7 +1333,7 @@ Still $O(n)$ time, but now $O(1)$ space: a hiker who only remembers the last two
 
 # Dynamic programming {style="font-size: 0.8em;"}
 
-What we just did has a name: **dynamic programming** (DP). Solve each smaller question once, store the answer, and reuse it.
+The memo and the table are both **dynamic programming** (DP): solve each smaller question once, store the answer, and reuse it.
 
 ::: {.incremental}
 - DP fits a problem with two properties:
@@ -1300,6 +1357,43 @@ What we just did has a name: **dynamic programming** (DP). Solve each smaller qu
 
 ::: {.fragment}
 Both are $O(n)$ time. Top-down is often easier to write first: it is the recurrence plus a memo.
+:::
+
+## Cache, memo or DP? {style="font-size: 0.7em;"}
+
+<div class="word-wrap">
+<div class="word-box">
+<div class="word-name">caching</div>
+<div class="word-sub">keep data to reuse later</div>
+<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">a function keeps its own answers</div></div>
+</div>
+<div class="word-box">
+<div class="word-name">dynamic programming</div>
+<div class="word-sub">solve each smaller question once</div>
+<div class="word-row">
+<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">top-down</div></div>
+<div class="word-box"><div class="word-name">tabulation</div><div class="word-sub">bottom-up</div></div>
+</div>
+</div>
+</div>
+
+::: {.fragment}
+| | caching | memoization | DP |
+|---|---|---|---|
+| the word describes | where answers are kept | a function remembering its answers | a way to solve a problem |
+| today's code | `lru_cache(maxsize=2)` | `climb_memo`, `climb_cached` | `climb_memo`, `climb_table`, `climb_two` |
+| who picks the order? | whoever asks | the recursion | you |
+:::
+
+::: {.fragment}
+Same storage, a dict or a list. The words describe **different things**.
+:::
+
+::: {.notes}
+- Memoization is in both boxes on purpose: it is one kind of caching, and it is one way to do DP.
+- Caching without memoization: your phone keeps the Grind trail map after you download it. No function, just saved data.
+- DP without memoization: climb_table. No function remembers anything; a loop fills a list in an order you chose.
+- Why climb_memo uses a dict and climb_table a list: the memo is keyed by whatever the recursion asks, the table has one slot per stair, filled in order.
 :::
 
 ## Where else is DP used? {style="font-size: 0.8em;"}
@@ -1354,7 +1448,6 @@ Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the wa
 | bottom-up DP (tabulation) | a loop fills a table from the base cases up | $O(n)$ | $O(n)$ table |
 | keep only two values | bottom-up, but only the last two entries | $O(n)$ | $O(1)$ |
 
-Fibonacci has the same complexities: `climb(n)` is `f(n + 1)`.
 
 ## Today's takeaways {style="font-size: 0.8em;"}
 
@@ -1433,31 +1526,6 @@ print(add_item("b"))   # a fresh list? no: the same list as last time
 
 ::: {.notes}
 - For climb_memo, a shared memo gives the right answers (stair counts never change), but it keeps growing forever, like lru_cache. For most functions this is a bug, so use None and create the dict inside.
-:::
-
-## (Bonus Slide) A memo as a list {style="font-size: 0.8em;"}
-
-```{pyodide}
-def climb_memo_list(n):
-    memo = [-1] * (n + 1)          # -1 means "not worked out yet"
-
-    def ways(k):
-        if k == 1:
-            return 1
-        if k == 2:
-            return 2
-        if memo[k] == -1:          # not chalked yet: work it out
-            memo[k] = ways(k - 1) + ways(k - 2)
-        return memo[k]
-
-    return ways(n)
-
-print(climb_memo_list(30))
-```
-
-::: {.notes}
-- -1 is a sentinel: counts are never negative, so it can't be mistaken for an answer. None works too.
-- The inner function sees memo from the outer function, so each top-level call gets a fresh memo.
 :::
 
 ```{python}

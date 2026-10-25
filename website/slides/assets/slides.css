@@ -196,3 +196,13 @@
 
 /* Lecture 6: a map and a tree side by side (k-d tree slides) */
 .reveal .kd-wrap { display: flex; gap: 10px; justify-content: center; align-items: center; }
+
+/* Lecture 7: "Cache, memo or DP?" nested boxes, memoization in blue wherever it appears */
+.reveal .word-wrap { display: flex; gap: 40px; justify-content: center; align-items: stretch; margin: 0.3em 0 0.6em; }
+.reveal .word-box { border: 2px solid #b8b6b0; border-radius: 8px; padding: 8px 14px; text-align: center; }
+.reveal .word-box .word-box { margin-top: 8px; }
+.reveal .word-box.memo { border-color: #2a78d6; background: #dbe8f8; }
+.reveal .word-box.memo .word-name { color: #2a78d6; }
+.reveal .word-row { display: flex; gap: 12px; justify-content: center; }
+.reveal .word-name { font-size: 22px; font-weight: bold; color: #0b0b0b; }
+.reveal .word-sub { font-size: 16px; color: #52514e; }
