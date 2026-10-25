@@ -779,6 +779,7 @@ def how_long(s):
 age_of_universe = 13.8e9 * 365.25 * 24 * 3600   # seconds
 grind_zeros = math.floor(math.log10(naive_calls(2830)) + math.log10(per_call) - math.log10(age_of_universe))
 assert grind_zeros > 80   # more universe lifetimes than atoms in the universe (about 10^80)
+assert naive_calls(2830) > 10**80   # more calls than atoms in the universe
 time_50 = how_long(per_call * naive_calls(50))
 time_100 = how_long(per_call * naive_calls(100))
 ```
@@ -787,7 +788,7 @@ time_100 = how_long(per_call * naive_calls(100))
 - `{python} growth_say`
 - The times jump by roughly that much: `{python} time_jumps`. Timing wobbles because of which computer you run it from.
 - 50 stairs: `{python} time_50`. 100 stairs: `{python} time_100`.
-- 2,830 stairs: it would never finish! Even if we start counting at the begining of the universe and count at the speed of light, it would not be close to done! 🤯
+- 2,830 stairs: it would never finish! The total number of calls is more than the number of atoms in the universe. Even if we had started when the universe began, it would take more than 10^`{python} grind_zeros`^ lifetimes of the universe. 🤯
 :::
 
 # Write it down {background-image="images/lec07_otter_chalk.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
@@ -903,7 +904,7 @@ memo_layout, memo_steps = record_memo(5)
 ojs_define(memo_layout = memo_layout, memo_steps = memo_steps)
 ```
 
-## Watch the memo {style="font-size: 0.75em;"}
+## Watch the memo {style="font-size: 0.9em;"}
 
 ```{ojs}
 //| echo: false
@@ -929,9 +930,6 @@ viewof memo_step = Inputs.button([
 }
 ```
 
-::: {.notes}
-- Why are stairs 1 and 2 never in the memo? climb_memo checks the base cases first and returns right away. Their answers are already in the code, so storing them would save no work.
-:::
 
 ```{python}
 #| echo: false
