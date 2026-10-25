@@ -799,7 +799,7 @@ time_100 = how_long(per_call * naive_calls(100))
 - (Plain recursion would also crash on 2,830 stairs, for the reason we will see in section "Back to the Grind".)
 :::
 
-# Write it down {background-image="images/lec07_otter_chalk.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Write it down {background-image="images/lec07_otter_chalk.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
@@ -1075,7 +1075,7 @@ climb_memo(2830)
 - `import sys; sys.getrecursionlimit()` shows the limit. You can raise it, but deep enough recursion can crash Python itself.
 :::
 
-# Start at the bottom {background-image="images/lec07_otter_summit.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Start at the bottom {background-image="images/lec07_otter_summit.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}

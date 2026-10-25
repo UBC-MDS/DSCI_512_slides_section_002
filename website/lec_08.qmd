@@ -1,7 +1,7 @@
 ---
-title: "8. Dynamic Programming II"
-description: "More dynamic programming, including edit distance and backtracking."
-description-short: "Apply dynamic programming to harder optimization problems such as edit distance, and recover the optimal solution by backtracking through the table."
+title: "8. Optimization, Greedy Algorithms and Dynamic Programming II"
+description: "Seam carving with dynamic programming and backtracking, greedy algorithms, and the vocabulary of optimization."
+description-short: "Find the cheapest seam in a photo with dynamic programming, recover it by backtracking, and see when greedy algorithms find the best answer and when they fail."
 ---
 
 ## Slides for Section 002
