@@ -1108,19 +1108,16 @@ climb_memo(2830)
 - Can we get the answer without a tall call stack?
 :::
 
-::: {.notes}
-- Run it live. Ask before running: what do you expect?
-- `import sys; sys.getrecursionlimit()` shows the limit. Can we raise it? Next slide.
-:::
 
-## Can we raise the limit? {style="font-size: 0.8em;"}
+## Can we raise the recursion limit? {style="font-size: 0.8em;"}
+
+::: {.incremental}
 
 ```{.python}
 import sys
 sys.setrecursionlimit(5000)
 ```
 
-::: {.incremental}
 - This raises the limit **only for the Python process that is running now**: your script and every module it imports.
 - It is not saved anywhere, not for your computer and not for the virtual environment. The next run of the script, or a restarted kernel, starts again at 1,000.
 - Set it very high and each extra call still costs memory. On Python 3.10 and older, it could even crash Python instead of raising a `RecursionError`.
