@@ -1150,6 +1150,103 @@ Forgetting never makes the answer wrong, only slower. A cache is **allowed** to 
 - Contrast for later: the DP table never throws an entry away at random. climb_two forgets on purpose, because the loop's order says those stairs are never needed again.
 :::
 
+```{python}
+#| echo: false
+# Hidden: the "Why are 2 slots not enough?" step-through. A copy of climb_forget on 5 stairs with
+# its own LRU cache (an OrderedDict, oldest first), run once for 2 slots and once for 3. Records
+# every store, hit and forgotten answer, with the cache contents after it; OJS only draws.
+from collections import OrderedDict
+
+
+def record_lru(n_top, size):
+    cache, stack, stored_once, steps = OrderedDict(), [], set(), []
+    misses = 0
+
+    def snap(say, new=None, hit=None, dropped=None):
+        slots = [{"text": f"climb({k}) = {v}", "cls": "end" if k == new else "found" if k == hit else ""}
+                 for k, v in cache.items()]
+        slots += [{"text": "empty", "cls": "out"}] * (size - len(slots))
+        steps.append({"say": say, "slots": slots,
+                      "dropped": f"pushed out: climb({dropped})" if dropped else ""})
+
+    def go(k):
+        nonlocal misses
+        asker = f"climb({stack[-1]})" if stack else "We"
+        if k in cache:
+            cache.move_to_end(k)   # a hit counts as used: it becomes the newest
+            snap(f"{asker} asks for climb({k}): in the cache ✅ Read it, no work.", hit=k)
+            return cache[k]
+        misses += 1
+        if k in stored_once:
+            snap(f"{asker} asks for climb({k}): it was stored before, but it got pushed out ❌ Work it out again.")
+        stack.append(k)
+        value = 1 if k == 1 else 2 if k == 2 else go(k - 1) + go(k - 2)
+        stack.pop()
+        cache[k] = value           # stored only when the call finishes
+        stored_once.add(k)
+        dropped = cache.popitem(last=False)[0] if len(cache) > size else None
+        say = f"climb({k}) finishes: {value}. Store it as the newest answer."
+        if dropped:
+            say += f" The cache is full, so climb({dropped}), used longest ago, is pushed out."
+        snap(say, new=k, dropped=dropped)
+        return value
+
+    go(n_top)
+    steps[-1]["say"] += f" Done: {misses} misses."
+    first = {"say": f"We call climb({n_top}). It asks climb({n_top - 1}), which asks climb({n_top - 2}), all the way "
+                    "down. Nothing is stored until a call finishes.",
+             "slots": [{"text": "empty", "cls": "out"}] * size, "dropped": ""}
+    out = [first] + steps
+    for i, s in enumerate(out):
+        s["count"] = f"Step {i} of {len(out) - 1}"
+    return out
+
+
+lru_steps = {str(size): record_lru(5, size) for size in (2, 3)}
+ojs_define(lru_steps = lru_steps)
+```
+
+## Why are 2 slots not enough? {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof lru_size = Inputs.radio(["2", "3"], {label: "maxsize", value: "2"})
+viewof lru_step = Inputs.button([
+  ["Back", i => Math.max(i - 1, 0)],
+  ["Next step", i => Math.min(i + 1, lru_steps[lru_size].length - 1)],
+  ["Start over", () => 0]
+], {value: 0})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every call, store and push-out was recorded in Python (lru_steps).
+  // Orange: just stored. Blue: just read (a hit). Dashed: an empty slot.
+  const steps = lru_steps[lru_size];
+  const s = steps[Math.min(lru_step, steps.length - 1)];
+  return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
+    <div class="ds-row center">
+      <span class="ds-caption">oldest</span>
+      ${s.slots.map(d => html`<div class="ds-box ${d.cls}">${d.text}</div>`)}
+      <span class="ds-caption">newest</span>
+    </div>
+    <div class="ds-caption">${s.dropped}</div>`;
+}
+```
+
+::: {.fragment}
+- With 2 slots: when `climb(n - 1)` finishes, the cache holds `n - 1` and `n - 3`. `climb(n - 2)` was pushed out just before `climb(n)` asks for it.
+- With 3 slots: `n - 1`, `n - 2` and `n - 3` all fit, so every stair is worked out **once**.
+:::
+
+::: {.notes}
+- Three rules: an answer is stored only when its call finishes, so the deepest calls go in first. Base cases take slots too, because they are calls to the cached function. A hit counts as used and moves the answer to newest.
+- Common question: "does it keep 30 and 29?" No. climb(30) is stored last of all, when the whole run is over. Most of the run happens down at the small stairs.
+- Why the last 2 answers are n - 1 and n - 3: inside climb(n - 1), the last call is climb(n - 3). So that is the newest answer before climb(n - 1) itself.
+- Link to climb_two: the loop keeps two numbers and never needs a third slot, because it computes the new stair and then shifts it in.
+:::
+
 
 # Back to the Grind {style="font-size: 0.8em;"}
 
@@ -1377,23 +1474,11 @@ Both are $O(n)$ time. Top-down is often easier to write first: it is the recurre
 </div>
 </div>
 
-::: {.fragment}
-| | caching | memoization | DP |
-|---|---|---|---|
-| the word describes | where answers are kept | a function remembering its answers | a way to solve a problem |
-| today's code | `lru_cache(maxsize=2)` | `climb_memo`, `climb_cached` | `climb_memo`, `climb_table`, `climb_two` |
-| who picks the order? | whoever asks | the recursion | you |
-:::
 
-::: {.fragment}
-Same storage, a dict or a list. The words describe **different things**.
-:::
 
 ::: {.notes}
-- Memoization is in both boxes on purpose: it is one kind of caching, and it is one way to do DP.
+- Memoization is in both boxes : it is one kind of caching, and it is one way to do DP.
 - Caching without memoization: your phone keeps the Grind trail map after you download it. No function, just saved data.
-- DP without memoization: climb_table. No function remembers anything; a loop fills a list in an order you chose.
-- Why climb_memo uses a dict and climb_table a list: the memo is keyed by whatever the recursion asks, the table has one slot per stair, filled in order.
 :::
 
 ## Where else is DP used? {style="font-size: 0.8em;"}
@@ -1418,10 +1503,6 @@ Same storage, a dict or a list. The words describe **different things**.
 | 7. Analyze | Time = subproblems × work each. Space = table (+ call stack). | $O(n)$ time, $O(n)$ space |
 | 8. Test, then optimize | Check small inputs by hand. Keep only what you need. | 1, 1, 2, 3, 5, 8 ✅, keep two: $O(1)$ |
 
-::: {.notes}
-- Steps 2 and 3 are the hard part. If you can't write a recurrence, try a different definition of the subproblem.
-- Write the recurrence in words or math before writing code.
-:::
 
 ## iClicker: 1, 2 or 3 stairs {style="font-size: 0.8em;"}
 
