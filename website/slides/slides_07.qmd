@@ -787,15 +787,15 @@ time_100 = how_long(per_call * naive_calls(100))
 
 ::: {.notes}
 - These times are measured when the slides are rendered, on my laptop.
-- (Plain recursion would also crash on 2,830 stairs, for the reason we will see in section "Back to the Grind".)
+- Plain recursion would also crash on 2,830 stairs!
 :::
 
 # Write it down {background-image="images/lec07_otter_chalk.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
-- The first time you work out the ways to reach a stair, write the number on that stair in chalk.
-- Next time someone asks about that stair, read the chalk. No more work.
+- The first time you count how many unique ways to reach a stair, write that number down on that stair with a chalk.
+- Next time someone asks you how many unique ways to get to the next stair, read the chalk on the 2 previous stairs and add them up!
 - This is **memoization**: store each answer of a function, so it is only computed once.
 :::
 :::
