@@ -1332,10 +1332,10 @@ Fibonacci has the same complexities: `climb(n)` is `f(n + 1)`.
 
 # Questions?
 
-<center>![](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif){width="600"}</center>
+<center><iframe src="https://giphy.com/embed/XjxFpkbJaLGpPTwnl4" width="480" height="274" style="" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></center>
 
 ::: footer
-[GIPHY](https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bHRmM2IzM2FqcWo5OWVnd3A3NnIyOGhkY2U4c2s2YnhmN2hpamJ4byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/MlNCRVUrm5dwTflpTo/giphy.gif)
+[via GIPHY](https://giphy.com/gifs/disneystudios-lilo-and-stitch-walt-disney-studios-lilostitch-XjxFpkbJaLGpPTwnl4)
 :::
 
 ## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
