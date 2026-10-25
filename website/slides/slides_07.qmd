@@ -551,7 +551,7 @@ viewof lm_step = Inputs.button([
 $$\text{ways}(n) = \text{ways}(n-1) + \text{ways}(n-2)$$
 :::
 
-## From the first move to code {style="font-size: 0.8em;"}
+## From the first move to code {style="font-size: 0.7em;"}
 
 ```{pyodide}
 def climb(n):
