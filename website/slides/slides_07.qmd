@@ -419,7 +419,7 @@ spiral_view, golden_ratios, golden = build_spiral_view()
 ojs_define(spiral_view = spiral_view)
 ```
 
-## Recap: draw the spiral {style="font-size: 0.75em;"}
+## Recap: draw the spiral {style="font-size: 0.7em;"}
 
 ```{ojs}
 //| echo: false
