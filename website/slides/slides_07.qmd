@@ -28,7 +28,7 @@ title-slide-attributes:
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>Time plan (70 min): hook 5, count small staircases 14, why so slow 8, memoization 12, bottom-up 13, dynamic programming 7, template 7, wrap up 4."
 ---
 
-# How many ways up the Grouse Grind? {background-image="images/lec07_title_grind.png" background-size="auto 88%" background-position="right top" style="font-size: 0.8em;"}
+# How many ways up the Grouse Grind? {background-image="images/lec07_title_grind.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ```{python}
 #| echo: false
@@ -181,12 +181,8 @@ How many different ways are there to climb 2,830 stairs, 1 or 2 at a time?
 - \(C) About as many as the atoms in the universe ($10^{80}$)
 - \(D) Far more than the atoms in the universe
 
-::: {.fragment}
-Hold on to your answer. By the end of today, we will compute it exactly.
-:::
-
 ::: {.notes}
-- Don't reveal. The answer is D, and we print it on the "Climb the whole Grind" slide.
+The answer is D, and we print it on the "Climb the whole Grind" slide.
 :::
 
 ## Today's plan {style="font-size: 0.8em;"}
