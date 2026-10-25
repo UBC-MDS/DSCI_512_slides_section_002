@@ -788,7 +788,7 @@ time_100 = how_long(per_call * naive_calls(100))
 - `{python} growth_say`
 - The times jump by roughly that much: `{python} time_jumps`. Timing wobbles because of which computer you run it from.
 - 50 stairs: `{python} time_50`. 100 stairs: `{python} time_100`.
-- 2,830 stairs: it would never finish! The total number of calls is more than the number of atoms in the universe. Even if we had started when the universe began, it would take more than 10^`{python} grind_zeros`^ lifetimes of the universe. 🤯
+- 2,830 stairs: it would never finish! Even if we had started when the universe began, we would not have finished running by now! 🤯
 :::
 
 # Write it down {background-image="images/lec07_otter_chalk.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
