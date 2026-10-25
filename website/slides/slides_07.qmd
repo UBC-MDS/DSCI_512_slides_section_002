@@ -741,26 +741,28 @@ viewof solved_n = Inputs.range([5, 30], {value: 10, step: 1, label: "stairs n"})
 The same small questions come up again and again: **overlapping subproblems**.
 :::
 
-::: {.notes}
-- Slide to 30. climb(2) is worked out 514,229 times, and it is the same answer every time.
-- A subproblem is a smaller version of the same question. "Overlapping" means the branches share them.
-:::
-
 ## How long would the Grind take? {style="font-size: 0.8em;"}
 
 ```{python}
 import timeit
 
+measured = {}                                              # stairs -> seconds
 for n in [25, 30, 35]:
-    seconds = timeit.timeit(lambda: climb(n), number=1)   # run climb(n) once
-    print(f"climb({n}): {seconds:.3f} seconds")
+    measured[n] = timeit.timeit(lambda: climb(n), number=1)   # run climb(n) once
+    print(f"climb({n}): {measured[n]:.3f} seconds")
 ```
 
 ```{python}
 #| echo: false
-# Hidden: the projection on this slide. It uses `seconds` from the visible cell above (its last
-# run, n = 35) and the call counts, so the speed matches the numbers printed above.
-per_call = seconds / naive_calls(35)
+# Hidden: the growth and projection on this slide. It uses `measured` from the visible cell above
+# and the call counts, so every number matches the times printed above.
+# Growth: the measured times jump 5 stairs at a time, so per 5 stairs is the average jump
+# (geometric mean of 25 -> 30 and 30 -> 35), and per stair is its 5th root.
+jump_5 = (measured[35] / measured[25]) ** (1 / 2)
+per_stair = f"{jump_5 ** (1 / 5):.1f}"
+growth_say = (f"Every 5 more stairs: about {jump_5:.0f} times the time. That is about "
+              f"{' × '.join([per_stair] * 5)}, so one more stair is about {per_stair} times the work.")
+per_call = measured[35] / naive_calls(35)
 
 
 def how_long(s):
@@ -778,7 +780,7 @@ time_100 = how_long(per_call * naive_calls(100))
 ```
 
 ::: {.incremental}
-- One more stair: about 1.6 times the work.
+- `{python} growth_say`
 - 50 stairs: `{python} time_50`. 100 stairs: `{python} time_100`.
 - 2,830 stairs: a 1 followed by `{python} grind_zeros` zeros, times the age of the universe.
 :::
