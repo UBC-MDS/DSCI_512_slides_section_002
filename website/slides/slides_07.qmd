@@ -482,6 +482,7 @@ print([f(n) for n in range(1, 11)])
 - These are the **Fibonacci** numbers: 1, 1, 2, 3, 5, 8, 13, ...
 - Two base cases, because each square needs the two squares before it.
 - What is the Big O time complexity of `f(n)`?
+    - It's exponential: each call makes 2 more calls, about $n$ levels deep. --> $O(2^n)$
 :::
 
 ```{python}
