@@ -1119,15 +1119,14 @@ sys.setrecursionlimit(5000)
 ```
 
 - This raises the limit **only for the Python process that is running now**: your script and every module it imports.
-- It is not saved anywhere, not for your computer and not for the virtual environment. The next run of the script, or a restarted kernel, starts again at 1,000.
-- Set it very high and each extra call still costs memory. On Python 3.10 and older, it could even crash Python instead of raising a `RecursionError`.
-- The safer fix: don't stack 2,830 calls at all.
+- It is not saved anywhere! This change is not computer-wide! If you restart kernel, it starts again at 1,000.
+- If you set it to be very high, on Python 3.10 and older, it could even crash Python instead of raising a `RecursionError`.
+- So this is a safety net that you do not really want to change!
 :::
 
 ::: {.notes}
 - Why older Python could crash: up to 3.10, every Python call also used space on the C stack, whose size is set by the operating system. A high limit could run out of C stack before Python noticed, so the program died with a segfault.
 - Since 3.11, most calls from one Python function to another no longer use the C stack, so deep recursion in plain Python mostly just uses more memory. 3.12 added a separate guard for C level recursion, and 3.14 checks the real C stack directly.
-- A crash is still possible when the recursion goes through C code: `repr` or `json` or `pickle` on a deeply nested object, or a C extension.
 :::
 
 # Start at the bottom {background-image="images/lec07_otter_summit.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
