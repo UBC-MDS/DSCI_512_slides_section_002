@@ -206,3 +206,10 @@
 .reveal .word-row { display: flex; gap: 12px; justify-content: center; }
 .reveal .word-name { font-size: 22px; font-weight: bold; color: #0b0b0b; }
 .reveal .word-sub { font-size: 16px; color: #52514e; }
+/* Bigger version that fills the slide under the title, centred both ways */
+.reveal .word-wrap.big { gap: 48px; align-items: center; min-height: 500px; margin: 0; }
+.reveal .word-wrap.big .word-box { padding: 16px 26px; border-width: 3px; }
+.reveal .word-wrap.big .word-box .word-box { margin-top: 16px; }
+.reveal .word-wrap.big .word-row { gap: 20px; }
+.reveal .word-wrap.big .word-name { font-size: 30px; }
+.reveal .word-wrap.big .word-sub { font-size: 22px; }

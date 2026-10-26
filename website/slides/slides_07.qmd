@@ -1634,7 +1634,7 @@ Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the wa
 
 ## (Bonus Slide) Cache, memo or DP? {style="font-size: 0.7em;"}
 
-<div class="word-wrap">
+<div class="word-wrap big">
 <div class="word-box">
 <div class="word-name">caching</div>
 <div class="word-sub">keep data to reuse later</div>
