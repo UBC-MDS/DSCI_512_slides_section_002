@@ -1226,57 +1226,80 @@ Forgetting never makes the answer wrong, only slower. A cache is **allowed** to 
 ```{python}
 #| echo: false
 # Hidden: the "Why are 2 slots not enough?" step-through. A copy of climb_forget on 5 stairs with
-# its own LRU cache (an OrderedDict, oldest first), run once for 2 slots and once for 3. Records
-# every store, read and forgotten answer, with the cache contents after it; OJS only draws.
+# its own LRU cache (an OrderedDict, oldest first), run once for 2 slots and once for 3. It grows
+# the call tree as the calls happen and records every store, read and forgotten answer, with the
+# cache contents after it; OJS only draws.
 from collections import OrderedDict
 
 
 def record_lru(n_top, size):
-    cache, stack, stored_once, steps = OrderedDict(), [], set(), []
+    cache, stored_once = OrderedDict(), set()
+    children, label, value, stack, steps = {}, {}, {}, [], []
+    hits, redo = set(), set()   # calls answered from the cache, calls worked out a second time
     runs = 0
 
-    def snap(say, new=None, hit=None, dropped=None):
-        slots = [{"text": f"climb({k}) = {v}", "cls": "end" if k == new else "found" if k == hit else ""}
-                 for k, v in cache.items()]
-        slots += [{"text": "empty", "cls": "out"}] * (size - len(slots))
-        steps.append({"say": say, "slots": slots,
+    def snap(say, dropped=None):
+        roles = {u: "hidden" for u in label}
+        roles.update({u: "sub" if u in redo else "done" for u in value})
+        roles.update({u: "waiting" for u in stack})
+        roles.update({u: "memo" for u in hits})
+        if stack:
+            roles[stack[-1]] = "now"
+        held = ", ".join(f"climb({k}) = {v}" for k, v in cache.items()) or "empty"
+        steps.append({"say": say,
+                      "labels": {u: f"{label[u]} = {value[u]}" if u in value else label[u] for u in label},
+                      "node_roles": roles,
+                      "cache": f"cache, oldest first: {held}",
                       "dropped": f"pushed out: climb({dropped})" if dropped else ""})
 
     def go(k):
         nonlocal runs
-        asker = f"climb({stack[-1]})" if stack else "We"
-        if k in cache:
+        me = f"c{len(label)}"
+        label[me] = f"climb({k})"
+        asker = label[stack[-1]] if stack else None
+        if asker:
+            children.setdefault(stack[-1], []).append(me)
+        stack.append(me)
+        if asker and k in cache:
             cache.move_to_end(k)   # reading an answer counts as using it: it becomes the newest
-            snap(f"{asker} asks for climb({k}): in the cache ✅ Read it, no work.", hit=k)
-            return cache[k]
+            value[me] = cache[k]
+            hits.add(me)
+            snap(f"{asker} asks for climb({k}): in the cache ✅ Read it, no more calls.")
+            stack.pop()
+            return value[me]
         runs += 1
-        if k in stored_once:
+        if not asker:
+            snap(f"We call climb({k}) with maxsize={size}. Nothing is stored until a call finishes.")
+        elif k in stored_once:
+            redo.add(me)
             snap(f"{asker} asks for climb({k}): it was stored before, but it got pushed out ❌ Work it out again.")
-        stack.append(k)
-        value = 1 if k == 1 else 2 if k == 2 else go(k - 1) + go(k - 2)
-        stack.pop()
-        cache[k] = value           # stored only when the call finishes
+        else:
+            snap(f"{asker} asks for climb({k}). Not in the cache yet.")
+        v = 1 if k == 1 else 2 if k == 2 else go(k - 1) + go(k - 2)
+        value[me] = v
+        cache[k] = v               # stored only when the call finishes
         stored_once.add(k)
         dropped = cache.popitem(last=False)[0] if len(cache) > size else None
-        say = f"climb({k}) finishes: {value}. Store it as the newest answer."
+        say = f"climb({k}) finishes: {v}. Store it as the newest answer."
         if dropped:
             say += f" The cache is full, so climb({dropped}), used longest ago, is pushed out."
-        snap(say, new=k, dropped=dropped)
-        return value
+        snap(say, dropped=dropped)
+        stack.pop()
+        return v
 
     go(n_top)
     steps[-1]["say"] += f" Done: the body ran {runs} times."
-    first = {"say": f"We call climb({n_top}). It asks climb({n_top - 1}), which asks climb({n_top - 2}), all the way "
-                    "down. Nothing is stored until a call finishes.",
-             "slots": [{"text": "empty", "cls": "out"}] * size, "dropped": ""}
-    out = [first] + steps
-    for i, s in enumerate(out):
-        s["count"] = f"Step {i} of {len(out) - 1}"
-    return out
+    lay = tree_layout(children, "c0", pad=0.6)
+    for i, s in enumerate(steps):
+        s["edge_roles"] = {u: "hidden" if r == "hidden" else "base" for u, r in s["node_roles"].items()}
+        s["count"] = f"Step {i + 1} of {len(steps)}"
+    return lay, steps
 
 
-lru_steps = {str(size): record_lru(5, size) for size in (2, 3)}
-ojs_define(lru_steps = lru_steps)
+lru_layout, lru_steps = {}, {}
+for lru_n_slots in (2, 3):
+    lru_layout[str(lru_n_slots)], lru_steps[str(lru_n_slots)] = record_lru(5, lru_n_slots)
+ojs_define(lru_layout = lru_layout, lru_steps = lru_steps)
 ```
 
 ## Why are 2 slots not enough? {style="font-size: 0.75em;"}
@@ -1295,15 +1318,13 @@ viewof lru_step = Inputs.button([
 //| echo: false
 {
   // Draw only: every call, store and push-out was recorded in Python (lru_steps).
-  // Orange: just stored. Blue: just read from the cache. Dashed: an empty slot.
+  // Orange: running now. Light blue: waiting. Blue: read from the cache.
+  // Light orange: worked out again after being pushed out. Grey: finished.
   const steps = lru_steps[lru_size];
   const s = steps[Math.min(lru_step, steps.length - 1)];
   return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
-    <div class="ds-row center">
-      <span class="ds-caption">oldest</span>
-      ${s.slots.map(d => html`<div class="ds-box ${d.cls}">${d.text}</div>`)}
-      <span class="ds-caption">newest</span>
-    </div>
+    ${draw_tree(lru_layout[lru_size], s, {height: 270})}
+    <div class="ds-caption">${s.cache}</div>
     <div class="ds-caption">${s.dropped}</div>`;
 }
 ```
@@ -1529,30 +1550,6 @@ The memo and the table are both **dynamic programming** (DP): solve each smaller
 Both are $O(n)$ time. Top-down is often easier to write first: it is the recurrence plus a memo.
 :::
 
-## Cache, memo or DP? {style="font-size: 0.7em;"}
-
-<div class="word-wrap">
-<div class="word-box">
-<div class="word-name">caching</div>
-<div class="word-sub">keep data to reuse later</div>
-<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">a function keeps its own answers</div></div>
-</div>
-<div class="word-box">
-<div class="word-name">dynamic programming</div>
-<div class="word-sub">solve each smaller question once</div>
-<div class="word-row">
-<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">top-down</div></div>
-<div class="word-box"><div class="word-name">tabulation</div><div class="word-sub">bottom-up</div></div>
-</div>
-</div>
-</div>
-
-
-
-::: {.notes}
-- Memoization is in both boxes : it is one kind of caching, and it is one way to do DP.
-- Caching without memoization: your phone keeps the Grind trail map after you download it. No function, just saved data.
-:::
 
 ## Where else is DP used? {style="font-size: 0.8em;"}
 
@@ -1622,6 +1619,32 @@ Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the wa
 :::
 
 ## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
+
+
+## (Bonus Slide) Cache, memo or DP? {style="font-size: 0.7em;"}
+
+<div class="word-wrap">
+<div class="word-box">
+<div class="word-name">caching</div>
+<div class="word-sub">keep data to reuse later</div>
+<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">a function keeps its own answers</div></div>
+</div>
+<div class="word-box">
+<div class="word-name">dynamic programming</div>
+<div class="word-sub">solve each smaller question once</div>
+<div class="word-row">
+<div class="word-box memo"><div class="word-name">memoization</div><div class="word-sub">top-down</div></div>
+<div class="word-box"><div class="word-name">tabulation</div><div class="word-sub">bottom-up</div></div>
+</div>
+</div>
+</div>
+
+
+
+::: {.notes}
+- Memoization is in both boxes : it is one kind of caching, and it is one way to do DP.
+- Caching without memoization: your phone keeps the Grind trail map after you download it. No function, just saved data.
+:::
 
 ## (Bonus Slide) Try it: 1, 2 or 3 stairs {style="font-size: 0.8em;"}
 
