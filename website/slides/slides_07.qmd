@@ -599,8 +599,8 @@ n = 25
 t_rec = timeit.timeit(lambda: climb(n), number=10) / 10        # average of 10 runs
 t_loop = timeit.timeit(lambda: climb_loop(n), number=10) / 10  # average of 10 runs
 print(climb(n) == climb_loop(n))
-print(f"recursion: {t_rec * 1e6:,.1f} microseconds")
-print(f"loop:      {t_loop * 1e6:,.1f} microseconds")
+print(f"recursion: {t_rec * 1e9:,.0f} nanoseconds")
+print(f"loop:      {t_loop * 1e9:,.0f} nanoseconds")
 print(f"the loop is about {t_rec / t_loop:,.0f} times faster")
 ```
 
@@ -608,11 +608,6 @@ print(f"the loop is about {t_rec / t_loop:,.0f} times faster")
 Same answer, same idea. Why is the recursion **so** slow?
 :::
 
-::: {.notes}
-- Run it live. Then change n to 30: the recursion gets about 11 times slower, the loop barely moves.
-- Do not explain yet. Let students guess, then the next section shows the call tree.
-- The exact times depend on the computer and the browser; the gap is what matters.
-:::
 
 # Why is it so slow? {style="font-size: 0.8em;"}
 
@@ -1080,7 +1075,7 @@ def first_line_runs(lp):
     return min(lines)[1]
 ```
 
-## Count the lines: plain `climb` {style="font-size: 0.75em;"}
+## Count the lines: plain `climb` {style="font-size: 0.7em;"}
 
 ```{python}
 #| echo: true
@@ -1107,7 +1102,7 @@ plain_runs = f"{first_line_runs(lp):,}"
 - The same number as the "Count the calls" slider at 25 stairs.
 :::
 
-## Count the lines: with `lru_cache` {style="font-size: 0.75em;"}
+## Count the lines: with `lru_cache` {style="font-size: 0.7em;"}
 
 ```{python}
 #| echo: true
@@ -1140,7 +1135,7 @@ cached_runs = first_line_runs(lp)
 - The price is memory: one stored answer per stair. Time for memory, a trade-off we keep seeing.
 :::
 
-## iClicker: profile it again {style="font-size: 0.8em;"}
+## iClicker: profile it again {style="font-size: 0.7em;"}
 
 We run the same profiler again, without emptying the cache. How many times does the first line run now?
 
@@ -1196,7 +1191,7 @@ for forget_size in [None, 3, 2, 1]:
     forget_runs[forget_size], forget_answer = forget_counts(forget_size)
 ```
 
-## A cache can forget {style="font-size: 0.75em;"}
+## A cache can forget {style="font-size: 0.7em;"}
 
 `maxsize=None` keeps every stair. What if the cache keeps only the last 2 answers?
 
