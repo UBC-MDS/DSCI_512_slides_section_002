@@ -144,6 +144,15 @@ def climb(n):
     return climb(n - 1) + climb(n - 2)
 
 
+def climb_loop(n):
+    if n == 1:
+        return 1
+    below2, below1 = 1, 2
+    for _ in range(3, n + 1):
+        below2, below1 = below1, below1 + below2
+    return below1
+
+
 def climb_memo(n, memo=None):
     if memo is None:
         memo = {}
@@ -570,6 +579,39 @@ print([climb(n) for n in range(1, 11)])
 - The same as Fibonacci from lecture 6, shifted by one: `climb(n)` is `f(n + 1)`.
 - What is the Big O time complexity of this algorithm?
     - It's exponential: each call makes 2 more calls, about $n$ levels deep. --> $O(2^n)$
+:::
+
+## Recursion or a loop? {style="font-size: 0.7em;"}
+
+```{pyodide}
+import timeit
+
+def climb_loop(n):
+    """Same answer as climb(n), with a loop instead of recursion."""
+    if n == 1:
+        return 1
+    below2, below1 = 1, 2                          # ways(1), ways(2)
+    for _ in range(3, n + 1):                      # n - 2 iterations
+        below2, below1 = below1, below1 + below2   # move up one stair
+    return below1
+
+n = 25
+t_rec = timeit.timeit(lambda: climb(n), number=10) / 10        # average of 10 runs
+t_loop = timeit.timeit(lambda: climb_loop(n), number=10) / 10  # average of 10 runs
+print(climb(n) == climb_loop(n))
+print(f"recursion: {t_rec * 1e6:,.1f} microseconds")
+print(f"loop:      {t_loop * 1e6:,.1f} microseconds")
+print(f"the loop is about {t_rec / t_loop:,.0f} times faster")
+```
+
+::: {.fragment}
+Same answer, same idea. Why is the recursion **so** slow?
+:::
+
+::: {.notes}
+- Run it live. Then change n to 30: the recursion gets about 11 times slower, the loop barely moves.
+- Do not explain yet. Let students guess, then the next section shows the call tree.
+- The exact times depend on the computer and the browser; the gap is what matters.
 :::
 
 # Why is it so slow? {style="font-size: 0.8em;"}
