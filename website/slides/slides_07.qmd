@@ -1187,7 +1187,7 @@ for forget_size in [None, 3, 2, 1]:
     forget_runs[forget_size], forget_answer = forget_counts(forget_size)
 ```
 
-## A cache can forget {style="font-size: 0.7em;"}
+## What if the cache is small? {style="font-size: 0.7em;"}
 
 `maxsize=None` keeps every stair. What if the cache keeps only the last 2 answers?
 
@@ -1204,21 +1204,90 @@ print(climb_forget(25))
 ```
 
 ::: {.fragment}
-Profile it like before, for each `maxsize`:
+- Same answer. But how much work did it do? Let's profile it.
+:::
+
+## Count the lines: `maxsize=2` {style="font-size: 0.7em;"}
+
+```{python}
+#| echo: true
+@functools.lru_cache(maxsize=2)    # keep only the 2 answers used most recently
+def climb_forget(n):
+    if n == 1:
+        return 1
+    if n == 2:
+        return 2
+    return climb_forget(n - 1) + climb_forget(n - 2)
+
+climb_forget.cache_clear()    # empty the cache, so the run starts fresh
+lp = LineProfiler()
+lp.add_function(climb_forget.__wrapped__)
+lp.runcall(climb_forget.__wrapped__, 25)
+lp.print_stats()
+```
+
+```{python}
+#| echo: false
+# Hidden: the run count quoted below and on the summary slide.
+forget2_runs = f"{first_line_runs(lp):,}"
+```
+
+::: {.fragment}
+- **`{python} forget2_runs`** runs. Far more than `{python} cached_runs`, far fewer than `{python} plain_runs`.
+:::
+
+::: {.notes}
+- cache_clear() empties the cache. Without it, a second run would read answers left over from the last run, like the iClicker question before.
+:::
+
+## Count the lines: `maxsize=3` {style="font-size: 0.7em;"}
+
+```{python}
+#| echo: true
+@functools.lru_cache(maxsize=3)    # one more slot
+def climb_forget(n):
+    if n == 1:
+        return 1
+    if n == 2:
+        return 2
+    return climb_forget(n - 1) + climb_forget(n - 2)
+
+climb_forget.cache_clear()    # empty the cache, so the run starts fresh
+lp = LineProfiler()
+lp.add_function(climb_forget.__wrapped__)
+lp.runcall(climb_forget.__wrapped__, 25)
+lp.print_stats()
+```
+
+```{python}
+#| echo: false
+# Hidden: the run count quoted below and on the summary slide.
+forget3_runs = f"{first_line_runs(lp):,}"
+```
+
+::: {.fragment}
+- **`{python} forget3_runs`** runs: as fast as `maxsize=None`. One extra slot made all the difference.
+:::
+
+::: {.notes}
+- The recursion only ever reuses the last few stairs, so 3 slots are enough. Same reason climb_two can keep just two stairs later.
+:::
+
+## A cache can forget {style="font-size: 0.7em;"}
 
 | `maxsize` | first line runs | answer |
 |---|---|---|
 | `None` | `{python} forget_runs[None]` | `{python} forget_answer` ✅ |
-| `2` | `{python} forget_runs[2]` | `{python} forget_answer` ✅ |
+| `3` | `{python} forget3_runs` | `{python} forget_answer` ✅ |
+| `2` | `{python} forget2_runs` | `{python} forget_answer` ✅ |
 | `1` | `{python} forget_runs[1]` | `{python} forget_answer` ✅ |
-:::
 
 ::: {.fragment}
 Forgetting never makes the answer wrong, only slower. A cache is **allowed** to forget.
 :::
 
 ::: {.notes}
-- With maxsize 1 it is as slow as plain climb: `{python} plain_runs` runs. With 3 it is back to `{python} forget_runs[3]` runs: the recursion only ever reuses the last few stairs. Same reason climb_two can keep just two stairs later.
+- With maxsize 1 it is as slow as plain climb: `{python} plain_runs` runs.
 - LRU throws away the answer used longest ago when the cache is full.
 - Contrast for later: the DP table never throws an entry away at random. climb_two forgets on purpose, because the loop's order says those stairs are never needed again.
 :::
