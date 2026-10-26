@@ -1238,19 +1238,24 @@ def record_lru(n_top, size):
     hits, redo = set(), set()   # calls answered from the cache, calls worked out a second time
     runs = 0
 
-    def snap(say, dropped=None):
+    def snap(say, new=None, hit=None, dropped=None):
         roles = {u: "hidden" for u in label}
         roles.update({u: "sub" if u in redo else "done" for u in value})
         roles.update({u: "waiting" for u in stack})
         roles.update({u: "memo" for u in hits})
         if stack:
             roles[stack[-1]] = "now"
-        held = ", ".join(f"climb({k}) = {v}" for k, v in cache.items()) or "empty"
+        # The cache table: one column per slot, oldest first, then the answer just pushed out.
+        # Orange: just stored. Blue: just read. Grey: an empty slot, or the answer pushed out.
+        cells = [{"stair": str(k), "answer": str(v), "cls": "end" if k == new else "found" if k == hit else ""}
+                 for k, v in cache.items()]
+        cells += [{"stair": "", "answer": "empty", "cls": "base"}] * (size - len(cells))
+        out_k, out_v = dropped if dropped else ("", "")
+        cells.append({"stair": str(out_k), "answer": str(out_v), "cls": "base"})
         steps.append({"say": say,
                       "labels": {u: f"{label[u]} = {value[u]}" if u in value else label[u] for u in label},
                       "node_roles": roles,
-                      "cache": f"cache, oldest first: {held}",
-                      "dropped": f"pushed out: climb({dropped})" if dropped else ""})
+                      "cache": cells})
 
     def go(k):
         nonlocal runs
@@ -1264,7 +1269,7 @@ def record_lru(n_top, size):
             cache.move_to_end(k)   # reading an answer counts as using it: it becomes the newest
             value[me] = cache[k]
             hits.add(me)
-            snap(f"{asker} asks for climb({k}): in the cache ✅ Read it, no more calls.")
+            snap(f"{asker} asks for climb({k}): in the cache ✅ Read it, no more calls.", hit=k)
             stack.pop()
             return value[me]
         runs += 1
@@ -1279,18 +1284,20 @@ def record_lru(n_top, size):
         value[me] = v
         cache[k] = v               # stored only when the call finishes
         stored_once.add(k)
-        dropped = cache.popitem(last=False)[0] if len(cache) > size else None
+        dropped = cache.popitem(last=False) if len(cache) > size else None   # (stair, answer)
         say = f"climb({k}) finishes: {v}. Store it as the newest answer."
         if dropped:
-            say += f" The cache is full, so climb({dropped}), used longest ago, is pushed out."
-        snap(say, dropped=dropped)
+            say += f" The cache is full, so climb({dropped[0]}), used longest ago, is pushed out."
+        snap(say, new=k, dropped=dropped)
         stack.pop()
         return v
 
     go(n_top)
     steps[-1]["say"] += f" Done: the body ran {runs} times."
     lay = tree_layout(children, "c0", pad=0.6)
+    heads = ["oldest"] + [""] * (size - 2) + ["newest", "pushed out"]
     for i, s in enumerate(steps):
+        s["heads"] = heads
         s["edge_roles"] = {u: "hidden" if r == "hidden" else "base" for u, r in s["node_roles"].items()}
         s["count"] = f"Step {i + 1} of {len(steps)}"
     return lay, steps
@@ -1320,12 +1327,16 @@ viewof lru_step = Inputs.button([
   // Draw only: every call, store and push-out was recorded in Python (lru_steps).
   // Orange: running now. Light blue: waiting. Blue: read from the cache.
   // Light orange: worked out again after being pushed out. Grey: finished.
+  // Cache table: orange = just stored, blue = just read, grey = empty or pushed out.
   const steps = lru_steps[lru_size];
   const s = steps[Math.min(lru_step, steps.length - 1)];
   return html`<div class="ojs-readout"><span class="sq-count">${s.count}</span> ${s.say}</div>
-    ${draw_tree(lru_layout[lru_size], s, {height: 270})}
-    <div class="ds-caption">${s.cache}</div>
-    <div class="ds-caption">${s.dropped}</div>`;
+    ${draw_tree(lru_layout[lru_size], s, {height: 250})}
+    <table class="ojs-readout memo-table" style="width: auto;">
+      <tr><td>cache</td>${s.heads.map(d => html`<td style="text-align: center;">${d}</td>`)}</tr>
+      <tr><td>stair n</td>${s.cache.map(d => html`<td class="${d.cls}" style="text-align: center;">${d.stair}</td>`)}</tr>
+      <tr><td>climb(n)</td>${s.cache.map(d => html`<td class="${d.cls}" style="text-align: center;">${d.answer}</td>`)}</tr>
+    </table>`;
 }
 ```
 
