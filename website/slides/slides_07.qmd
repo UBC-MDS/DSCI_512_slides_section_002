@@ -33,7 +33,7 @@ title-slide-attributes:
 ::: {.incremental}
 - New: no more points taken off for the number of attempts in live coding quizzes.
 - This week's coding quiz is about **recursion**.
-- Before the quiz, try the first 2 easy recursion coding questions in "Practice 5: Recursion, Trees, Linked Lists and k-d Trees" on PL.
+- Before the quiz, try the first 2 easy recursion coding questions in ["Practice 5: Recursion, Trees, Linked Lists and k-d Trees"](https://pl.meta-coding.com/practice/5) on PL.
 - Feeling that lab is harder than lecture is normal.
 :::
 
@@ -1628,8 +1628,6 @@ Now you can climb 1, 2 **or 3** stairs at a time. Which recurrence counts the wa
 ::: footer
 [via GIPHY](https://giphy.com/gifs/disneystudios-lilo-and-stitch-walt-disney-studios-lilostitch-XjxFpkbJaLGpPTwnl4)
 :::
-
-## {background-image="images/move_u.jpg" background-size="contain" background-position="center"}
 
 
 ## (Bonus Slide) Cache, memo or DP? {style="font-size: 0.7em;"}
