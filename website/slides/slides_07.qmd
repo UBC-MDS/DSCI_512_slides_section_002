@@ -597,16 +597,12 @@ def climb_loop(n):
 
 n = 25
 t_rec = timeit.timeit(lambda: climb(n), number=10) / 10        # average of 10 runs
-t_loop = timeit.timeit(lambda: climb_loop(n), number=10) / 10  # average of 10 runs
+t_loop = timeit.timeit(lambda: climb_loop(n), number=10_000) / 10_000  # average of 10,000 runs
 print(climb(n) == climb_loop(n))
 print(f"recursion: {t_rec * 1e9:,.0f} nanoseconds")
 print(f"loop:      {t_loop * 1e9:,.0f} nanoseconds")
 print(f"the loop is about {t_rec / t_loop:,.0f} times faster")
 ```
-
-::: {.fragment}
-Same answer, same idea. Why is the recursion **so** slow?
-:::
 
 
 # Why is it so slow? {style="font-size: 0.8em;"}
