@@ -1551,7 +1551,7 @@ Both are $O(n)$ time. Top-down is often easier to write first: it is the recurre
 :::
 
 
-## Where else is DP used? {style="font-size: 0.8em;"}
+## Where else is DP used?
 
 ::: {.incremental}
 - `git diff`: the smallest set of line changes between two files.
