@@ -2,7 +2,14 @@
 title: "5. Trees and Recursive Algorithms"
 description: "Trees, and how to read, write and reason about recursive functions."
 description-short: "Meet trees: roots, leaves and subtrees. Break problems into smaller copies of themselves, identify base and recursive cases, trace the call stack, and see where recursion goes wrong."
+recording: "https://www.youtube.com/embed/oQWAK-i0IMI"
 ---
+
+## Lecture Recording
+
+<div class="ratio ratio-16x9">
+<iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 5 recording"></iframe>
+</div>
 
 ## Slides for Section 002
 
