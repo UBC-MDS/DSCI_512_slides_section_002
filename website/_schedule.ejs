@@ -11,7 +11,7 @@ const deckFor = (filename) => "slides/" + filename.replace(/^lec_/, "slides_");
 %>
 <table class="quarto-listing-table table">
 <thead>
-<tr><th>Title</th><th>Description</th></tr>
+<tr><th>Title</th><th>Description</th><th>Recording</th></tr>
 </thead>
 <tbody class="list">
 <% for (const item of items) { %>
@@ -26,6 +26,11 @@ const deckFor = (filename) => "slides/" + filename.replace(/^lec_/, "slides_");
 <% } %>
 </td>
 <td><span class="listing-description-short<%= released ? "" : " text-muted" %>"><%= item["description-short"] %></span></td>
+<td class="text-nowrap">
+<% if (item.recording) { %>
+<a href="<%- item.recording %>" target="_blank" rel="noopener">▶ Watch</a>
+<% } %>
+</td>
 </tr>
 <% } %>
 </tbody>
