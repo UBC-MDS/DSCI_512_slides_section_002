@@ -2,7 +2,14 @@
 title: "7. Dynamic Programming I"
 description: "Solve problems with overlapping subproblems using memoization and tabulation."
 description-short: "Spot problems with overlapping subproblems, like Fibonacci and climbing stairs. Speed them up with caching (top-down) and tables (bottom-up)."
+recording: "https://www.youtube.com/embed/VSvVoHt6kmA"
 ---
+
+## Lecture Recording
+
+<div class="ratio ratio-16x9">
+<iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 7 recording"></iframe>
+</div>
 
 ## Slides for Section 002
 
