@@ -2,7 +2,16 @@
 title: "6. Recursive Data Structures"
 description: "Linked lists, binary search trees and k-d trees."
 description-short: "Build data structures defined in terms of themselves, such as linked lists and trees. Use binary search trees and k-d trees for fast lookup and nearest-neighbour search."
+recording: "https://www.youtube.com/embed/_Db9yMor0YU"
 ---
+
+## Lecture Recording
+
+*Note: This is the recording of the second half of the lecture, on k-d trees. The first half was not recorded because of IT issues. Please use the slides below to review the first half.*
+
+<div class="ratio ratio-16x9">
+<iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 6 recording (second half, k-d trees)"></iframe>
+</div>
 
 ## Slides for Section 002
 
