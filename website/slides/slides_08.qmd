@@ -28,11 +28,11 @@ title-slide-attributes:
   data-background-image: images/lec08_title_seam.png
   data-background-size: auto 60%
   data-background-position: right bottom
-  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>[5] Remember to select the right answer in iClicker<br>Time plan (60 min): recap 3, seam carving and backtracking 23, course evaluations 10, break 5, optimization and greedy 17, wrap up 2.<br>If behind: skip Try it yourself (seam), the How fast? slider and Discrete or continuous?"
+  data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop<br>[5] Remember to select the right answer in iClicker"
 ---
 
 
-# Your photo doesn't fit {background-image="images/lec08_title_seam.png" background-size="auto 88%" background-position="right top" style="font-size: 0.8em;"}
+# Your photo doesn't fit {background-image="images/lec08_title_seam.png" background-size="contain" background-position="right bottom" style="font-size: 0.8em;"}
 
 ```{python}
 #| echo: false
@@ -50,12 +50,13 @@ from IPython.display import Markdown
 from PIL import Image
 from scipy.ndimage import convolve
 
-# The 5 by 6 energy grid on every seam slide. The same numbers as the pyodide `energy`.
-toy = np.array([[9, 6, 8, 5, 8, 3],
-                [9, 8, 2, 3, 8, 7],
-                [9, 6, 6, 1, 6, 4],
-                [7, 8, 1, 2, 8, 9],
-                [4, 6, 5, 7, 2, 4]])
+# The 5 by 5 energy grid on every seam slide, the same one as the lecture notes
+# (np.random.seed(83)). The same numbers as the pyodide `energy`.
+toy = np.array([[3, 8, 9, 8, 1],
+                [1, 9, 4, 5, 9],
+                [5, 1, 6, 1, 7],
+                [3, 5, 8, 6, 1],
+                [6, 1, 5, 7, 5]])
 toy_rows, toy_cols = toy.shape
 
 
@@ -94,7 +95,7 @@ def backtrack(CME):
 
 
 def fast_seam(energy):
-    """Same seam as seam_table + backtrack, with the inner loop vectorized (Lab 4 exercise 3).
+    """Same seam as seam_table + backtrack, with the inner loop vectorized (PrairieLearn Lab 4 Question 13).
     Only used to carve the photo quickly."""
     nrows, ncols = energy.shape
     CME = np.full((nrows, ncols + 2), np.inf)
@@ -151,11 +152,11 @@ def sci(x):
 # deck, so a later cell still works when an earlier slide was skipped.
 import numpy as np
 
-energy = np.array([[9, 6, 8, 5, 8, 3],
-                   [9, 8, 2, 3, 8, 7],
-                   [9, 6, 6, 1, 6, 4],
-                   [7, 8, 1, 2, 8, 9],
-                   [4, 6, 5, 7, 2, 4]])
+energy = np.array([[3, 8, 9, 8, 1],
+                   [1, 9, 4, 5, 9],
+                   [5, 1, 6, 1, 7],
+                   [3, 5, 8, 6, 1],
+                   [6, 1, 5, 7, 5]])
 
 
 def cheapest_to(energy, row, col):
@@ -172,7 +173,9 @@ def cheapest_to(energy, row, col):
 
 def find_vertical_seam(energy):
     nrows, ncols = energy.shape
-    CME = np.full((nrows, ncols + 2), np.inf)
+    CME = np.zeros((nrows, ncols + 2))
+    CME[:, 0] = np.inf
+    CME[:, -1] = np.inf
     CME[:, 1:-1] = energy
     for i in range(1, nrows):
         for j in range(1, ncols + 1):
@@ -180,8 +183,8 @@ def find_vertical_seam(energy):
     seam = np.zeros(nrows, dtype=int)
     seam[-1] = np.argmin(CME[-1, :])
     for i in range(nrows - 2, -1, -1):
-        j = seam[i + 1]
-        seam[i] = j + np.argmin(CME[i, j - 1:j + 2]) - 1
+        delta = np.argmin(CME[i, seam[i + 1] - 1 : seam[i + 1] + 2]) - 1
+        seam[i] = seam[i + 1] + delta
     return seam - 1
 
 
@@ -208,8 +211,10 @@ def min_coins(coins, amount):
 //| echo: false
 // Draw only: the toy energy grid. Every cell, value, colour role and line comes from Python
 // (grid_view). Orange: the seam, or the cell just filled in. Blue: greedy, or the cells being
-// compared. Grey: the inf columns, or a broken seam.
+// compared. Grey: the inf columns, or a broken seam. v.over (optional) is a few cells drawn on
+// top of the grid with their own line v.over_path, for the brute force step-throughs.
 draw_grid = (v, {width = 620, height = 330} = {}) => {
+  const over = v.over ?? [];
   const fill = {plain: "#fcfcfb", faint: "#fcfcfb", pad: "#f2f1ee", read: "#dbe8f8", pick: "#2a78d6",
                 new: "#eb6834", filled: "#e4e2dc", seam: "#eb6834", greedy: "#2a78d6", bad: "#b8b6b0"};
   const ink = {plain: "#0b0b0b", faint: "#c9c7c1", pad: "#8a8880", read: "#0b0b0b", pick: "#ffffff",
@@ -229,6 +234,11 @@ draw_grid = (v, {width = 620, height = 330} = {}) => {
                 {x: "c", y: "r", text: "text", fill: d => ink[d.role], fontSize: 20}),
       Plot.text(v.cells.filter(d => !["plain", "faint", "pad"].includes(d.role)),
                 {x: "c", y: "r", text: "text", fill: d => ink[d.role], fontSize: 20, fontWeight: "bold"}),
+      Plot.rect(over, {x1: d => d.c - 0.46, x2: d => d.c + 0.46, y1: d => d.r - 0.44, y2: d => d.r + 0.44,
+                       fill: d => fill[d.role], rx: 4, stroke: "#d9d8d4", strokeWidth: 2}),
+      Plot.line(v.over_path ?? [], {x: "c", y: "r", stroke: line[v.over_path_role ?? "none"], strokeWidth: 4,
+                                    strokeOpacity: 0.45}),
+      Plot.text(over, {x: "c", y: "r", text: "text", fill: d => ink[d.role], fontSize: 20, fontWeight: "bold"}),
       Plot.text(v.cols, {x: "c", y: -0.5, text: "text", dy: -14, fill: "#8a8880"}),
       Plot.text(v.rows, {x: v.x_domain[0], y: "r", text: "text", textAnchor: "end", dx: -6, fill: "#8a8880"})
     ]
@@ -238,172 +248,207 @@ draw_grid = (v, {width = 620, height = 330} = {}) => {
 
 
 ::: {style="max-width: 55%;"}
-You took a wide photo at English Bay. Now you need it **square**.
+You took a wide photo at English Bay. Every app wants a different shape.
 
 ::: {.incremental}
-- Crop it? Something near the edges is lost.
-- Squash it? The otter gets thinner.
-- How do apps shrink a photo and keep what matters?
+- A post wants it square. A phone wallpaper wants it tall. A website banner wants it short.
+- How would you make it fit?
 :::
 :::
 
 ::: {.notes}
 - Ask: who has had a photo not fit a profile picture or a post? What did you do?
-- Today's answer: seam carving (Avidan and Shamir, 2007), the idea behind "Content-Aware Scale" in Photoshop. It is also Lab 4.
+- Collect a few ideas: shrink it, crop it, squash it. We try each one on the next slides.
+- The orange dashed line in the picture is a hint for later: a cut that only crosses sky, water and sand.
 :::
 
 ::: footer
 Image generated by OpenAI GPT-image-2.5-sunburst.
 :::
 
-## Today's plan {style="font-size: 0.8em;"}
-
-| what we do | the question it answers |
-|---|---|
-| recap dynamic programming | Last week we counted. Can we find the cheapest? |
-| seam carving | Which pixels can we remove without anyone noticing? |
-| backtracking | The table gives the cheapest cost. Which pixels gave it? |
-| course evaluations, then a break | How can this course get better? |
-| optimization | What do the best seam, the shortest path and making change have in common? |
-| greedy or not? | When does the best step now give the best answer overall? |
-
-::: {.notes}
-- One story today: the English Bay photo. One analogy carried over from last week: chalk the answer on each stair (now on each pixel).
-:::
-
-# Last week: the Grouse Grind {style="font-size: 0.8em;"}
-
-::: {.incremental}
-- How many ways up $n$ stairs, 1 or 2 at a time?
-- Think about the **last move**: ways(n) = ways(n − 1) + ways(n − 2).
-- Plain recursion asks the same questions again and again. So chalk each answer on its stair, and fill the stairs from the bottom up: **dynamic programming**.
-:::
-
-::: {.notes}
-- 1 minute. Ask the room: what were the two properties a problem needs for DP? (Overlapping subproblems, optimal substructure.)
-:::
-
-## iClicker: the cheapest way up {style="font-size: 0.8em;"}
-
-Now each stair has a cost (how tiring it is). `best[i]` = the cheapest total cost to stand on stair `i`, climbing 1 or 2 stairs at a time. Which recurrence is right?
-
-- \(A) `best[i] = best[i - 1] + best[i - 2]`
-- \(B) `best[i] = cost[i] + min(best[i - 1], best[i - 2])`
-- \(C) `best[i] = cost[i] + max(best[i - 1], best[i - 2])`
-- \(D) `best[i] = min(cost[i - 1], cost[i - 2])`
-
-::: {.fragment}
-- Answer: **B**. The last move came from stair `i - 1` or `i - 2`: take the cheaper one, then pay for stair `i`.
-- Counting the ways: add. Finding the cheapest: `min`. Today: the same `min`, on a 2D table.
-:::
-
-::: {.notes}
-- This was the bonus slide "The cheapest way up" last week.
-- A is last week's counting recurrence. D forgets the cost of stair i itself.
-:::
-
-# Seam carving {style="font-size: 0.8em;"}
-
-Shrink a photo by removing the pixels nobody would miss.
-
 ```{python}
 #| echo: false
-# Hidden: the "Crop, squash or carve?" slide. The English Bay photo, shrunk to 480 x 320, made
-# narrower three ways. Seam carving uses the lab's energy and the same DP and backtracking as the
-# visible code (inner loop vectorized, Lab 4 exercise 3, so the photo takes about a second).
+# Hidden: every picture of the English Bay photo for "Make it smaller", "Crop or squash?",
+# "Remove the dullest pixels?" and "Back to English Bay". The photo, shrunk to 480 x 320, made
+# narrower five ways. Each removal method repeats: find the energy (the lab's), remove one pixel per
+# row, start again. Seam carving uses the same DP and backtracking as the visible code (inner loop
+# vectorized, PrairieLearn Lab 4 Question 13, so the photo takes about a second).
 # Every picture is a small WebP data URL made here; OJS only picks one.
 photo_w, photo_h = 480, 320
 photo = np.asarray(Image.open("images/lec08_english_bay.png").convert("RGB")
                    .resize((photo_w, photo_h), Image.LANCZOS), dtype=float) / 255
 carve_ks = [0, 40, 80, 120, 160]
 orange = np.array([235, 104, 52]) / 255
-
-# Seam carve 160 seams, one at a time, and keep a picture after every 40.
-carved = {0: photo}
-removed = {0: np.zeros((photo_h, photo_w), dtype=bool)}
-current = photo.copy()
-where = np.tile(np.arange(photo_w), (photo_h, 1))      # original column of every pixel left
-gone = np.zeros((photo_h, photo_w), dtype=bool)
 rows = np.arange(photo_h)
-carve_start = time.perf_counter()
-for k in range(1, carve_ks[-1] + 1):
-    seam = fast_seam(image_energy(current))
-    gone[rows, where[rows, seam]] = True
-    keep = np.ones(current.shape[:2], dtype=bool)
-    keep[rows, seam] = False
-    current = current[keep].reshape(photo_h, -1, 3)
-    where = where[keep].reshape(photo_h, -1)
-    if k in carve_ks:
-        carved[k], removed[k] = current, gone.copy()
-carve_seconds = time.perf_counter() - carve_start
 
 
-def marked(mask):
-    """The original photo with the removed pixels painted orange."""
-    out = photo.copy()
-    out[mask] = orange
+def resized(pixels, w, h):
+    """The picture stretched or shrunk to w x h (what every app does by default)."""
+    img = Image.fromarray((np.clip(pixels, 0, 1) * 255).astype(np.uint8))
+    return np.asarray(img.resize((w, h), Image.LANCZOS), dtype=float) / 255
+
+
+def cheapest_column(energy):
+    """The column with the smallest total energy, the same column in every row."""
+    return np.full(energy.shape[0], np.argmin(energy.sum(axis=0)))
+
+
+def cheapest_pixels(energy):
+    """The cheapest pixel in each row, each row on its own."""
+    return np.argmin(energy, axis=1)
+
+
+def remove_again_and_again(image, ks, pick, energy_of, stop_when=None):
+    """Remove one pixel per row, ks[-1] times. pick(energy) gives the column to remove in every row.
+    Returns the picture after each k in ks, and a mask of the original pixels removed so far.
+    stop_when(mask), if given, stops early and also keeps the picture at that k."""
+    h, w = image.shape[:2]
+    rows_h = np.arange(h)
+    current, where = image.copy(), np.tile(np.arange(w), (h, 1))   # original column of every pixel left
+    gone = np.zeros((h, w), dtype=bool)
+    pictures, masks = {0: image}, {0: gone.copy()}
+    for k in range(1, ks[-1] + 1):
+        cols = pick(energy_of(current, where))
+        gone[rows_h, where[rows_h, cols]] = True
+        keep = np.ones((h, current.shape[1]), dtype=bool)
+        keep[rows_h, cols] = False
+        current = current[keep].reshape(h, -1, 3)
+        where = where[keep].reshape(h, -1)
+        done = stop_when is not None and stop_when(gone)
+        if k in ks or done:
+            pictures[k], masks[k] = current, gone.copy()
+        if done:
+            break
+    return pictures, masks
+
+
+def marked(image, mask, colour=orange):
+    """The picture with the removed pixels painted orange."""
+    out = image.copy()
+    out[mask] = colour
     return out
 
 
+def photo_energy_of(current, where):
+    """Plain energy: every pixel counts as it is."""
+    return image_energy(current)
+
+
+column_pics, column_gone = remove_again_and_again(photo, carve_ks, cheapest_column, photo_energy_of)
+pixel_pics, pixel_gone = remove_again_and_again(photo, carve_ks, cheapest_pixels, photo_energy_of)
+carve_start = time.perf_counter()
+seam_pics, seam_gone = remove_again_and_again(photo, carve_ks, fast_seam, photo_energy_of)
+carve_seconds = time.perf_counter() - carve_start
+carve_time = f"{carve_seconds:.1f}"
+
 original_url = to_url(photo)
-carve_view = {"crop": {}, "squash": {}, "seam carve": {}}
+carve_methods = ["crop", "squash", "whole columns", "one pixel per row", "seam carve"]
+carve_view = {m: {} for m in carve_methods}
 for k in carve_ks:
     size = f"{photo_w - k} × {photo_h}"
     lo, hi = k // 2, photo_w - (k - k // 2)
     crop_mask = np.zeros((photo_h, photo_w), dtype=bool)
     crop_mask[:, :lo] = True
     crop_mask[:, hi:] = True
-    squashed = np.asarray(Image.fromarray((photo * 255).astype(np.uint8))
-                          .resize((photo_w - k, photo_h), Image.LANCZOS), dtype=float) / 255
     if k == 0:
-        sayings = {m: f"The original photo: {size}. Pick a method, then remove some columns." for m in carve_view}
+        sayings = {m: f"The original photo: {size}. Remove some columns with the slider." for m in carve_methods}
     else:
-        sayings = {"crop": f"Crop: {k} columns cut off the two edges. Now {size}. Anything near an edge is gone.",
-                   "squash": f"Squash: every column is {k / photo_w:.0%} thinner, the otter too. Now {size}.",
-                   "seam carve": f"Seam carve: {k} seams removed, each through the quietest pixels. Now {size}. "
-                                 "The otter and the log stay whole."}
-    carve_view["crop"][k] = {"left": to_url(marked(crop_mask)), "right": to_url(photo[:, lo:hi]),
-                             "width": photo_w - k, "say": sayings["crop"]}
-    carve_view["squash"][k] = {"left": original_url, "right": to_url(squashed),
-                               "width": photo_w - k, "say": sayings["squash"]}
-    carve_view["seam carve"][k] = {"left": to_url(marked(removed[k])), "right": to_url(carved[k]),
-                                   "width": photo_w - k, "say": sayings["seam carve"]}
-carve_time = f"{carve_seconds:.1f}"
-ojs_define(carve_view = carve_view, carve_ks = carve_ks)
+        sayings = {
+            "crop": f"Crop: {k} columns cut off the two edges. Now {size}. The sunset and the log are cut.",
+            "squash": f"Squash: every column is {k / photo_w:.0%} thinner, the otter too. Now {size}.",
+            "whole columns": f"Remove the {k} cheapest whole columns. Now {size}. "
+                             "A column cannot bend: the mountains are chopped and the sky gets a hard edge.",
+            "one pixel per row": f"Remove the cheapest pixel in each row, {k} times. Now {size}. "
+                                 "Each row shifts by a different amount: the otter is torn apart.",
+            "seam carve": f"Seam carve: {k} seams removed, each through the quietest pixels. Now {size}. "
+                          "The otter and the log stay whole.",
+        }
+    results = {"crop": (crop_mask, photo[:, lo:hi]),
+               "squash": (None, resized(photo, photo_w - k, photo_h)),
+               "whole columns": (column_gone[k], column_pics[k]),
+               "one pixel per row": (pixel_gone[k], pixel_pics[k]),
+               "seam carve": (seam_gone[k], seam_pics[k])}
+    for m, (mask, result) in results.items():
+        carve_view[m][k] = {"left": original_url if mask is None else to_url(marked(photo, mask)),
+                            "right": to_url(result), "width": photo_w - k, "say": sayings[m]}
+
+# "Make it smaller": the whole photo scaled down, both sides by the same amount.
+scale_ps = [100, 75, 50, 25]
+scale_view = {}
+for p in scale_ps:
+    w, h = round(photo_w * p / 100), round(photo_h * p / 100)
+    scale_view[p] = {"url": to_url(resized(photo, w, h)), "width": w,
+                     "say": f"{p}%: {w} × {h}. Width ÷ height = {w / h:.2f}. Smaller, but still not square."}
+ojs_define(carve_view = carve_view, carve_ks = carve_ks, scale_view = scale_view, scale_ps = scale_ps)
 ```
 
-## Crop, squash or carve? {style="font-size: 0.75em;"}
+## Make it smaller? {style="font-size: 0.75em;"}
 
 ```{ojs}
 //| echo: false
-viewof carve_method = Inputs.radio(["crop", "squash", "seam carve"], {value: "crop", label: "make it narrower by"})
-viewof carve_k = Inputs.range([0, 160], {step: 40, value: 0, label: "columns to remove"})
+viewof scale_p = Inputs.range([25, 100], {step: 25, value: 100, label: "size (%)"})
 ```
 
 ```{ojs}
 //| echo: false
 {
-  // Draw only: both pictures and the sentence were made in Python (carve_view).
-  // Left: the original, with what gets removed painted orange. Right: the result, same scale.
-  const v = carve_view[carve_method][carve_k];
+  // Draw only: the pictures and the sentence were made in Python (scale_view).
+  // Same scale as the photo (480 px wide = 480 on the page), the target square drawn in grey.
+  const v = scale_view[scale_p];
   return html`<div class="ojs-readout">${v.say}</div>
+  <div style="display: flex; gap: 40px; align-items: flex-end; justify-content: center;">
+    <figure style="margin: 0;"><img src="${v.url}" width="${v.width}" style="margin: 0;">
+      <figcaption class="ds-caption">the photo, scaled</figcaption></figure>
+    <figure style="margin: 0;"><div style="width: 320px; height: 320px; border: 3px dashed #b8b6b0;"></div>
+      <figcaption class="ds-caption">the square the app wants</figcaption></figure>
+  </div>`;
+}
+```
+
+::: {.fragment}
+Scaling changes the **size**, not the shape. To make it square, something has to go.
+:::
+
+::: {.notes}
+- Slide from 100 down to 25. The width and height shrink together, so the ratio stays 1.50 at every size.
+- This is what "resize" does in most apps when you keep the aspect ratio locked.
+:::
+
+## Crop or squash? {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof fit_method = Inputs.radio(["crop", "squash"], {value: "crop", label: "make it narrower by"})
+viewof fit_k = Inputs.range([0, 160], {step: 40, value: 0, label: "columns to remove"})
+```
+
+```{ojs}
+//| echo: false
+// Draw only: both pictures and the sentence were made in Python (carve_view).
+// Left: the original, with what gets removed painted orange. Right: the result, same scale.
+carve_pair = v => html`<div class="ojs-readout">${v.say}</div>
   <div style="display: flex; gap: 24px; align-items: flex-start; justify-content: center;">
     <figure style="margin: 0;"><img src="${v.left}" width="420" style="margin: 0;">
       <figcaption class="ds-caption">what gets removed (orange)</figcaption></figure>
     <figure style="margin: 0;"><img src="${v.right}" width="${Math.round(420 * v.width / 480)}" style="margin: 0;">
       <figcaption class="ds-caption">the result</figcaption></figure>
-  </div>`;
-}
+  </div>`
+```
+
+```{ojs}
+//| echo: false
+carve_pair(carve_view[fit_method][fit_k])
 ```
 
 ::: {.notes}
-- Start on crop, slide to 160: the sunset and the log are cut. Squash at 160: the otter looks thin. Seam carve at 160: square, nothing important lost.
-- Point at the orange lines on the left in seam carve mode: each is one seam, a wiggly line from top to bottom through the sky, the sea and the sand.
+- Start on crop, slide to 160: the sunset and the log are cut. Switch to squash at 160: the otter looks thin.
 - The photo is 480 × 320, so removing 160 columns makes it square.
+- Ask: crop throws away the edges, squash takes a little from everywhere. What if we took pixels only from places nobody would miss?
+- PrairieLearn Lab 4 Question 5 asks students to compare a cropped and a seam-carved picture.
 :::
 
 ::: footer
-Photo: image generated by OpenAI GPT-image-2.5-sunburst. Seam carving: [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
+Photo: image generated by OpenAI GPT-image-2.5-sunburst.
 :::
 
 ```{python}
@@ -411,7 +456,8 @@ Photo: image generated by OpenAI GPT-image-2.5-sunburst. Seam carving: [Avidan a
 # Hidden: the "Which pixels matter?" slide. The lab's energy of the same 480 x 320 photo, as a
 # grey picture: square root so the faint sea ripples still show, scaled to the 99th percentile.
 photo_energy = image_energy(photo)
-energy_grey = np.sqrt(np.clip(photo_energy / np.percentile(photo_energy, 99), 0, 1))
+energy_scale = np.percentile(photo_energy, 99)
+energy_grey = np.sqrt(np.clip(photo_energy / energy_scale, 0, 1))
 energy_view = {"photo": original_url, "energy": to_url(np.repeat(energy_grey[:, :, None], 3, axis=2))}
 ojs_define(energy_view = energy_view)
 ```
@@ -446,6 +492,44 @@ html`<img src="${energy_view[energy_show]}" width="480" style="margin: 0;">`
 - A pixel in the middle of the sky looks just like its neighbours, so removing it changes almost nothing.
 :::
 
+## Remove the dullest pixels? {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof dull_method = Inputs.radio(["whole columns", "one pixel per row"], {value: "whole columns", label: "remove the cheapest"})
+viewof dull_k = Inputs.range([0, 160], {step: 40, value: 0, label: "columns to remove"})
+```
+
+```{ojs}
+//| echo: false
+carve_pair(carve_view[dull_method][dull_k])
+```
+
+::: {.fragment}
+A column is too stiff, single pixels are too loose. We need a cut that bends but stays **connected**.
+:::
+
+::: {.notes}
+- Two natural ideas. Both find the energy again after every removal.
+- Whole columns: slide to 160. Every column has to go straight through whatever is in its way, so it chops the mountains and leaves a hard edge in the sunset.
+- A whole row is the same idea turned sideways. On this photo rows happen to look fine, because the top rows are plain sky; on a busier photo a row cuts through people and buildings just like a column.
+- One pixel per row: slide to 160. Each row loses pixels in different places, so neighbouring rows no longer line up, and the otter tears into stripes. This is figure 2(e) in the paper.
+- Next: a path in between, one pixel per row, but each step can only move one column.
+:::
+
+::: footer
+Strategies from figure 2 of [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
+:::
+
+
+# Seam carving {style="font-size: 0.8em;"}
+
+A path of quiet pixels from top to bottom that can bend around the otter, but never breaks.
+
+::: {.notes}
+- Today's answer: seam carving (Avidan and Shamir, 2007), the idea behind "Content-Aware Scale" in Photoshop. It is also Lab 4.
+:::
+
 ```{python}
 #| echo: false
 # Hidden: the "What is a seam?" step-through. Three paths through the toy grid: two seams and one
@@ -463,8 +547,8 @@ def seam_terms(cols):
     return " + ".join(str(toy[r, c]) for r, c in enumerate(cols))
 
 
-seam_examples = [[3, 3, 3, 3, 3], [1, 2, 2, 2, 1], [0, 0, 2, 2, 2]]
-what_seam = [grid_view(toy, say="A tiny photo, 5 rows by 6 columns. Each number is a pixel's energy.")]
+seam_examples = [[2, 2, 2, 2, 2], [1, 2, 3, 3, 2], [0, 0, 2, 2, 2]]
+what_seam = [grid_view(toy, say=f"A tiny photo, {toy_rows} rows by {toy_cols} columns. Each number is a pixel's energy.")]
 for cols in seam_examples:
     path = list(enumerate(cols))
     if seam_ok(cols):
@@ -545,7 +629,7 @@ best_cost = seam_cost(best_seam)
 greedy_steps.append(grid_view(toy, {(r, c): "seam" for r, c in enumerate(best_seam)},
                               list(enumerate(greedy)), "greedy",
                               say=f"The best seam (orange): {seam_terms(best_seam)} = {best_cost}. "
-                                  f"Greedy (blue line) paid {greedy_cost}, twice as much."))
+                                  f"Greedy (blue line) paid {greedy_cost}."))
 for k, v in enumerate(greedy_steps):
     v["count"] = f"Step {k} of {len(greedy_steps) - 1}"
 ojs_define(greedy_steps = greedy_steps)
@@ -579,14 +663,14 @@ Taking the best-looking step now and never undoing it is a **greedy** algorithm.
 :::
 
 ::: {.notes}
-- More on greedy after the break: it is not always wrong.
-- The cheap 3 in the top right corner traps greedy on the right side, where every row is expensive.
-- The best seam starts at a 5, more than greedy's 3, but it reaches the cheap 2, 1, 2 in the middle.
+- More on greedy after the course evaluations: it is not always wrong.
+- The cheap 1 in the top right corner forces greedy into a 5 in row 1. It never looks back.
+- The best seam starts at a 3, more than greedy's 1, but then it finds the cheap 1s on the left.
 :::
 
 ```{python}
 #| echo: false
-# Hidden: the "Brute force" slide. Exact seam counts for the toy grid and the 480 x 320 photo,
+# Hidden: the "Brute force" slides. Exact seam counts for the toy grid and the 480 x 320 photo,
 # with a counting DP on whole numbers: like the stairs, add the counts of the 3 pixels above.
 def count_seams(nrows, ncols):
     ways = [1] * ncols
@@ -600,7 +684,91 @@ n_photo_seams = count_seams(photo_h, photo_w)
 count_toy, count_photo = sci(n_toy_seams), sci(n_photo_seams)
 ```
 
+```{python}
+#| echo: false
+# Hidden: the "Brute force: try every seam" and "One question, asked again and again" step-throughs. Every seam of the
+# toy grid, leftmost first, the way brute force lists them. Each step is the seam being checked
+# (blue cells, drawn on top of the grid) and orange cells; OJS only looks a step up by its number.
+def all_seams(nrows, ncols):
+    seams = [[c] for c in range(ncols)]
+    for _ in range(1, nrows):
+        seams = [s + [c] for s in seams for c in (s[-1] - 1, s[-1], s[-1] + 1) if 0 <= c < ncols]
+    return seams
+
+
+def checking(cols, answer, answer_on_top):
+    """The seam being checked (blue cells, blue line) and an answer path (orange cells). Where the
+    two share a cell, answer_on_top says which colour shows."""
+    blue = {(r, c) for r, c in enumerate(cols)}
+    orange = {(r, c) for r, c in enumerate(answer)}
+    shown = ([(rc, "greedy") for rc in blue - orange] + [(rc, "seam") for rc in orange - blue]
+             + [(rc, "seam" if answer_on_top else "greedy") for rc in blue & orange])
+    return {"over": [{"r": r, "c": c, "text": fmt(toy[r, c]), "role": role} for (r, c), role in shown],
+            "over_path": [{"r": r, "c": c} for r, c in enumerate(cols)], "over_path_role": "greedy"}
+
+
+every_seam = all_seams(toy_rows, toy_cols)
+assert len(every_seam) == n_toy_seams
+assert min(seam_cost(s) for s in every_seam) == best_cost
+
+# "Try every seam": orange is the cheapest seam found so far.
+try_steps, cheapest = {}, every_seam[0]
+for k, cols in enumerate(every_seam, start=1):
+    if seam_cost(cols) < seam_cost(cheapest):
+        cheapest = cols
+    say = (f"Seam {k} of {n_toy_seams} (blue): {seam_terms(cols)} = {seam_cost(cols)}. "
+           f"Cheapest so far (orange): {seam_cost(cheapest)}.")
+    if k == n_toy_seams:
+        say += f" Done: every seam checked, and the best is {seam_cost(cheapest)}."
+    try_steps[k] = {**checking(cols, cheapest, answer_on_top=False), "say": say}
+try_base = grid_view(toy)
+
+# "One question, asked again and again": only the seams through one pixel. Orange is the
+# cheapest way from the top down to that pixel, the answer every one of these seams needs.
+pin_r, pin_c = 2, 1
+through = [s for s in every_seam if s[pin_r] == pin_c]
+n_through = len(through)
+n_top = len({tuple(s[:pin_r + 1]) for s in through})
+n_bottom = len({tuple(s[pin_r:]) for s in through})
+top_best = min({tuple(s[:pin_r + 1]) for s in through}, key=seam_cost)
+top_terms, top_cost = seam_terms(top_best), seam_cost(top_best)
+assert top_cost == seam_table(toy)[pin_r, pin_c + 1]
+pin_steps = {}
+for k, cols in enumerate(through, start=1):
+    say = (f"Seam {k} of {n_through} through row {pin_r}, col {pin_c} (blue): total {seam_cost(cols)}. "
+           f"Each one needs the cheapest way down to that pixel (orange): {top_terms} = {top_cost}.")
+    pin_steps[k] = {**checking(cols, top_best, answer_on_top=True), "say": say}
+pin_base = grid_view(toy)
+ojs_define(try_steps = try_steps, try_base = try_base, try_steps_n = n_toy_seams,
+           pin_steps = pin_steps, pin_base = pin_base, pin_steps_n = n_through)
+```
+
 ## Brute force: try every seam {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof try_k = Inputs.range([1, try_steps_n], {step: 1, value: 1, label: "seam number"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every cell, line and sentence comes from Python (try_steps).
+  const v = {...try_base, ...try_steps[try_k]};
+  return html`<div class="ojs-readout">${v.say}</div>${draw_grid(v)}`;
+}
+```
+
+::: {.fragment}
+Check every seam, keep the cheapest. Always right, but how many seams are there?
+:::
+
+::: {.notes}
+- Drag the slider slowly for the first few seams, then fast to the end. The orange seam only changes when a cheaper seam turns up.
+- The best total is the same as on the last slide. Brute force is guaranteed to find it, greedy was not.
+:::
+
+## Brute force in code {style="font-size: 0.75em;"}
 
 `cheapest_to(energy, row, col)`: the cheapest seam from the top row down to pixel `(row, col)`.
 
@@ -625,28 +793,57 @@ Each call makes 3 more calls, $N$ rows deep, for each of the $M$ bottom pixels: 
 :::
 
 ::: {.fragment}
-Our 5 × 6 grid has `{python} count_toy` seams. The 480 × 320 photo has `{python} count_photo`.
+Our 5 × 5 grid has `{python} count_toy` seams. The 480 × 320 photo has `{python} count_photo`.
 :::
 
 ::: {.notes}
 - Same "last move" idea as the stairs, with 3 choices instead of 2.
 - Counting the seams is itself a counting DP, like the stairs: the seams ending at a pixel = the sum of the seams ending at the 3 pixels above it.
-- Lab 4 question 1(b) asks this. The lab's `fvs` builds the whole seam as a list and copies it on every call (`seam + [col]`), which adds up to N more work per call, so O(N · M · 3^N) is also a fine upper bound. Either way: exponential in the height N.
+- PrairieLearn Lab 4 Question 6(a) counts the seams from one pixel, Question 6(b) asks for this time complexity, and Question 7 times it. The lab's `fvs` builds the whole seam as a list and copies it on every call (`seam + [col]`), which adds up to N more work per call, so O(N · M · 3^N) is also a fine upper bound. Either way: exponential in the height N.
 - Live: change `energy` to `np.random.rand(12, 10)` and run. It takes seconds. Every extra row is about 3 times slower.
 :::
 
-## iClicker: the same question twice? {style="font-size: 0.8em;"}
+## iClicker: one pixel, many seams {style="font-size: 0.8em;"}
 
-`cheapest_to(energy, 4, 2)` and `cheapest_to(energy, 4, 3)` are both called. Which calls do they **both** make?
+How many of the `{python} count_toy` seams pass through the pixel in row 2, col 1 (energy 1)?
 
-- \(A) `cheapest_to(energy, 3, 1)` only
-- \(B) `cheapest_to(energy, 3, 2)` and `cheapest_to(energy, 3, 3)`
-- \(C) `cheapest_to(energy, 3, 4)` only
-- \(D) None: they never overlap
+- \(A) 8
+- \(B) 16
+- \(C) 64
+- \(D) 259
+
+::: {.notes}
+- Collect answers, then go to the next slide to reveal.
+- Hint if they are stuck: how many ways down to that pixel? How many ways on from it?
+:::
+
+## One question, asked again and again {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof pin_k = Inputs.range([1, pin_steps_n], {step: 1, value: 1, label: "seam number"})
+```
+
+```{ojs}
+//| echo: false
+{
+  // Draw only: every cell, line and sentence comes from Python (pin_steps).
+  const v = {...pin_base, ...pin_steps[pin_k]};
+  return html`<div class="ojs-readout">${v.say}</div>${draw_grid(v)}`;
+}
+```
 
 ::: {.fragment}
-- Answer: **B**. Pixel (4, 2) looks at columns 1, 2, 3 above. Pixel (4, 3) looks at columns 2, 3, 4.
-- **Overlapping subproblems**, again. So write each answer on its pixel, like the chalk on the stairs.
+iClicker answer: **C**. `{python} n_top` ways down to it, times `{python} n_bottom` ways on from it.
+:::
+
+::: {.fragment}
+Brute force works out `cheapest_to(energy, 2, 1)` again for every one: an **overlapping subproblem**. So write the answer on the pixel once, like the chalk on the stairs.
+:::
+
+::: {.notes}
+- Drag the slider: the blue seam changes, but the orange answer to "cheapest way down to row 2, col 1" never does.
+- This is exactly why plain recursive Fibonacci and climb were slow.
 :::
 
 ```{python}
@@ -723,8 +920,13 @@ viewof fill_step = Inputs.button([
 }
 ```
 
+::: {.fragment}
+The lab calls this table `CME`, the **cumulative minimum energy**: the cheapest seam from the top down to each pixel.
+:::
+
 ::: {.notes}
-- Each cell = its own energy + the cheapest of the 3 cells above it. The lab calls this table CME, the cumulative minimum energy.
+- Each cell = its own energy + the cheapest of the 3 cells above it.
+- Compare with the stairs: same shape, `min` instead of `+`, and 3 options instead of 2.
 - Click "Next cell" for row 1, then "Next row" for the rest.
 - Every cell above is already filled when we need it, because we go top to bottom.
 :::
@@ -743,7 +945,7 @@ The table has an extra column of ∞ on the left and on the right. Why ∞, and 
 :::
 
 ::: {.notes}
-- This is Lab 4 question 2(a).
+- This is PrairieLearn Lab 4 Question 8(b).
 - Same trick as `return np.inf` in `cheapest_to` when we fall off the image.
 :::
 
@@ -816,17 +1018,20 @@ viewof bt_step = Inputs.button([
 ::: {.notes}
 - Why does this work? Each cell's value was its energy + the smallest cell above it. So the smallest cell above is exactly where its cheapest seam came from.
 - We build the seam backwards, from row 4 up to row 0.
+- Ask: why not skip the table, start at the smallest energy in the bottom row and walk up to the smallest energy above? That is greedy again, just upwards. A small energy is cheap on its own; a small CME value is the cheapest whole path to the top. The forward pass does the hard work, backtracking only reads it off.
 - "Backtracking" has a second meaning you may meet elsewhere: searching by trying a choice and undoing it when it fails (Sudoku, the N queens puzzle). In this course it means walking back through a DP table.
 :::
 
 ## Seam carving in code {style="font-size: 0.7em;"}
 
-```{.python code-line-numbers="|4-6|8-11|13-18|20"}
+```{.python code-line-numbers="|4-8|10-13|15-21|23"}
 def find_vertical_seam(energy):
     nrows, ncols = energy.shape
 
     # CME: cumulative minimum energy, with a column of inf on each side
-    CME = np.full((nrows, ncols + 2), np.inf)
+    CME = np.zeros((nrows, ncols + 2))
+    CME[:, 0] = np.inf
+    CME[:, -1] = np.inf
     CME[:, 1:-1] = energy
 
     # forward pass: fill the table row by row, from the top
@@ -838,25 +1043,40 @@ def find_vertical_seam(energy):
     seam = np.zeros(nrows, dtype=int)
     seam[-1] = np.argmin(CME[-1, :])
     for i in range(nrows - 2, -1, -1):
-        j = seam[i + 1]
-        seam[i] = j + np.argmin(CME[i, j - 1 : j + 2]) - 1    # -1, 0 or +1
+        # argmin gives 0, 1 or 2: subtract 1 to get the step -1, 0 or +1
+        delta = np.argmin(CME[i, seam[i + 1] - 1 : seam[i + 1] + 2]) - 1
+        seam[i] = seam[i + 1] + delta
 
     return seam - 1    # undo the shift from the inf column on the left
 ```
 
 ::: {.notes}
-- This is the lab's `SeamCarveDP.find_vertical_seam`, written as a plain function.
-- Lab 4 exercise 3: make the forward pass faster by replacing the `j` loop with numpy (vectorizing). The algorithm stays the same.
-- `np.argmin` of the 3 cells above gives 0, 1 or 2. Subtract 1 to get the step: left, straight or right.
+- This is the lab's `SeamCarveDP.find_vertical_seam` (PrairieLearn Lab 4 Question 8), written as a plain function.
+- PrairieLearn Lab 4 Questions 11 to 13: make the forward pass faster by replacing the `j` loop with numpy (vectorizing); Question 13 writes the vectorized loop. The algorithm stays the same.
+- The `-1` in `delta` and the `-1` on the last line are two different things: the first turns 0, 1, 2 into a step, the second undoes the padding.
 - The last line: column 0 of the image is column 1 of CME, because of the padding.
 :::
+
+```{python}
+#| echo: false
+# Hidden: the expected output for the notes of "Try it yourself", and what happens when the
+# energy at row 2, col 1 changes from 1 to 9 (same table and backtracking as the visible code).
+try_seam = str(backtrack(seam_table(toy))[0])
+toy_9 = toy.copy()
+toy_9[2, 1] = 9
+seam_9 = backtrack(seam_table(toy_9))[0]
+try_seam_9 = str(seam_9)
+try_cost_9 = int(toy_9[np.arange(toy_rows), seam_9].sum())
+```
 
 ## Try it yourself {style="font-size: 0.75em;"}
 
 ```{pyodide}
 def find_vertical_seam(energy):
     nrows, ncols = energy.shape
-    CME = np.full((nrows, ncols + 2), np.inf)        # inf on each side
+    CME = np.zeros((nrows, ncols + 2))
+    CME[:, 0] = np.inf                               # inf on each side
+    CME[:, -1] = np.inf
     CME[:, 1:-1] = energy
     for i in range(1, nrows):                        # forward pass
         for j in range(1, ncols + 1):
@@ -864,8 +1084,8 @@ def find_vertical_seam(energy):
     seam = np.zeros(nrows, dtype=int)                # backtracking
     seam[-1] = np.argmin(CME[-1, :])
     for i in range(nrows - 2, -1, -1):
-        j = seam[i + 1]
-        seam[i] = j + np.argmin(CME[i, j - 1 : j + 2]) - 1
+        delta = np.argmin(CME[i, seam[i + 1] - 1 : seam[i + 1] + 2]) - 1
+        seam[i] = seam[i + 1] + delta
     return seam - 1
 
 seam = find_vertical_seam(energy)
@@ -873,8 +1093,8 @@ print("seam:", seam, " total energy:", energy[np.arange(len(seam)), seam].sum())
 ```
 
 ::: {.notes}
-- Expected: seam [3 2 3 3 4], total 12.
-- Ask: change the 1 in row 2 to a 9. Where does the seam go now? Run it.
+- Expected: seam `{python} try_seam`, total `{python} best_cost`.
+- Ask: change `energy[2, 1]` from 1 to 9. Where does the seam go now? Run it. (It moves to `{python} try_seam_9`, total `{python} try_cost_9`.)
 :::
 
 ```{python}
@@ -912,7 +1132,7 @@ For an image with $N$ rows and $M$ columns:
 :::
 
 ::: {.notes}
-- Lab 4 question 2(b).
+- PrairieLearn Lab 4 Question 8(c). Question 8(d) asks about space, and Question 9 times it.
 :::
 
 ## How fast? {style="font-size: 0.75em;"}
@@ -950,6 +1170,170 @@ viewof speed_n = Inputs.range([2, 30], {step: 1, value: 10, label: "image size n
 - A 30 × 30 image is still tiny. The photo was 320 × 480.
 :::
 
+## Back to English Bay {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof carve_method = Inputs.radio(["crop", "squash", "whole columns", "one pixel per row", "seam carve"],
+                                   {value: "seam carve", label: "make it narrower by"})
+viewof carve_k = Inputs.range([0, 160], {step: 40, value: 0, label: "columns to remove"})
+```
+
+```{ojs}
+//| echo: false
+carve_pair(carve_view[carve_method][carve_k])
+```
+
+::: {.notes}
+- Seam carve at 160: square, nothing important lost. Then flick through the other four at 160 for the contrast.
+- Point at the orange lines on the left in seam carve mode: each is one seam, a wiggly line from top to bottom through the sky, the sea and the sand.
+- Each seam is one call to `find_vertical_seam`, then the energy is found again on the narrower photo. 160 seams took `{python} carve_time` seconds when these slides were built.
+:::
+
+::: footer
+Photo: image generated by OpenAI GPT-image-2.5-sunburst. Seam carving: [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
+:::
+
+```{python}
+#| echo: false
+# Hidden: the "Does it always work?" slide. Starry Night shrunk to 480 wide, then made narrower by seam
+# carving (same energy, DP and backtracking as the English Bay photo) or by squashing. Its energy is
+# drawn on the same grey scale as the photo's, so the two energy pictures can be compared.
+starry = np.asarray(Image.open("images/starry_night.png").convert("RGB"), dtype=float) / 255
+starry_w = 480
+starry_h = round(starry_w * starry.shape[0] / starry.shape[1])
+starry = resized(starry, starry_w, starry_h)
+starry_ks = [0, 80, 160, 240]
+starry_pics, starry_gone = remove_again_and_again(starry, starry_ks, fast_seam, photo_energy_of)
+starry_energy = image_energy(starry)
+starry_grey = np.sqrt(np.clip(starry_energy / energy_scale, 0, 1))
+energy_times = np.median(starry_energy) / np.median(photo_energy)
+starry_times = f"{energy_times:.0f}"
+starry_url = to_url(starry)
+starry_view = {"energy": {}, "seam carve": {}, "squash": {}}
+for k in starry_ks:
+    size = f"{starry_w - k} × {starry_h}"
+    starry_view["energy"][k] = {
+        "left": starry_url, "right": to_url(np.repeat(starry_grey[:, :, None], 3, axis=2)), "width": starry_w,
+        "say": f"Its energy, on the same scale as the English Bay photo: bright almost everywhere. "
+               f"The typical pixel has {starry_times} times the energy of a typical pixel in the photo."}
+    if k == 0:
+        sayings = {m: f"The painting: {size}. Remove some columns with the slider." for m in ("seam carve", "squash")}
+    else:
+        sayings = {"seam carve": f"Seam carve: {k} seams removed. Now {size}. There are no quiet pixels, so every seam "
+                                 "cuts through brush strokes: the stars go out of shape, the cypress breaks up.",
+                   "squash": f"Squash: every column is {k / starry_w:.0%} thinner. Now {size}. Thinner, but every swirl is still whole."}
+    starry_view["seam carve"][k] = {"left": to_url(marked(starry, starry_gone[k])), "right": to_url(starry_pics[k]),
+                                    "width": starry_w - k, "say": sayings["seam carve"]}
+    starry_view["squash"][k] = {"left": starry_url, "right": to_url(resized(starry, starry_w - k, starry_h)),
+                                "width": starry_w - k, "say": sayings["squash"]}
+ojs_define(starry_view = starry_view)
+```
+
+## Does it always work? {style="font-size: 0.75em;"}
+
+```{ojs}
+//| echo: false
+viewof starry_method = Inputs.radio(["seam carve", "squash", "energy"], {value: "seam carve", label: "show"})
+viewof starry_k = Inputs.range([0, 240], {step: 80, value: 0, label: "columns to remove"})
+```
+
+```{ojs}
+//| echo: false
+carve_pair(starry_view[starry_method][starry_k])
+```
+
+::: {.fragment}
+Seam carving needs somewhere **quiet** to cut. When every pixel matters, a plain squash can look better.
+:::
+
+::: {.notes}
+- Ask first: Van Gogh's Starry Night. Will seam carving do well here? Why or why not?
+- Seam carve at 240, then squash at 240: the squashed stars are ovals, but the seam-carved stars are broken.
+- Then show "energy": compare with the dark sky and sea of the English Bay photo.
+- The algorithm still finds the cheapest seam. The cheapest seam is just not cheap. A correct algorithm can still give a bad result when its idea of "important" does not fit the picture.
+:::
+
+::: footer
+The Starry Night, Vincent van Gogh, 1889. Image: [Van Gogh: The Immersive Experience](https://www.vangoghexhibit.ca/art-that-moves-van-goghs-journey-to-vincent-in-a-nutshell/)
+:::
+
+```{python}
+#| echo: false
+# Hidden: the "Remove the people" slide. The English Bay photo with two people on the beach, 480 x 320.
+# A box around the people gets a very negative energy, so the cheapest seam always goes through it.
+# Carve (same DP and backtracking as before) until no pixel of the box is left.
+people_photo = resized(np.asarray(Image.open("images/lec08_english_bay_people.png").convert("RGB"),
+                                  dtype=float) / 255, photo_w, photo_h)
+people_box = np.zeros((photo_h, photo_w), dtype=bool)
+people_box[167:276, 250:321] = True    # found by hand: x 800 to 1025, y 535 to 880 in the 1536 x 1024 original
+
+
+def energy_without_people(current, where):
+    """The lab's energy, with every pixel still inside the people box set very negative."""
+    energy = image_energy(current)
+    energy[people_box[np.arange(photo_h)[:, None], where]] = -1e6
+    return energy
+
+
+def box_gone(gone):
+    return not (people_box & ~gone).any()
+
+
+# First run: how many seams until the box is gone. Second run: keep 5 pictures on the way there.
+people_n = max(remove_again_and_again(people_photo, [0, photo_w // 2], fast_seam, energy_without_people,
+                                      stop_when=box_gone)[1])
+people_ks = sorted({round(people_n * f) for f in (0, 0.25, 0.5, 0.75, 1)})
+people_pics, people_gone = remove_again_and_again(people_photo, people_ks, fast_seam, energy_without_people)
+assert box_gone(people_gone[people_n])
+blue = np.array([42, 120, 214]) / 255
+people_view = {}
+for k in people_ks:
+    left = people_photo.copy()
+    still_there = people_box & ~people_gone[k]
+    left[still_there] = 0.5 * left[still_there] + 0.5 * blue
+    left[people_gone[k]] = orange
+    if k == 0:
+        say = "Draw a box around the people (blue). Their pixels get energy −1,000,000, so every cheapest seam goes through them."
+    elif k < people_n:
+        say = f"{k} seams removed. Each one takes the cheapest path, and the cheapest path always crosses the box."
+    else:
+        say = f"{k} seams removed: no pixel of the box is left. The people are gone, the otter and the log stay."
+    people_view[k] = {"left": to_url(left), "right": to_url(people_pics[k]), "width": photo_w - k, "say": say}
+ojs_define(people_view = people_view, people_ks = people_ks)
+```
+
+## Remove the people {style="font-size: 0.75em;"}
+
+Two strangers walked into your shot. Can seam carving remove them?
+
+```{ojs}
+//| echo: false
+viewof people_i = Inputs.range([0, people_ks.length - 1], {step: 1, value: 0, label: "step"})
+```
+
+```{ojs}
+//| echo: false
+carve_pair(people_view[people_ks[people_i]])
+```
+
+::: {.fragment}
+Same algorithm, new energy: make what you want gone the **cheapest**.
+:::
+
+::: {.notes}
+- Ask before sliding: we only change the energy, not `find_vertical_seam`. How do we make the seams go through the people?
+- The answer: a very negative energy. The DP then finds the cheapest seam, and the cheapest seam is the one through the box.
+- The opposite works too: a very high energy on the otter protects it, no seam will cross it.
+- The paper (figure 11) does this, then adds seams back so the photo returns to its original width.
+- The box was drawn by hand here. In an app, you paint over the people with your finger.
+:::
+
+::: footer
+Photo: image generated by OpenAI GPT-image-2.5-sunburst. Object removal: figure 11 of [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
+:::
+
+
 # Course evaluations {style="font-size: 0.8em;"}
 
 ::: {.incremental}
@@ -960,17 +1344,10 @@ viewof speed_n = Inputs.range([2, 30], {step: 1, value: 10, label: "image size n
 
 ::: {.notes}
 - Give the full 10 minutes. Step out of the room or sit at the back so students feel free to write.
+- Students who finish early can stretch and refill their water.
 :::
 
-# Break {style="font-size: 0.8em;"}
-
-5 minutes. Stretch, refill your water, and come back with a question.
-
-::: {.notes}
-- Set a 5 minute timer. Students who finish the evaluation early can start their break.
-:::
-
-# So many choices: which one is best? {background-image="images/lec08_otter_schedule.png" background-size="auto 60%" background-position="right bottom" style="font-size: 0.8em;"}
+# So many choices: which one is best? {background-image="images/lec08_schedule_board.png" background-size="auto 60%" background-position="right bottom" style="font-size: 0.8em;"}
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
@@ -1005,6 +1382,7 @@ Image generated by OpenAI GPT-image-2.5-sunburst.
 
 ::: {.notes}
 - Finding the best option is optimization. Writing these four answers down for a real problem is called formulating it, and it is often the hardest part.
+- PrairieLearn Lab 4 Question 14 practises this on a restaurant menu: name the parts, count the options for brute force, and see what one more rule does.
 - In math: minimize f(x) over x in S, where S is the set of feasible options. The best option is written x*, its score f(x*).
 - BFS only finds the fewest connections. If the edges had weights (travel times), the fewest edges might not be the fastest: then you need Dijkstra's algorithm.
 :::
@@ -1163,25 +1541,23 @@ To remove 160 columns, the lab's `seam_carve` finds the cheapest seam, removes i
 
 ::: {.notes}
 - Why recompute the energy? Removing a seam brings new neighbours together, so their differences change.
-- The photo on the first slide: 160 seams on a 480 × 320 photo, in `{python} carve_time` seconds when these slides were built.
+- The English Bay photo: 160 seams on a 480 × 320 photo, in `{python} carve_time` seconds when these slides were built.
 - Finding the best set of 160 seams at once would cost far more, and one at a time works well in practice. The original paper even uses a second DP to choose the order of vertical and horizontal seams.
 :::
 
-## iClicker: are decision trees greedy? {style="font-size: 0.8em;"}
+## Are decision trees greedy? {style="font-size: 0.8em;"}
 
-In DSCI 571 you train a **decision tree**: pick the yes/no question that best splits the data at the root ("is age > 30?"), then do the same at each child, and never go back. Is the trained tree always the best possible tree?
+In DSCI 571 you train a **decision tree**: pick the yes/no question that best splits the data at the root ("is age > 30?"), then do the same at each child, and never go back.
 
-- \(A) Yes: every split is the best one
-- \(B) No: it is greedy, so a great first split can lead to poor splits later
-- \(C) Yes, if the tree is deep enough
-- \(D) No, because the splits are random
+Is the trained tree always the best possible tree?
 
 ::: {.fragment}
-- Answer: **B**. Like the 4 cent coin: best now, worse later.
+- No. It is greedy: a great first split can lead to poor splits later, like the 4 cent coin.
 - Finding the truly best tree is NP-hard, so greedy is a deliberate trade-off: a good tree, fast, with no guarantee.
 :::
 
 ::: {.notes}
+- Ask the room, no iClicker, to save time.
 - It is a tree, like in lecture 5.
 - NP-hard: no known algorithm finds the best tree quickly; the number of trees explodes even faster than the number of seams.
 :::
@@ -1292,7 +1668,7 @@ viewof gd_k = Inputs.range([0, gd_max], {step: 1, value: 0, label: "steps"})
 
 ::: {.incremental}
 - Seam carving shrinks a photo by removing the cheapest connected seam, again and again.
-- Each cell = its own energy + the cheapest of the 3 cells above it. Pad with ∞ so `min` ignores the edges. Brute force is $O(M \cdot 3^N)$, the DP table is $O(NM)$.
+- `CME`: each cell = its own energy + the cheapest of the 3 cells above it. Pad with ∞ so `min` ignores the edges. Brute force is $O(M \cdot 3^N)$, the DP table is $O(NM)$.
 - **Backtracking** recovers the choices: start at the best cell at the end, and walk back through the table.
 - Optimization: decision variables, objective, constraints, minimize or maximize. A local minimum is not always the global one.
 - Greedy takes the best-looking step and never undoes it. Fast, but only guaranteed best with the greedy-choice property (25, 10, 5, 1 yes; 1, 3, 4 no).
@@ -1528,7 +1904,7 @@ time_toy, time_photo, time_ta = how_long(n_toy_seams), how_long(n_photo_seams), 
 
 | problem | options | checking a billion a second |
 |---|---|---|
-| seams in our 5 × 6 grid | `{python} count_toy` | `{python} time_toy` |
+| seams in our 5 × 5 grid | `{python} count_toy` | `{python} time_toy` |
 | seams in the 480 × 320 photo | `{python} count_photo` | `{python} time_photo` |
 | TA tables (10 TAs × 12 courses, each 0 or 1) | `{python} count_ta` | `{python} time_ta` |
 
