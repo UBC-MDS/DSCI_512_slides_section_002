@@ -25,6 +25,7 @@ project:
     - "slides/slides_05.qmd"
     - "slides/slides_06.qmd"
     - "slides/slides_07.qmd"
+    - "slides/slides_08.qmd"
 
 website:
   title: "DSCI 512: Algorithms and Data Structures"
@@ -47,7 +48,7 @@ website:
         - lec_05.qmd
         - lec_06.qmd
         - lec_07.qmd
-      #  - lec_08.qmd
+        - lec_08.qmd
 
 format:
   html:
