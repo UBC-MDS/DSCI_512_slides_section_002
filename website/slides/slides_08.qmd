@@ -969,7 +969,7 @@ The table has an extra column of ∞ on the left and on the right. Why ∞, and 
 - Same trick as `return np.inf` in `cheapest_to` when we fall off the image.
 :::
 
-# Follow the breadcrumbs {background-image="images/lec08_otter_breadcrumbs.png" background-size="contain" background-position="right" style="font-size: 0.8em;"}
+# Follow the breadcrumbs {background-image="images/lec08_otter_breadcrumbs.png" background-size="cover" background-position="right bottom"}
 
 ::: {style="max-width: 55%;"}
 ::: {.incremental}
