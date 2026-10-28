@@ -1579,8 +1579,6 @@ Is the trained tree always the best possible tree?
 :::
 
 ::: {.notes}
-- Ask the room, no iClicker, to save time.
-- It is a tree, like in lecture 5.
 - NP-hard: no known algorithm finds the best tree quickly; the number of trees explodes even faster than the number of seams.
 :::
 
@@ -1591,13 +1589,7 @@ Is the trained tree always the best possible tree?
 | brute force | tries every option | yes, but only tiny problems finish |
 | greedy | best-looking step now, never undone | only with the greedy-choice property |
 | dynamic programming | best answer to every subproblem, stored and reused | yes, with overlapping subproblems and optimal substructure |
-| gradient descent | small step downhill | only if the function is convex |
 
-::: {.notes}
-- Today: greedy seam ❌, brute force seam too slow, DP seam ✅. Greedy coins: ✅ with 25, 10, 5, 1, ❌ with 1, 3, 4. DP coins ✅.
-- Decision trees: greedy on purpose, because the exact answer is too hard.
-- Gradient descent: one sentence only. It walks downhill in small steps, so it can get stuck in a dip that is not the lowest point.
-:::
 
 
 ## Today's takeaways {style="font-size: 0.8em;"}
@@ -1631,9 +1623,6 @@ Is the trained tree always the best possible tree?
 - Parallel and distributed computing
 - Linear programming and solvers like PuLP
 
-::: {.notes}
-- Point to the cheatsheets on the course website: [math](../math.html) and [Python](../python.html).
-:::
 
 # Questions? {background-image="images/lec08_fall_goodbye.png" background-size="cover" background-position="bottom"}
 
