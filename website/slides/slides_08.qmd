@@ -25,12 +25,12 @@ resources:
   - assets/unregister-coi-sw.js
   - assets/helper.js
 title-slide-attributes:
-  data-background-image: images/lec08_title_lookback.png
+  data-background-image: images/lec08_title_bay_boats.png
   data-background-size: auto 80%
   data-background-position: right bottom
   data-notes: "[1] iClicker Cloud open<br>[2] Encourage questions: if one student has a question, likely others do too.<br>[3] Connect my logitech highlighter<br>[4] Connect my writing notepad to the laptop"
 ---
-## This is the last lecture of the class! 🎉 {background-image="images/lec08_title_lookback.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
+## This is the last lecture of the class! 🎉 {background-image="images/lec08_title_jump.png" background-size="cover" background-position="right bottom" style="font-size: 0.8em;"}
 
 ::: {.incremental}
 - CONGRATULATIONS on making it through DSCI 512!
@@ -62,22 +62,31 @@ from IPython.display import Markdown
 from PIL import Image
 from scipy.ndimage import convolve
 
-# The 5 by 5 energy grid on every seam slide, the same one as the lecture notes
-# (np.random.seed(83)). The same numbers as the pyodide `energy`.
-toy = np.array([[3, 8, 9, 8, 1],
-                [1, 9, 4, 5, 9],
-                [5, 1, 6, 1, 7],
-                [3, 5, 8, 6, 1],
-                [6, 1, 5, 7, 5]])
-toy_rows, toy_cols = toy.shape
-
-
 def image_energy(image):
     """The lab's energy: (right - left)^2 + (below - above)^2, added up over R, G and B."""
     dy = np.array([-1, 0, 1])[:, None, None]
     dx = np.array([-1, 0, 1])[None, :, None]
     energy_img = convolve(image, dx) ** 2 + convolve(image, dy) ** 2
     return np.sum(energy_img, axis=2)
+
+
+# The 5 by 5 grid on every seam slide: a tiny pixel picture of the English Bay photo (a sail top right,
+# the sun on the left, the sea, the otter on its rock bottom left, sand), and its energy with the
+# lab's function, scaled so the largest is 9 and rounded. Picked so that greedy misses the best seam
+# and the best seam is unique. The same numbers as the pyodide `energy`.
+toy_hex = [["c2e1ff", "92b1d8", "92b1d8", "fffffa", "ffffff"],
+           ["ff7c48", "aeccf3", "98b7de", "fffff9", "fffffc"],
+           ["3c8ae8", "2775d3", "2a78d6", "3583e1", "2674d2"],
+           ["f9e6bb", "946334", "a77647", "ffedc2", "e4d1a6"],
+           ["eedbb0", "8b8882", "7e7b75", "f7e4b9", "dac79c"]]
+toy_picture = np.array([[[int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)] for h in row] for row in toy_hex])
+toy_energy = image_energy(toy_picture)
+toy = np.rint(9 * toy_energy / toy_energy.max()).astype(int)
+toy_rows, toy_cols = toy.shape
+assert toy.tolist() == [[6, 1, 2, 2, 0], [7, 5, 2, 8, 7], [3, 5, 3, 0, 1], [9, 5, 7, 7, 5], [2, 3, 3, 2, 0]]
+# Each pixel's colour faded toward white, drawn behind its number in every grid.
+toy_tint = [["#%02x%02x%02x" % tuple(np.rint(255 * (0.45 * p + 0.55)).astype(int)) for p in row]
+            for row in toy_picture]
 
 
 def seam_table(energy):
@@ -134,7 +143,8 @@ def grid_view(values, roles=None, path=(), path_role="none", pad=False, say="", 
         for k in range(values.shape[1]):
             c = k - shift
             default = "pad" if (pad and c in (-1, toy_cols)) else "plain"
-            cells.append({"r": r, "c": c, "text": fmt(values[r, k]), "role": roles.get((r, c), default)})
+            cells.append({"r": r, "c": c, "text": fmt(values[r, k]), "role": roles.get((r, c), default),
+                          "px": toy_tint[r][c] if 0 <= c < toy_cols else None})
     left, right = (-1.6, toy_cols + 0.6) if pad else (-0.6, toy_cols - 0.4)
     return {"cells": cells, "path": [{"r": r, "c": c} for r, c in path], "path_role": path_role,
             "cols": [{"c": c, "text": f"col {c}"} for c in range(toy_cols)],
@@ -164,11 +174,11 @@ def sci(x):
 # deck, so a later cell still works when an earlier slide was skipped.
 import numpy as np
 
-energy = np.array([[3, 8, 9, 8, 1],
-                   [1, 9, 4, 5, 9],
-                   [5, 1, 6, 1, 7],
-                   [3, 5, 8, 6, 1],
-                   [6, 1, 5, 7, 5]])
+energy = np.array([[6, 1, 2, 2, 0],
+                   [7, 5, 2, 8, 7],
+                   [3, 5, 3, 0, 1],
+                   [9, 5, 7, 7, 5],
+                   [2, 3, 3, 2, 0]])
 
 
 def cheapest_to(energy, row, col):
@@ -223,8 +233,9 @@ def min_coins(coins, amount):
 //| echo: false
 // Draw only: the toy energy grid. Every cell, value, colour role and line comes from Python
 // (grid_view). Orange: the seam, or the cell just filled in. Blue: greedy, or the cells being
-// compared. Grey: the inf columns, or a broken seam. v.over (optional) is a few cells drawn on
-// top of the grid with their own line v.over_path, for the brute force step-throughs.
+// compared. Grey: the inf columns, or a broken seam. Plain cells show their pixel's
+// faded colour (d.px), so the grid stays linked to the tiny picture. v.over (optional) is a few
+// cells drawn on top of the grid with their own line v.over_path, for the brute force step-throughs.
 draw_grid = (v, {width = 620, height = 330} = {}) => {
   const over = v.over ?? [];
   const fill = {plain: "#fcfcfb", faint: "#fcfcfb", pad: "#f2f1ee", read: "#dbe8f8", pick: "#2a78d6",
@@ -238,7 +249,7 @@ draw_grid = (v, {width = 620, height = 330} = {}) => {
     x: {axis: null, domain: v.x_domain}, y: {axis: null, domain: [4.55, -0.55]},
     marks: [
       Plot.rect(v.cells, {x1: d => d.c - 0.46, x2: d => d.c + 0.46, y1: d => d.r - 0.44, y2: d => d.r + 0.44,
-                          fill: d => fill[d.role], rx: 4,
+                          fill: d => (d.role === "plain" && d.px) ? d.px : fill[d.role], rx: 4,
                           stroke: d => d.role === "read" ? "#2a78d6" : "#d9d8d4", strokeWidth: 2}),
       Plot.line(v.path, {x: "c", y: "r", stroke: line[v.path_role], strokeWidth: 4, strokeOpacity: 0.45,
                          strokeDasharray: v.path_role === "bad" ? "6,5" : undefined}),
@@ -282,7 +293,7 @@ Image generated by OpenAI GPT-image-2.5-sunburst.
 # vectorized, PrairieLearn Lab 4 Question 13, so the photo takes about a second).
 # Every picture is a small WebP data URL made here; OJS only picks one.
 photo_w, photo_h = 480, 320
-photo = np.asarray(Image.open("images/lec08_english_bay.png").convert("RGB")
+photo = np.asarray(Image.open("images/lec08_english_bay_boats.png").convert("RGB")
                    .resize((photo_w, photo_h), Image.LANCZOS), dtype=float) / 255
 carve_ks = [0, 40, 80, 120, 160]
 orange = np.array([235, 104, 52]) / 255
@@ -361,14 +372,14 @@ for k in carve_ks:
         sayings = {m: f"The original photo: {size}. Remove some columns with the slider." for m in carve_methods}
     else:
         sayings = {
-            "crop": f"Crop: {k} columns cut off the two edges. Now {size}. The sunset and the log are cut.",
+            "crop": f"Crop: {k} columns cut off the two edges. Now {size}. Whatever is near the edges is cut: the log, the umbrella, then a boat.",
             "squash": f"Squash: every column is {k / photo_w:.0%} thinner, the otter too. Now {size}.",
             "whole columns": f"Remove the {k} cheapest whole columns. Now {size}. "
-                             "A column cannot bend: the mountains are chopped and the sky gets a hard edge.",
+                             "Every column crosses a boat or something on the sand, so even the cheapest ones cut through the otter.",
             "one pixel per row": f"Remove the cheapest pixel in each row, {k} times. Now {size}. "
-                                 "Each row shifts by a different amount: the otter is torn apart.",
+                                 "Each row shifts by a different amount: the otter and the boats are torn apart.",
             "seam carve": f"Seam carve: {k} seams removed, each through the quietest pixels. Now {size}. "
-                          "The otter and the log stay whole.",
+                          "The otter, the boats and the lifeguard chair stay whole.",
         }
     results = {"crop": (crop_mask, photo[:, lo:hi]),
                "squash": (None, resized(photo, photo_w - k, photo_h)),
@@ -448,7 +459,7 @@ carve_pair(carve_view[fit_method][fit_k])
 ```
 
 ::: {.notes}
-- Start on crop, slide to 160: the sunset and the log are cut. Switch to squash at 160: the otter looks thin.
+- Start on crop, slide to 160: the log, the umbrella and half of the left boat are cut. Switch to squash at 160: the otter looks thin.
 - The photo is 480 × 320, so removing 160 columns makes it square.
 - Ask: crop throws away the edges, squash takes a little from everywhere. What if we took pixels only from places nobody would miss?
 - PrairieLearn Lab 4 Question 5 asks students to compare a cropped and a seam-carved picture.
@@ -488,7 +499,7 @@ html`<img src="${energy_view[energy_show]}" width="480" style="margin: 0;">`
 ::: {.incremental}
 - A pixel's **energy**: how different it is from its neighbours.
 - energy = (right − left)² + (below − above)², added up over red, green and blue.
-- Sky and calm sea: about 0. The otter's outline: high.
+- Sky and sea: low. The outlines of the otter and the boats: high.
 - Bright = people would notice. Dark = safe to remove.
 :::
 :::
@@ -518,14 +529,15 @@ A column is too stiff, single pixels are too loose. We need a cut that bends but
 
 ::: {.notes}
 - Two natural ideas. Both find the energy again after every removal.
-- Whole columns: slide to 160. Every column has to go straight through whatever is in its way, so it chops the mountains and leaves a hard edge in the sunset.
-- A whole row is the same idea turned sideways. On this photo rows happen to look fine, because the top rows are plain sky; on a busier photo a row cuts through people and buildings just like a column.
+- Whole columns: slide to 160. The boats sit above the gaps on the sand, so no column is quiet from top to bottom: every column crosses something. The cuts go through the otter, which ends up a thin stick on a shrunken rock.
+- A column cannot bend around anything: it has to go straight through whatever is in its way. Removing whole columns only works on a photo with empty strips from top to bottom.
+- A whole row is the same idea turned sideways, with the same problem once no row is quiet from side to side.
 - One pixel per row: slide to 160. Each row loses pixels in different places, so neighbouring rows no longer line up, and the otter tears into stripes. This is figure 2(e) in the paper.
 - Next: a path in between, one pixel per row, but each step can only move one column.
 :::
 
 ::: footer
-Strategies from figure 2 of [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
+Photo: image generated by OpenAI GPT-image-2.5-sunburst. Strategies from figure 2 of [Avidan and Shamir, 2007](https://dl.acm.org/doi/10.1145/1275808.1276390)
 :::
 
 
@@ -555,7 +567,10 @@ def seam_terms(cols):
 
 
 seam_examples = [[2, 2, 2, 2, 2], [1, 2, 3, 3, 2], [0, 0, 2, 2, 2]]
-what_seam = [grid_view(toy, say=f"A tiny photo, {toy_rows} rows by {toy_cols} columns. Each number is a pixel's energy.")]
+what_seam = [grid_view(toy, say=f"English Bay as a tiny photo, {toy_rows} rows by {toy_cols} columns. "
+                                "Each number is that pixel's energy (scaled to 0 to 9).")]
+# The tiny photo itself, each pixel drawn as a 40 x 40 block, shown next to the grid.
+toy_picture_url = to_url(np.repeat(np.repeat(toy_picture, 40, axis=0), 40, axis=1))
 for cols in seam_examples:
     path = list(enumerate(cols))
     if seam_ok(cols):
@@ -567,7 +582,7 @@ for cols in seam_examples:
         what_seam.append(grid_view(toy, {p: "bad" for p in path}, path, "bad", say=say))
 for k, v in enumerate(what_seam):
     v["count"] = f"{k} of {len(what_seam) - 1}"
-ojs_define(what_seam = what_seam)
+ojs_define(what_seam = what_seam, toy_picture_url = toy_picture_url)
 ```
 
 ## What is a seam? {style="font-size: 0.75em;"}
@@ -585,7 +600,12 @@ viewof seam_step = Inputs.button([
 //| echo: false
 {
   const v = what_seam[seam_step];
-  return html`<div class="ojs-readout"><span class="sq-count">${v.count}</span> ${v.say}</div>${draw_grid(v)}`;
+  return html`<div class="ojs-readout"><span class="sq-count">${v.count}</span> ${v.say}</div>
+  <div style="display: flex; gap: 30px; align-items: center; justify-content: center;">
+    <figure style="margin: 0;"><img src="${toy_picture_url}" width="200" style="margin: 0; image-rendering: pixelated; border: 2px solid #b8b6b0;">
+      <figcaption class="ds-caption">the tiny photo</figcaption></figure>
+    ${draw_grid(v, {width: 560})}
+  </div>`;
 }
 ```
 
@@ -594,6 +614,8 @@ A **vertical seam**: one pixel in every row, top to bottom, each step down-left,
 :::
 
 ::: {.notes}
+- Start on the tiny photo: the sun, the sail and the otter's edges have big numbers, the flat sky, sea and sand small ones. The faded colours behind the numbers are the same pixels.
+- Energy measures change between neighbours, so the middle of a flat patch scores low, even inside the sail.
 - The seam must be connected, otherwise removing it tears the picture: the rows would shift by different amounts and edges would break.
 - Our goal: the seam with the smallest total energy.
 :::
@@ -671,8 +693,8 @@ Taking the best-looking step now and never undoing it is a **greedy** algorithm.
 
 ::: {.notes}
 - More on greedy after the course evaluations: it is not always wrong.
-- The cheap 1 in the top right corner forces greedy into a 5 in row 1. It never looks back.
-- The best seam starts at a 3, more than greedy's 1, but then it finds the cheap 1s on the left.
+- Point at the tiny photo: greedy starts at the 0 in the corner of the sail, then has to go down through the sail. It never looks back, and pays `{python} greedy_cost`.
+- The best seam starts at a 1, more than greedy's 0, but it slips down between the sail and the otter: `{python} best_cost`.
 :::
 
 ```{python}
@@ -812,7 +834,7 @@ Our 5 × 5 grid has `{python} count_toy` seams. The 480 × 320 photo has `{pytho
 
 ## One pixel, many seams {style="font-size: 0.8em;"}
 
-How many of the `{python} count_toy` seams pass through the pixel in row 2, col 1 (energy 1)?
+How many of the `{python} count_toy` seams pass through the pixel in row 2, col 1 (energy `{python} int(toy[2, 1])`)?
 
 ::: {.notes}
 - Ask the room, no iClicker. Take a few guesses, then go to the next slide to reveal.
@@ -1058,10 +1080,12 @@ def find_vertical_seam(energy):
 ```{python}
 #| echo: false
 # Hidden: the expected output for the notes of "Try it yourself", and what happens when the
-# energy at row 2, col 1 changes from 1 to 9 (same table and backtracking as the visible code).
+# energy of the best seam's pixel in row 2 changes to 9 (same table and backtracking as the visible code).
 try_seam = str(backtrack(seam_table(toy))[0])
+bump_c = int(backtrack(seam_table(toy))[0][2])
+bump_from = int(toy[2, bump_c])
 toy_9 = toy.copy()
-toy_9[2, 1] = 9
+toy_9[2, bump_c] = 9
 seam_9 = backtrack(seam_table(toy_9))[0]
 try_seam_9 = str(seam_9)
 try_cost_9 = int(toy_9[np.arange(toy_rows), seam_9].sum())
@@ -1093,7 +1117,7 @@ print("seam:", seam, " total energy:", energy[np.arange(len(seam)), seam].sum())
 ::: {.notes}
 - Demo it myself, no student work time. Students can try it after class.
 - Expected: seam `{python} try_seam`, total `{python} best_cost`.
-- Live: change `energy[2, 1]` from 1 to 9. Ask the room where the seam goes now, then run it. (It moves to `{python} try_seam_9`, total `{python} try_cost_9`.)
+- Live: in `energy`, change row 2, col `{python} bump_c` (on the seam) from `{python} bump_from` to 9. Ask the room where the seam goes now, then run it. (It moves to `{python} try_seam_9`, total `{python} try_cost_9`.)
 :::
 
 ```{python}
@@ -1260,44 +1284,45 @@ The Starry Night, Vincent van Gogh, 1889. Image: [Van Gogh: The Immersive Experi
 ```{python}
 #| echo: false
 # Hidden: the "Remove the people" slide. The English Bay photo with two people on the beach, 480 x 320.
-# A box around the people gets a very negative energy, so the cheapest seam always goes through it.
-# Carve (same DP and backtracking as before) until no pixel of the box is left.
-people_photo = resized(np.asarray(Image.open("images/lec08_english_bay_people.png").convert("RGB"),
+# The people were cut out by a segmentation model (scripts/segment_people.py), saved as a mask image.
+# Their pixels get a very negative energy, so the cheapest seam always goes through them.
+# Carve (same DP and backtracking as before) until no pixel of the people is left.
+people_photo = resized(np.asarray(Image.open("images/lec08_english_bay_boats_people.png").convert("RGB"),
                                   dtype=float) / 255, photo_w, photo_h)
-people_box = np.zeros((photo_h, photo_w), dtype=bool)
-people_box[167:276, 250:321] = True    # found by hand: x 800 to 1025, y 535 to 880 in the 1536 x 1024 original
+people_mask = np.asarray(Image.open("images/lec08_english_bay_boats_people_mask.png").convert("L")
+                         .resize((photo_w, photo_h), Image.BILINEAR)) > 0
 
 
 def energy_without_people(current, where):
-    """The lab's energy, with every pixel still inside the people box set very negative."""
+    """The lab's energy, with every pixel still on a person set very negative."""
     energy = image_energy(current)
-    energy[people_box[np.arange(photo_h)[:, None], where]] = -1e6
+    energy[people_mask[np.arange(photo_h)[:, None], where]] = -1e6
     return energy
 
 
-def box_gone(gone):
-    return not (people_box & ~gone).any()
+def people_all_gone(gone):
+    return not (people_mask & ~gone).any()
 
 
-# First run: how many seams until the box is gone. Second run: keep 5 pictures on the way there.
+# First run: how many seams until the people are gone. Second run: keep 5 pictures on the way there.
 people_n = max(remove_again_and_again(people_photo, [0, photo_w // 2], fast_seam, energy_without_people,
-                                      stop_when=box_gone)[1])
+                                      stop_when=people_all_gone)[1])
 people_ks = sorted({round(people_n * f) for f in (0, 0.25, 0.5, 0.75, 1)})
 people_pics, people_gone = remove_again_and_again(people_photo, people_ks, fast_seam, energy_without_people)
-assert box_gone(people_gone[people_n])
+assert people_all_gone(people_gone[people_n])
 blue = np.array([42, 120, 214]) / 255
 people_view = {}
 for k in people_ks:
     left = people_photo.copy()
-    still_there = people_box & ~people_gone[k]
+    still_there = people_mask & ~people_gone[k]
     left[still_there] = 0.5 * left[still_there] + 0.5 * blue
     left[people_gone[k]] = orange
     if k == 0:
-        say = "Draw a box around the people (blue). Their pixels get energy −1,000,000, so every cheapest seam goes through them."
+        say = "The people, cut out by a segmentation model (blue). Their pixels get energy −1,000,000, so every cheapest seam goes through them."
     elif k < people_n:
-        say = f"{k} seams removed. Each one takes the cheapest path, and the cheapest path always crosses the box."
+        say = f"{k} seams removed. Each one takes the cheapest path, and the cheapest path always crosses a person."
     else:
-        say = f"{k} seams removed: no pixel of the box is left. The people are gone, the otter and the log stay."
+        say = f"{k} seams removed: no pixel of the people is left. The people are gone, the otter and the lifeguard chair stay."
     people_view[k] = {"left": to_url(left), "right": to_url(people_pics[k]), "width": photo_w - k, "say": say}
 ojs_define(people_view = people_view, people_ks = people_ks)
 ```
@@ -1322,10 +1347,10 @@ Same algorithm, new energy: make what you want gone the **cheapest**.
 
 ::: {.notes}
 - Keep it quick, about 1 minute. Slide straight to the end, then reveal the one line.
-- The idea: a very negative energy. The DP then finds the cheapest seam, and the cheapest seam is the one through the box.
+- The idea: a very negative energy. The DP then finds the cheapest seam, and the cheapest seam is the one through the people.
 - The opposite works too: a very high energy on the otter protects it, no seam will cross it.
 - The paper (figure 11) does this, then adds seams back so the photo returns to its original width.
-- The box was drawn by hand here. In an app, you paint over the people with your finger.
+- The blue shape is not drawn by hand: a pretrained segmentation model (Mask R-CNN) found the exact pixels of each person. Only those pixels get the negative energy, so the seams follow the outline of the people instead of a whole rectangle. In an app, you tap the person or paint over them with your finger.
 :::
 
 ::: footer
