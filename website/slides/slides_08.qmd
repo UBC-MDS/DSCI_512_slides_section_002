@@ -370,7 +370,7 @@ for k in carve_ks:
         sayings = {m: f"The original photo: {size}. Remove some columns with the slider." for m in carve_methods}
     else:
         sayings = {
-            "crop": f"Crop: {k} columns cut off the two edges. Now {size}. Whatever is near the edges is cut: the log, the umbrella, then a boat.",
+            "crop": f"Crop: {k} columns cut off the two edges. Now {size}. Whatever is near the edges is cut...",
             "squash": f"Squash: every column is {k / photo_w:.0%} thinner, the otter too. Now {size}.",
             "whole columns": f"Remove the {k} cheapest whole columns. Now {size}. "
                              "Every column crosses a boat or something on the sand, so even the cheapest ones cut through the otter.",
