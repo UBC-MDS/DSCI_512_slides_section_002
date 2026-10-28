@@ -1605,8 +1605,8 @@ Is the trained tree always the best possible tree?
 - Python's data structures: lists, dicts, sets and tuples, and the hash tables behind dicts and sets.
 - Stacks, queues, graphs and sparse matrices. Searching graphs with BFS and DFS.
 - Recursion and recursive data structures: trees, binary search trees, linked lists and k-d trees.
-- Dynamic programming: memoization, tables and backtracking.
-- A first look at optimization: greedy, dynamic programming and gradient descent.
+- Dynamic programming: memoization, tabulation and backtracking.
+- A first look at optimization: greedy algorithm, dynamic programming.
 :::
 
 ## What we did not cover {style="font-size: 0.8em;"}
