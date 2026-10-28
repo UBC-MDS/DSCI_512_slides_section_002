@@ -742,6 +742,7 @@ One `argmin` per row: fast, but it never looks further than the next row.
 - Same code as section 4.2 of the lecture notebook (docstring of `greedy_vertical_seam` left out).
 - Expected: `{python} greedy`, total `{python} greedy_cost`, the same walk as the step-through. The best seam costs `{python} best_cost`.
 - `np.argmin` returns the first smallest value, so on a tie greedy takes the leftmost pixel.
+- **Space: O(N).** The only thing it builds is `seam`, one column number per row. `energy[i, left:right + 1]` is a view of at most 3 numbers, not a copy. `seam_energy` adds up as it goes: O(1) extra.
 :::
 
 ::: footer
@@ -891,6 +892,7 @@ Our 5 × 5 grid has `{python} count_toy` seams. The 480 × 320 photo has `{pytho
 - Counting the seams is itself a counting DP, like the stairs: the seams ending at a pixel = the sum of the seams ending at the 3 pixels above it.
 - PrairieLearn Lab 4 Question 6(a) counts the seams from one pixel, Question 6(b) asks for this time complexity, and Question 7 times it. The lab's `fvs` builds the whole seam as a list and copies it on every call (`seam + [col]`), which adds up to N more work per call, so O(N · M · 3^N) is also a fine upper bound. Either way: exponential in the height N.
 - Live: change `energy` to `np.random.rand(12, 10)` and run. It takes seconds. Every extra row is about 3 times slower.
+- **Space: O(N² + NM).** The recursion is only N calls deep, because it follows one path at a time. But each call keeps its own copy of the seam (`seam + [col]` makes a new list, up to N long): N frames × N = O(N²). The `costs` dict at the end keeps M seams of length N: O(NM). Time is exponential, but space is not: the stack never holds more than one path.
 :::
 
 ::: footer
@@ -1152,6 +1154,7 @@ def find_vertical_seam(energy):
 - PrairieLearn Lab 4 Questions 11 to 13: make the forward pass faster by replacing the `j` loop with numpy (vectorizing); Question 13 writes the vectorized loop. The algorithm stays the same.
 - The `-1` in `delta` and the `-1` on the last line are two different things: the first turns 0, 1, 2 into a step, the second undoes the padding.
 - The last line: column 0 of the image is column 1 of CME, because of the padding.
+- **Space: O(NM).** `CME` has N rows and M + 2 columns, and `seam` adds N more. We keep the whole table because backtracking reads every row again. If we only wanted the cost, two rows would be enough: O(M).
 :::
 
 ```{python}
@@ -1195,6 +1198,7 @@ print("seam:", seam, " total energy:", energy[np.arange(len(seam)), seam].sum())
 - Demo it myself, no student work time. Students can try it after class.
 - Expected: seam `{python} try_seam`, total `{python} best_cost`.
 - Live: in `energy`, change row 2, col `{python} bump_c` (on the seam) from `{python} bump_from` to 9. Ask the room where the seam goes now, then run it. (It moves to `{python} try_seam_9`, total `{python} try_cost_9`.)
+- **Space: O(NM).** Same function as the last slide: the N × (M + 2) `CME` table, which backtracking needs, plus the seam of length N.
 :::
 
 ::: footer
@@ -1532,6 +1536,7 @@ print(greedy_coins([25, 10, 5, 1], 36))
 
 ::: {.notes}
 - Greedy failed on the seam. Here it works. So what is different?
+- **Space: O(C + k)**, with C coin types and k coins handed back. `sorted` makes a copy of the C coins, and `used` grows by one per coin. With a 1 cent coin, k can be as large as `amount`, so the worst case is O(C + amount).
 :::
 
 ## DP: try every last coin {style="font-size: 0.75em;"}
@@ -1561,6 +1566,7 @@ Greedy commits to **one** coin. DP compares every last coin, using stored answer
 - np.inf, like the seam padding: min never picks it, and 1 + inf is still inf. Try min_coins([3], 2).
 - Optimal substructure: if the best way to make 6 ends with a 3, the rest must be the best way to make 3.
 - Time: O(amount × number of coins).
+- **Space: O(amount).** The `dp` list has one entry per amount from 0 to `amount`. We keep all of them because `dp[a - c]` can reach back as far as the largest coin.
 :::
 
 # Greedy or not? {style="font-size: 0.8em;"}
@@ -1599,7 +1605,7 @@ Is the trained tree always the best possible tree?
 - `CME`: each cell = its own energy + the cheapest of the 3 cells above it. Pad with ∞ so `min` ignores the edges. Brute force is $O(M \cdot 3^N)$, the DP table is $O(NM)$.
 - **Backtracking** recovers the choices: start at the best cell at the end, and walk back through the table.
 - Optimization: decision variables, objective, constraints, minimize or maximize.
-- Greedy takes the best-looking step and never undoes it. Fast, but only guaranteed best with the greedy-choice property (25, 10, 5, 1 yes; 1, 3, 4 no).
+- Greedy takes the best-looking step and never undoes it. Fast, but only guaranteed best with the greedy-choice property.
 - DP for optimization: the same recipe as counting, with `min` instead of `+`.
 - Removing seams one at a time, decision trees and gradient descent are all greedy in spirit.
 :::
