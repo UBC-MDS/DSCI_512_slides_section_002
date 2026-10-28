@@ -213,3 +213,14 @@
 .reveal .word-wrap.big .word-row { gap: 20px; }
 .reveal .word-wrap.big .word-name { font-size: 30px; }
 .reveal .word-wrap.big .word-sub { font-size: 22px; }
+
+/* A footer that sits on top of a busy background image: a soft white backing so it stays readable. */
+.reveal .footer.footer-on-image {
+  width: fit-content;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+}
