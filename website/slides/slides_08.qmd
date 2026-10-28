@@ -1612,7 +1612,6 @@ Is the trained tree always the best possible tree?
 ## What we did not cover {style="font-size: 0.8em;"}
 
 - Sorting algorithms (merge sort, quicksort)
-- Divide and conquer
 - Other ways to speed up Python: JIT compilers (Numba), Cython, PyPy
 - Parallel and distributed computing
 - Linear programming and solvers like PuLP
