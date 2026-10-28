@@ -35,7 +35,7 @@ title-slide-attributes:
 ::: {.incremental}
 - CONGRATULATIONS on making it through DSCI 512!
 - Lecture recordings have been released (well, most of them...)
-- Quiz 2 will cover only week 3+4 content, practice quiz coming soon (HIGHLY recommend doing this!)
+- Quiz 2 will cover only week 3+4 content (we will not test **optimization**), practice quiz coming soon (HIGHLY recommend doing this!)
 - Live coding retakes are available until November 6th (next Friday) 5pm. 
 - [Grokking Algorithm](https://learning.oreilly.com/library/view/grokking-algorithms-second/9781633438538/OEBPS/Text/11.html) is a great book for self-study!
 :::
