@@ -1598,18 +1598,6 @@ Is the trained tree always the best possible tree?
 
 
 
-## Today's takeaways {style="font-size: 0.8em;"}
-
-::: {.incremental}
-- Seam carving shrinks a photo by removing the cheapest connected seam, again and again.
-- `CME`: each cell = its own energy + the cheapest of the 3 cells above it. Pad with ∞ so `min` ignores the edges. Brute force is $O(M \cdot 3^N)$, the DP table is $O(NM)$.
-- **Backtracking** recovers the choices: start at the best cell at the end, and walk back through the table.
-- Optimization: decision variables, objective, constraints, minimize or maximize.
-- Greedy takes the best-looking step and never undoes it. Fast, but only guaranteed best with the greedy-choice property.
-- DP for optimization: the same recipe as counting, with `min` instead of `+`.
-- Removing seams one at a time, decision trees and gradient descent are all greedy in spirit.
-:::
-
 ## What we learned in DSCI 512 {style="font-size: 0.8em;"}
 
 ::: {.incremental}
