@@ -2,7 +2,15 @@
 title: "8. Optimization, Greedy Algorithms and Dynamic Programming II"
 description: "Seam carving with dynamic programming and backtracking, greedy algorithms, and the vocabulary of optimization."
 description-short: "Find the cheapest seam in a photo with dynamic programming, recover it by backtracking, and see when greedy algorithms find the best answer and when they fail."
+recording: "https://www.youtube.com/embed/sFWjginGBD8"
 ---
+
+## Lecture Recording
+
+<div class="ratio ratio-16x9">
+<iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 8 recording"></iframe>
+</div>
+
 
 ## Slides for Section 002
 
