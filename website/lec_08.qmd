@@ -7,6 +7,8 @@ recording: "https://www.youtube.com/embed/sFWjginGBD8"
 
 ## Lecture Recording
 
+*Note: In the lecture we covered everything until the end of the seam carving section, which is everything that would be covered in the quiz2. Everything after slide 30 are optimization content, which will **NOT** be covered in the quiz2.*
+
 <div class="ratio ratio-16x9">
 <iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 8 recording"></iframe>
 </div>
