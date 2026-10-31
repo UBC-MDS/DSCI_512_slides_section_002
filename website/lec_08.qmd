@@ -13,6 +13,14 @@ recording: "https://www.youtube.com/embed/sFWjginGBD8"
 <iframe src="{{< meta recording >}}" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 8 recording"></iframe>
 </div>
 
+## (Bonus Lecture) Optimization Recording
+
+*This video covers the optimization content for your own interest. It will **NOT** be covered in the quiz2.*
+
+<div class="ratio ratio-16x9">
+<iframe src="https://www.youtube.com/embed/gn1WJlHM56o" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0" title="Lecture 8 bonus recording"></iframe>
+</div>
+
 
 ## Slides for Section 002
 
